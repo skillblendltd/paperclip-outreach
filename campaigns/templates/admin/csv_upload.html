@@ -1,0 +1,39 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h2>{{ title }}</h2>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="form-row">
+    <label for="campaign_id"><strong>Campaign:</strong></label>
+    <select name="campaign_id" id="campaign_id" required>
+      <option value="">-- Select Campaign --</option>
+      {% for c in campaigns %}
+        <option value="{{ c.id }}">{{ c.name }} [{{ c.product }}]</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-row" style="margin-top: 10px;">
+    <label for="id_csv_file"><strong>CSV File:</strong></label>
+    {{ form.csv_file }}
+  </div>
+
+  <p style="margin-top: 10px; color: #666;">
+    CSV columns auto-mapped: business_name/company/name, email, website, phone, city, region/state,
+    decision_maker_name/contact, title, segment, tier, score, current_tools, pain_signals, notes.
+    Upserts by email within the selected campaign.
+  </p>
+
+  <div style="margin-top: 15px;">
+    <input type="hidden" name="apply" value="1">
+    <input type="submit" value="Upload &amp; Import" class="default">
+    <a href="{% url 'admin:campaigns_prospect_changelist' %}" style="margin-left: 10px;">Cancel</a>
+  </div>
+</form>
+{% endblock %}
