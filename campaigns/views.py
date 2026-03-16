@@ -10,7 +10,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Q, Count
 
 from campaigns.models import Campaign, Prospect, EmailLog, EmailQueue, Suppression
 from campaigns.email_service import EmailService
@@ -110,6 +110,14 @@ def outreach_send(request):
     if prospect.status in ('not_interested', 'opted_out'):
         return JsonResponse({'error': f'Prospect status is {prospect.status}', 'status': 'blocked'}, status=403)
 
+    # Follow-up emails (sequence > 1) only allowed for 'contacted' prospects
+    sequence_number_check = data.get('sequence_number', 1)
+    if sequence_number_check > 1 and prospect.status != 'contacted':
+        return JsonResponse({
+            'error': f'Follow-up emails only allowed for contacted prospects (current status: {prospect.status})',
+            'status': 'blocked',
+        }, status=403)
+
     if not prospect.email:
         return JsonResponse({'error': f'No email for {prospect.business_name}', 'status': 'blocked'}, status=400)
 
@@ -151,11 +159,33 @@ def outreach_send(request):
     template_name = data.get('template_name', '')
     ab_variant = data.get('ab_variant', '') or _ab_variant(prospect)
 
+    # Extract YEAR from notes/pain_signals (format: "Enquiry year: 2021" or "Enquired 2021.")
+    year = ''
+    for field_text in [prospect.pain_signals, prospect.notes]:
+        if 'Enquired ' in field_text:
+            for part in field_text.split('.'):
+                part = part.strip()
+                if part.startswith('Enquired '):
+                    val = part.replace('Enquired ', '').strip()
+                    if val.isdigit() and len(val) == 4:
+                        year = val
+                        break
+        if not year and 'Enquiry year:' in field_text:
+            for part in field_text.split('.'):
+                if 'Enquiry year:' in part:
+                    val = part.split(':')[-1].strip()
+                    if val.isdigit() and len(val) == 4:
+                        year = val
+                        break
+        if year:
+            break
+
     variables = {
         'FNAME': prospect.decision_maker_name.split()[0] if prospect.decision_maker_name else 'there',
         'COMPANY': prospect.business_name,
         'CITY': prospect.city,
         'SEGMENT': prospect.get_segment_display() if prospect.segment else prospect.business_type,
+        'YEAR': year or 'a while back',
     }
 
     rendered_subject = EmailService.render_template(subject, variables)
@@ -220,15 +250,30 @@ def outreach_send(request):
 
 @csrf_exempt
 def outreach_prospects(request):
-    """GET /api/prospects/?campaign_id=...&tier=A&status=new&has_email=true&limit=50"""
+    """GET /api/prospects/?campaign_id=...&tier=A&status=new&has_email=true&limit=50&product=fullypromoted"""
     if request.method != 'GET':
         return JsonResponse({'error': 'GET only'}, status=405)
 
-    campaign, err = _get_campaign(request)
-    if err:
-        return err
-
-    qs = Prospect.objects.filter(campaign=campaign, send_enabled=True)
+    # Support product-level filtering (returns prospects across all campaigns for that product)
+    product = request.GET.get('product')
+    campaign = None
+    valid_products = {code for code, _ in Campaign.PRODUCT_CHOICES}
+    if product and not request.GET.get('campaign_id'):
+        if product not in valid_products:
+            return JsonResponse({
+                'error': f'Invalid product "{product}". Valid: {", ".join(sorted(valid_products))}',
+            }, status=400)
+        qs = Prospect.objects.filter(
+            campaign__product=product, send_enabled=True
+        ).select_related('campaign')
+    else:
+        campaign, err = _get_campaign(request)
+        if err:
+            return err
+        product = campaign.product
+        qs = Prospect.objects.filter(
+            campaign=campaign, send_enabled=True
+        ).select_related('campaign')
 
     tier = request.GET.get('tier')
     if tier:
@@ -248,11 +293,12 @@ def outreach_prospects(request):
     suppressed = Suppression.objects.values_list('email', flat=True)
     qs = qs.exclude(email__in=suppressed)
 
-    limit = min(int(request.GET.get('limit', 50)), 200)
+    limit = min(int(request.GET.get('limit', 50)), 1000)
     prospects = qs.order_by('-score')[:limit]
 
     return JsonResponse({
-        'campaign': campaign.name,
+        'campaign': campaign.name if campaign else f'all_{product}',
+        'product': product,
         'count': qs.count(),
         'prospects': [
             {
@@ -268,7 +314,10 @@ def outreach_prospects(request):
                 'city': p.city,
                 'current_tools': p.current_tools,
                 'pain_signals': p.pain_signals,
+                'notes': p.notes,
                 'ab_variant': _ab_variant(p),
+                'campaign_name': p.campaign.name,
+                'campaign_id': str(p.campaign_id),
             }
             for p in prospects
         ],
@@ -300,6 +349,7 @@ def outreach_status(request):
 
     return JsonResponse({
         'campaign': campaign.name,
+        'product': campaign.product,
         'sending_enabled': campaign.sending_enabled,
         'max_emails_per_day': campaign.max_emails_per_day,
         'sent_today': sent_today,
@@ -322,6 +372,70 @@ def outreach_status(request):
             'duplicate_sequence_blocked': True,
             'suppression_list_active': True,
         },
+    })
+
+
+@csrf_exempt
+def outreach_dashboard(request):
+    """
+    GET /api/dashboard/
+    Cross-product overview — shows stats for all products at a glance.
+    Optional: ?product=fullypromoted to filter to one product.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+
+    product_filter = request.GET.get('product')
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    products = {}
+    for code, label in Campaign.PRODUCT_CHOICES:
+        if product_filter and code != product_filter:
+            continue
+
+        campaigns = Campaign.objects.filter(product=code).annotate(
+            _prospect_count=Count('prospects'),
+        )
+        if not campaigns.exists():
+            continue
+
+        product_prospects = Prospect.objects.filter(campaign__product=code)
+        total_prospects = product_prospects.count()
+        with_email = product_prospects.filter(
+            send_enabled=True
+        ).exclude(Q(email='') | Q(email__isnull=True)).count()
+
+        product_logs = EmailLog.objects.filter(campaign__product=code, status='sent')
+        sent_today = product_logs.filter(created_at__gte=today_start).count()
+        total_sent = product_logs.count()
+
+        by_status = {}
+        for s_code, s_label in Prospect.STATUS_CHOICES:
+            count = product_prospects.filter(status=s_code).count()
+            if count > 0:
+                by_status[s_code] = count
+
+        products[code] = {
+            'label': label,
+            'campaigns': [
+                {
+                    'id': str(c.id),
+                    'name': c.name,
+                    'sending_enabled': c.sending_enabled,
+                    'prospects': c._prospect_count,
+                }
+                for c in campaigns
+            ],
+            'total_prospects': total_prospects,
+            'prospects_with_email': with_email,
+            'sent_today': sent_today,
+            'total_sent': total_sent,
+            'by_status': by_status,
+        }
+
+    return JsonResponse({
+        'products': products,
+        'suppressed_count': Suppression.objects.count(),
     })
 
 

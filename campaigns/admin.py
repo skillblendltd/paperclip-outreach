@@ -1,6 +1,6 @@
 """
 Django Admin for Paperclip Outreach.
-Full visibility into multi-campaign outreach pipeline.
+Multi-product outreach pipeline: TaggIQ, Fully Promoted, Kritno.
 """
 import csv
 import io
@@ -8,16 +8,33 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.db.models import Count, Q
 
 from .models import Campaign, Prospect, EmailLog, EmailQueue, Suppression
 from .forms import CsvUploadForm
 
 
+# Product colour scheme — used throughout admin for visual separation
+PRODUCT_COLOURS = {
+    'taggiq': '#3498db',
+    'fullypromoted': '#e67e22',
+    'kritno': '#9b59b6',
+    'other': '#95a5a6',
+}
+
+PRODUCT_LABELS = {
+    'taggiq': 'TaggIQ',
+    'fullypromoted': 'Fully Promoted',
+    'kritno': 'Kritno',
+    'other': 'Other',
+}
+
+
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'product', 'sending_status', 'from_email',
-        'max_emails_per_day', 'min_gap_minutes',
+        'name', 'product_badge', 'sending_status', 'from_email',
+        'prospect_count', 'max_emails_per_day', 'min_gap_minutes',
     ]
     list_filter = ['product', 'sending_enabled']
     search_fields = ['name']
@@ -41,6 +58,25 @@ class CampaignAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            _prospect_count=Count('prospects'),
+        )
+
+    @admin.display(description='Product')
+    def product_badge(self, obj):
+        colour = PRODUCT_COLOURS.get(obj.product, '#95a5a6')
+        label = PRODUCT_LABELS.get(obj.product, obj.product)
+        return format_html(
+            '<span style="background:{};color:#fff;padding:3px 10px;'
+            'border-radius:3px;font-weight:bold;font-size:11px">{}</span>',
+            colour, label
+        )
+
+    @admin.display(description='Prospects', ordering='_prospect_count')
+    def prospect_count(self, obj):
+        return obj._prospect_count
 
     @admin.display(description='Sending')
     def sending_status(self, obj):
@@ -87,16 +123,35 @@ CSV_COLUMN_MAP = {
 }
 
 
+class ProductListFilter(admin.SimpleListFilter):
+    """Top-level product filter — appears first in the sidebar."""
+    title = 'product'
+    parameter_name = 'product'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('taggiq', 'TaggIQ'),
+            ('fullypromoted', 'Fully Promoted'),
+            ('kritno', 'Kritno'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(campaign__product=self.value())
+        return queryset
+
+
 @admin.register(Prospect)
 class ProspectAdmin(admin.ModelAdmin):
     list_display = [
-        'business_name', 'campaign', 'tier_badge', 'score', 'segment',
+        'business_name', 'product_badge', 'campaign', 'tier_badge', 'score',
         'status_badge', 'email', 'decision_maker_name',
-        'city', 'region', 'emails_sent', 'send_enabled', 'last_emailed_at',
+        'city', 'emails_sent', 'send_enabled', 'last_emailed_at',
     ]
-    list_filter = ['campaign', 'tier', 'status', 'segment', 'send_enabled', 'region', 'emails_sent']
+    list_filter = [ProductListFilter, 'campaign', 'tier', 'status', 'segment', 'send_enabled', 'region', 'emails_sent']
     search_fields = ['business_name', 'email', 'decision_maker_name', 'city', 'region']
     list_editable = ['send_enabled']
+    list_select_related = ['campaign']
     readonly_fields = ['emails_sent', 'last_emailed_at', 'created_at', 'updated_at']
     list_per_page = 50
     ordering = ['-score']
@@ -122,6 +177,17 @@ class ProspectAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+    @admin.display(description='Product')
+    def product_badge(self, obj):
+        product = obj.campaign.product
+        colour = PRODUCT_COLOURS.get(product, '#95a5a6')
+        label = PRODUCT_LABELS.get(product, product)
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:3px;font-size:10px;font-weight:bold">{}</span>',
+            colour, label
+        )
 
     actions = [
         'enable_sending', 'disable_sending',
@@ -324,13 +390,27 @@ class ProspectAdmin(admin.ModelAdmin):
         })
 
 
+class ProductLogFilter(admin.SimpleListFilter):
+    title = 'product'
+    parameter_name = 'product'
+
+    def lookups(self, request, model_admin):
+        return [('taggiq', 'TaggIQ'), ('fullypromoted', 'Fully Promoted'), ('kritno', 'Kritno')]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(campaign__product=self.value())
+        return queryset
+
+
 @admin.register(EmailLog)
 class EmailLogAdmin(admin.ModelAdmin):
     list_display = [
-        'created_at', 'campaign', 'prospect_name', 'to_email', 'subject',
+        'created_at', 'product_badge', 'campaign', 'prospect_name', 'to_email', 'subject',
         'sequence_number', 'template_name', 'ab_variant', 'status_badge', 'triggered_by',
     ]
-    list_filter = ['campaign', 'status', 'sequence_number', 'ab_variant', 'triggered_by', 'template_name']
+    list_filter = [ProductLogFilter, 'campaign', 'status', 'sequence_number', 'ab_variant', 'triggered_by', 'template_name']
+    list_select_related = ['campaign', 'prospect']
     search_fields = ['to_email', 'subject', 'prospect__business_name']
     readonly_fields = [
         'campaign', 'prospect', 'to_email', 'subject', 'body_html',
@@ -340,6 +420,17 @@ class EmailLogAdmin(admin.ModelAdmin):
     ]
     list_per_page = 50
     date_hierarchy = 'created_at'
+
+    @admin.display(description='Product')
+    def product_badge(self, obj):
+        product = obj.campaign.product
+        colour = PRODUCT_COLOURS.get(product, '#95a5a6')
+        label = PRODUCT_LABELS.get(product, product)
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:3px;font-size:10px;font-weight:bold">{}</span>',
+            colour, label
+        )
 
     @admin.display(description='Prospect')
     def prospect_name(self, obj):
@@ -368,14 +459,26 @@ class EmailLogAdmin(admin.ModelAdmin):
 @admin.register(EmailQueue)
 class EmailQueueAdmin(admin.ModelAdmin):
     list_display = [
-        'send_after', 'campaign', 'prospect_name', 'prospect_email',
+        'send_after', 'product_badge', 'campaign', 'prospect_name', 'prospect_email',
         'sequence_number', 'ab_variant', 'status_badge',
     ]
-    list_filter = ['campaign', 'status', 'sequence_number']
+    list_filter = [ProductLogFilter, 'campaign', 'status', 'sequence_number']
+    list_select_related = ['campaign', 'prospect']
     search_fields = ['prospect__business_name', 'prospect__email', 'subject']
     list_per_page = 50
     ordering = ['send_after']
     actions = ['cancel_selected']
+
+    @admin.display(description='Product')
+    def product_badge(self, obj):
+        product = obj.campaign.product
+        colour = PRODUCT_COLOURS.get(product, '#95a5a6')
+        label = PRODUCT_LABELS.get(product, product)
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:3px;font-size:10px;font-weight:bold">{}</span>',
+            colour, label
+        )
 
     @admin.display(description='Prospect')
     def prospect_name(self, obj):
