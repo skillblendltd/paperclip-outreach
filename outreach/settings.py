@@ -65,6 +65,18 @@ AWS_SMTP_USERNAME = os.getenv('AWS_SMTP_USERNAME', '')
 AWS_SMTP_PASSWORD = os.getenv('AWS_SMTP_PASSWORD', '')
 AWS_SES_FROM_EMAIL = os.getenv('AWS_SES_FROM_EMAIL', 'noreply@example.com')
 
+# Zoho IMAP (reading replies)
+ZOHO_IMAP_HOST = os.getenv('ZOHO_IMAP_HOST', 'imappro.zoho.eu')
+ZOHO_IMAP_PORT = int(os.getenv('ZOHO_IMAP_PORT', '993'))
+ZOHO_IMAP_EMAIL = os.getenv('ZOHO_IMAP_EMAIL', '')
+ZOHO_IMAP_PASSWORD = os.getenv('ZOHO_IMAP_PASSWORD', '')
+
+# Zoho SMTP (sending threaded replies)
+ZOHO_SMTP_HOST = os.getenv('ZOHO_SMTP_HOST', 'smtppro.zoho.eu')
+ZOHO_SMTP_PORT = int(os.getenv('ZOHO_SMTP_PORT', '465'))
+ZOHO_SMTP_EMAIL = os.getenv('ZOHO_SMTP_EMAIL', '')
+ZOHO_SMTP_PASSWORD = os.getenv('ZOHO_SMTP_PASSWORD', '')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

@@ -45,6 +45,12 @@ class Campaign(BaseModel):
                 '"unsubscribe" and we\'ll remove you immediately.</p>',
     )
 
+    # Auto-reply safeguard
+    auto_reply_enabled = models.BooleanField(
+        default=False,
+        help_text='Enable autonomous auto-replies for interested/question/other classifications',
+    )
+
     class Meta:
         db_table = 'campaigns'
         ordering = ['name']
@@ -198,6 +204,53 @@ class EmailQueue(BaseModel):
         return f'{self.prospect.email} seq={self.sequence_number} send_after={self.send_after} [{self.status}]'
 
 
+class InboundEmail(BaseModel):
+    """Inbound email replies captured from Zoho IMAP."""
+
+    CLASSIFICATION_CHOICES = [
+        ('interested', 'Interested'),
+        ('not_interested', 'Not Interested'),
+        ('opt_out', 'Opt Out'),
+        ('question', 'Question'),
+        ('out_of_office', 'Out of Office'),
+        ('bounce', 'Bounce'),
+        ('other', 'Other'),
+    ]
+
+    prospect = models.ForeignKey('Prospect', null=True, blank=True, on_delete=models.SET_NULL, related_name='inbound_emails')
+    campaign = models.ForeignKey('Campaign', null=True, blank=True, on_delete=models.SET_NULL, related_name='inbound_emails')
+
+    from_email = models.EmailField()
+    from_name = models.CharField(max_length=300, blank=True, default='')
+    subject = models.CharField(max_length=500)
+    body_text = models.TextField(default='')
+    message_id = models.CharField(max_length=500, unique=True)
+    in_reply_to = models.CharField(max_length=500, blank=True, default='')
+
+    classification = models.CharField(max_length=20, choices=CLASSIFICATION_CHOICES, default='other')
+    replied_to_sequence = models.IntegerField(null=True, blank=True)
+
+    needs_reply = models.BooleanField(default=False)
+    replied = models.BooleanField(default=False)
+    auto_replied = models.BooleanField(default=False, help_text='True if reply was sent by auto-reply system')
+    reply_sent_at = models.DateTimeField(null=True, blank=True)
+    status_updated = models.BooleanField(default=False)
+    notes = models.TextField(blank=True, default='')
+
+    received_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'inbound_emails'
+        ordering = ['-received_at']
+        indexes = [
+            models.Index(fields=['from_email']),
+            models.Index(fields=['classification', 'needs_reply']),
+        ]
+
+    def __str__(self):
+        return f'{self.from_email} - {self.classification} - {self.subject[:50]}'
+
+
 class Suppression(BaseModel):
     REASON_CHOICES = [
         ('opt_out', 'Opted Out'),
@@ -216,3 +269,38 @@ class Suppression(BaseModel):
 
     def __str__(self):
         return f'{self.email} - {self.reason}'
+
+
+class ReplyTemplate(BaseModel):
+    """
+    Pre-configured auto-reply templates per campaign + classification.
+    Variables: {{FNAME}}, {{COMPANY}}, {{CITY}}, {{SEGMENT}},
+               {{ORIGINAL_SUBJECT}}, {{ORIGINAL_BODY_SHORT}}
+    """
+
+    CLASSIFICATION_CHOICES = [
+        ('interested', 'Interested'),
+        ('question', 'Question'),
+        ('other', 'Other'),
+    ]
+
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='reply_templates')
+    classification = models.CharField(max_length=20, choices=CLASSIFICATION_CHOICES)
+    subject_template = models.CharField(
+        max_length=500,
+        default='Re: {{ORIGINAL_SUBJECT}}',
+        help_text='Subject line template. Variables: {{ORIGINAL_SUBJECT}}',
+    )
+    body_html_template = models.TextField(
+        help_text='HTML body template. Variables: {{FNAME}}, {{COMPANY}}, {{CITY}}, '
+                  '{{SEGMENT}}, {{ORIGINAL_SUBJECT}}, {{ORIGINAL_BODY_SHORT}}',
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'reply_templates'
+        unique_together = [('campaign', 'classification')]
+        ordering = ['campaign', 'classification']
+
+    def __str__(self):
+        return f'{self.campaign.name} — {self.get_classification_display()} reply'

@@ -10,7 +10,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db.models import Count, Q
 
-from .models import Campaign, Prospect, EmailLog, EmailQueue, Suppression
+from .models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, InboundEmail, ReplyTemplate
 from .forms import CsvUploadForm
 
 
@@ -48,7 +48,7 @@ class CampaignAdmin(admin.ModelAdmin):
         }),
         ('Safeguards', {
             'fields': (
-                'sending_enabled', 'max_emails_per_day',
+                'sending_enabled', 'auto_reply_enabled', 'max_emails_per_day',
                 'min_gap_minutes', 'max_emails_per_prospect',
                 'require_sequence_order', 'follow_up_days',
             )
@@ -505,6 +505,114 @@ class EmailQueueAdmin(admin.ModelAdmin):
     def cancel_selected(self, request, queryset):
         updated = queryset.filter(status='pending').update(status='cancelled')
         self.message_user(request, f'{updated} queued email(s) cancelled.')
+
+
+@admin.register(InboundEmail)
+class InboundEmailAdmin(admin.ModelAdmin):
+    list_display = [
+        'received_at', 'from_email', 'prospect_link', 'campaign',
+        'subject_short', 'classification_badge', 'needs_reply_badge',
+        'replied_badge', 'auto_replied_badge',
+    ]
+    list_filter = [
+        'classification', 'needs_reply', 'replied', 'auto_replied', 'campaign',
+    ]
+    list_select_related = ['prospect', 'campaign']
+    search_fields = ['from_email', 'subject', 'body_text', 'from_name']
+    readonly_fields = [
+        'prospect', 'campaign', 'from_email', 'from_name', 'subject',
+        'body_text', 'message_id', 'in_reply_to', 'classification',
+        'replied_to_sequence', 'needs_reply', 'replied', 'auto_replied',
+        'reply_sent_at', 'status_updated', 'notes', 'received_at',
+        'created_at', 'updated_at',
+    ]
+    list_per_page = 50
+    date_hierarchy = 'received_at'
+    ordering = ['-received_at']
+
+    @admin.display(description='Prospect')
+    def prospect_link(self, obj):
+        if obj.prospect:
+            return obj.prospect.business_name
+        return format_html('<span style="color:#999">—</span>')
+
+    @admin.display(description='Subject')
+    def subject_short(self, obj):
+        return obj.subject[:60] + '...' if len(obj.subject) > 60 else obj.subject
+
+    @admin.display(description='Classification')
+    def classification_badge(self, obj):
+        colours = {
+            'interested': '#27ae60', 'not_interested': '#e74c3c',
+            'opt_out': '#95a5a6', 'question': '#f39c12',
+            'out_of_office': '#3498db', 'bounce': '#c0392b',
+            'other': '#7f8c8d',
+        }
+        colour = colours.get(obj.classification, '#7f8c8d')
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:3px;font-size:11px">{}</span>',
+            colour, obj.get_classification_display()
+        )
+
+    @admin.display(description='Needs Reply', boolean=True)
+    def needs_reply_badge(self, obj):
+        return obj.needs_reply
+
+    @admin.display(description='Replied', boolean=True)
+    def replied_badge(self, obj):
+        return obj.replied
+
+    @admin.display(description='Auto', boolean=True)
+    def auto_replied_badge(self, obj):
+        return obj.auto_replied
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ReplyTemplate)
+class ReplyTemplateAdmin(admin.ModelAdmin):
+    list_display = [
+        'campaign', 'classification_badge', 'is_active', 'subject_template',
+        'updated_at',
+    ]
+    list_filter = ['campaign', 'classification', 'is_active']
+    list_editable = ['is_active']
+    search_fields = ['campaign__name', 'subject_template', 'body_html_template']
+
+    fieldsets = (
+        (None, {
+            'fields': ('campaign', 'classification', 'is_active'),
+        }),
+        ('Template', {
+            'fields': ('subject_template', 'body_html_template'),
+            'description': (
+                'Available variables: {{FNAME}}, {{COMPANY}}, {{CITY}}, {{SEGMENT}}, '
+                '{{ORIGINAL_SUBJECT}}, {{ORIGINAL_BODY_SHORT}}'
+            ),
+        }),
+    )
+
+    @admin.display(description='Classification')
+    def classification_badge(self, obj):
+        colours = {
+            'interested': '#27ae60',
+            'question': '#f39c12',
+            'other': '#7f8c8d',
+        }
+        colour = colours.get(obj.classification, '#7f8c8d')
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:3px;font-size:11px">{}</span>',
+            colour, obj.get_classification_display()
+        )
 
 
 @admin.register(Suppression)

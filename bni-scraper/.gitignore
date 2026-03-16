@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+auth_state.json
+debug.png
+debug_screenshot.png
+bni_contacts.csv
+bni_embroidery_global.csv
+*.csv

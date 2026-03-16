@@ -99,6 +99,79 @@ class EmailService:
             return {"status": "queued", "message_id": f"console-{uuid.uuid4()}"}
 
     @staticmethod
+    def send_reply(
+        to_email: str,
+        subject: str,
+        body_html: str,
+        in_reply_to: str,
+        references: str = '',
+        from_email: str = None,
+        from_name: str = None,
+    ) -> Dict[str, str]:
+        """Send reply via Zoho SMTP for proper email threading."""
+        from_address = from_email or settings.ZOHO_SMTP_EMAIL
+        mode = getattr(settings, 'EMAIL_SERVICE_MODE', 'console')
+
+        if from_name:
+            from_header = formataddr((from_name, from_address))
+        else:
+            from_header = from_address
+
+        logger.info("=" * 80)
+        logger.info(f"[ZOHO SMTP REPLY - {mode.upper()}]")
+        logger.info(f"From: {from_header}")
+        logger.info(f"To: {to_email}")
+        logger.info(f"Subject: {subject}")
+        logger.info(f"In-Reply-To: {in_reply_to}")
+        logger.info(f"Body Length: {len(body_html)} characters")
+        logger.info("=" * 80)
+
+        if mode == 'console':
+            msg_id = f"console-reply-{uuid.uuid4()}"
+            logger.info(f"[CONSOLE MODE] Would send reply via Zoho SMTP. MessageId: {msg_id}")
+            return {"status": "sent", "message_id": msg_id}
+
+        try:
+            smtp_host = settings.ZOHO_SMTP_HOST
+            smtp_port = settings.ZOHO_SMTP_PORT
+            smtp_user = settings.ZOHO_SMTP_EMAIL
+            smtp_pass = settings.ZOHO_SMTP_PASSWORD
+
+            msg = MIMEMultipart('mixed')
+            msg['Subject'] = subject
+            msg['From'] = from_header
+            msg['To'] = to_email
+
+            if in_reply_to:
+                msg['In-Reply-To'] = in_reply_to
+                msg['References'] = references or in_reply_to
+
+            full_html = EmailService._wrap_html(body_html)
+            msg_body = MIMEMultipart('alternative')
+            html_part = MIMEText(full_html, 'html')
+            msg_body.attach(html_part)
+            msg.attach(msg_body)
+
+            # Port 465 = direct SSL, port 587 = STARTTLS
+            if smtp_port == 465:
+                with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+                    server.login(smtp_user, smtp_pass)
+                    server.sendmail(from_address, [to_email], msg.as_string())
+            else:
+                with smtplib.SMTP(smtp_host, smtp_port) as server:
+                    server.starttls()
+                    server.login(smtp_user, smtp_pass)
+                    server.sendmail(from_address, [to_email], msg.as_string())
+
+            message_id = f"zoho-reply-{uuid.uuid4()}"
+            logger.info(f"Reply sent via Zoho SMTP. MessageId: {message_id}")
+            return {"status": "sent", "message_id": message_id}
+
+        except Exception as e:
+            logger.error(f"Zoho SMTP Error: {str(e)}")
+            raise Exception(f"Failed to send reply via Zoho: {str(e)}")
+
+    @staticmethod
     def _wrap_html(body_html: str) -> str:
         if body_html.strip().lower().startswith('<!doctype') or body_html.strip().lower().startswith('<html'):
             return body_html
