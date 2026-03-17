@@ -110,8 +110,38 @@ class EmailService:
         references: str = '',
         from_email: str = None,
         from_name: str = None,
+        original_from: str = None,
+        original_date: str = None,
+        original_subject: str = None,
+        original_body_html: str = None,
     ) -> Dict[str, str]:
-        """Send reply via Zoho SMTP for proper email threading."""
+        """Send reply via Zoho SMTP for proper email threading.
+
+        If original_body_html is provided, it will be quoted below the reply
+        body, mimicking how email clients display the original message.
+        """
+        # Build quoted original if provided
+        if original_body_html:
+            quoted_header_parts = []
+            if original_from:
+                quoted_header_parts.append(f'<b>From:</b> {original_from}')
+            if original_date:
+                quoted_header_parts.append(f'<b>Date:</b> {original_date}')
+            if original_subject:
+                quoted_header_parts.append(f'<b>Subject:</b> {original_subject}')
+
+            quoted_header = '<br>'.join(quoted_header_parts)
+            if quoted_header:
+                quoted_header = f'<p style="font-size:12px;color:#666;">{quoted_header}</p>'
+
+            body_html = (
+                f'{body_html}'
+                f'<br><hr style="border:none;border-top:1px solid #ccc;margin:20px 0;">'
+                f'{quoted_header}'
+                f'<blockquote style="margin:10px 0 0 0;padding:0 0 0 10px;border-left:2px solid #ccc;color:#555;">'
+                f'{original_body_html}'
+                f'</blockquote>'
+            )
         from_address = from_email or settings.ZOHO_SMTP_EMAIL
         mode = getattr(settings, 'EMAIL_SERVICE_MODE', 'console')
 
