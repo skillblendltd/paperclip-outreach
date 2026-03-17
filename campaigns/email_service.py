@@ -9,7 +9,7 @@ from typing import List, Optional, Dict, Any
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-from email.utils import formataddr
+from email.utils import formataddr, make_msgid
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,11 @@ class EmailService:
                 smtp_username = settings.AWS_SMTP_USERNAME
                 smtp_password = settings.AWS_SMTP_PASSWORD
 
+                # Generate a proper Message-ID so replies can thread back
+                generated_msg_id = make_msgid(domain=from_address.split('@')[1] if '@' in from_address else 'taggiq.com')
+
                 msg = MIMEMultipart('mixed')
+                msg['Message-ID'] = generated_msg_id
                 msg['Subject'] = subject
                 msg['From'] = from_header
                 msg['To'] = ', '.join(to_emails)
@@ -88,9 +92,8 @@ class EmailService:
                     all_recipients = to_emails + (cc_emails or [])
                     server.sendmail(from_address, all_recipients, msg.as_string())
 
-                message_id = f"smtp-{uuid.uuid4()}"
-                logger.info(f"Email sent successfully via AWS SES SMTP. MessageId: {message_id}")
-                return {"status": "sent", "message_id": message_id}
+                logger.info(f"Email sent successfully via AWS SES SMTP. MessageId: {generated_msg_id}")
+                return {"status": "sent", "message_id": generated_msg_id}
 
             except Exception as e:
                 logger.error(f"SMTP Error: {str(e)}")
@@ -137,14 +140,23 @@ class EmailService:
             smtp_user = settings.ZOHO_SMTP_EMAIL
             smtp_pass = settings.ZOHO_SMTP_PASSWORD
 
+            # Generate proper Message-ID for this reply
+            generated_msg_id = make_msgid(domain=from_address.split('@')[1] if '@' in from_address else 'taggiq.com')
+
             msg = MIMEMultipart('mixed')
+            msg['Message-ID'] = generated_msg_id
             msg['Subject'] = subject
             msg['From'] = from_header
             msg['To'] = to_email
 
+            # Threading headers -- critical for email clients to group conversations
             if in_reply_to:
                 msg['In-Reply-To'] = in_reply_to
-                msg['References'] = references or in_reply_to
+                # References should be the full chain: previous references + the message we're replying to
+                if references and references != in_reply_to:
+                    msg['References'] = f'{references} {in_reply_to}'
+                else:
+                    msg['References'] = in_reply_to
 
             full_html = EmailService._wrap_html(body_html)
             msg_body = MIMEMultipart('alternative')
@@ -163,9 +175,8 @@ class EmailService:
                     server.login(smtp_user, smtp_pass)
                     server.sendmail(from_address, [to_email], msg.as_string())
 
-            message_id = f"zoho-reply-{uuid.uuid4()}"
-            logger.info(f"Reply sent via Zoho SMTP. MessageId: {message_id}")
-            return {"status": "sent", "message_id": message_id}
+            logger.info(f"Reply sent via Zoho SMTP. MessageId: {generated_msg_id}")
+            return {"status": "sent", "message_id": generated_msg_id}
 
         except Exception as e:
             logger.error(f"Zoho SMTP Error: {str(e)}")

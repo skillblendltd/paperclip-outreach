@@ -48,168 +48,144 @@ CAMPAIGNS = {
 }
 
 # ---------------------------------------------------------------------------
-# Signature (shared across all emails)
+# Signature — short for cold outreach, full for replies
+# Cold emails sign off as just "Prakash" (peer tone)
 # ---------------------------------------------------------------------------
-SIGNATURE = (
+SIGNATURE_PEER = '<p>Prakash</p>'  # Seq 1-2: pure peer tone
+
+SIGNATURE_FOUNDER = '<p>Prakash<br>Founder, <a href="https://taggiq.com/">TaggIQ</a></p>'  # Seq 3-5: adds credibility
+
+SIGNATURE_FULL = (  # For replies to engaged prospects (used by email-expert)
     '<p>Best regards,<br>'
     'Prakash Inani<br>'
     'Founder, <a href="https://taggiq.com/">TaggIQ</a><br>'
-    'Kingswood Business Park, Dublin</p>'
+    'Kingswood Business Park, Dublin<br>'
+    '<a href="https://taggiq.com/">https://taggiq.com</a></p>'
 )
 
 # ---------------------------------------------------------------------------
-# Templates - 5 BNI-warm sequences with A/B subject line variants
-# Body is identical for A/B (only subject differs) to keep it genuine.
+# Templates v2 — conversation-first, product-later
+# Sequence: Question -> Shared Pain -> Invitation -> Social Proof -> Breakup
+# Timing: Day 0, Day 7, Day 16, Day 28, Day 42
+# Every email under 100 words. No pitch in Email 1.
 # ---------------------------------------------------------------------------
 TEMPLATES = {
     # ------------------------------------------------------------------
-    # SEQ 1: Peer Story (Day 0)
-    # "One of them" framing. BNI trust signal first. Pain before product.
+    # SEQ 1: Conversation Starter (Day 0)
+    # Zero product mention. One specific question. Get a reply.
     # ------------------------------------------------------------------
     1: {
         "A": {
-            "subject": "Fellow BNI member in print and promo",
-            "template_name": "bni_seq1_peer",
+            "subject": "quick question about {{COMPANY}}",
+            "template_name": "bni_v2_seq1_question",
         },
         "B": {
-            "subject": "{{FNAME}}, quick one from a fellow BNI member",
-            "template_name": "bni_seq1_peer_name",
+            "subject": "{{FNAME}}, how do you handle artwork approvals?",
+            "template_name": "bni_v2_seq1_question_name",
         },
         "body_html": (
             '<p>Hi {{FNAME}},</p>'
-            '<p>Hope you\'re well. I came across your profile on BNI Connect and noticed '
-            'we\'re both in the print and promo space, so I thought I\'d say hello.</p>'
-            '<p>I run a print and promo shop in Dublin, and one thing that always drove me mad '
-            'was having everything in different places. Quotes in one tool, artwork approvals '
-            'over email, purchase orders somewhere else, and then re-entering everything into '
-            'Xero at the end. The same order getting typed four different times.</p>'
-            '<p>In the end, I built something to solve it for our own shop. It\'s called '
-            '<a href="https://taggiq.com/">TaggIQ</a> and it connects the whole journey from '
-            'quote to invoice in one place, built specifically for how print and promo '
-            'businesses actually work.</p>'
-            '<p>I\'d be really interested to hear how you\'re managing this at {{COMPANY}}. '
-            'Always great to learn how other BNI members in the industry handle their workflow.</p>'
-            '<p>If you\'re curious, I\'d be happy to share what we built. No pressure at all.</p>'
-            + SIGNATURE
+            '<p>Spotted you on BNI Connect, looks like we\'re both in the print and promo world.</p>'
+            '<p>Quick question: how does your team handle artwork approvals? '
+            'I\'ve talked to a bunch of BNI members recently and it\'s wild how many '
+            'are still chasing approvals over email and WhatsApp.</p>'
+            '<p>Curious if you\'ve found something that works or if it\'s still a pain.</p>'
+            + SIGNATURE_PEER
         ),
     },
     # ------------------------------------------------------------------
-    # SEQ 2: Curiosity (Day 5)
-    # No pitch. Shared pain conversation. BNI community group seed.
+    # SEQ 2: Shared Pain (Day 7)
+    # Share insight from conversations. Introduce "I built a tool" naturally.
     # ------------------------------------------------------------------
     2: {
         "A": {
-            "subject": "Quick question for fellow BNI print shops",
-            "template_name": "bni_seq2_curiosity",
+            "subject": "the artwork approval problem",
+            "template_name": "bni_v2_seq2_pain",
         },
         "B": {
-            "subject": "{{FNAME}}, curious how other BNI members handle this",
-            "template_name": "bni_seq2_curiosity_name",
+            "subject": "{{FNAME}}, thought you'd find this interesting",
+            "template_name": "bni_v2_seq2_pain_name",
         },
         "body_html": (
             '<p>Hi {{FNAME}},</p>'
-            '<p>I\'ve been chatting with a few BNI members in the print and promo space over '
-            'the past couple of weeks. It\'s been eye-opening how differently everyone runs '
-            'things - spreadsheets, Xero workarounds, DecoNetwork, even WhatsApp threads for '
-            'artwork approvals.</p>'
-            '<p>One thing that keeps coming up: a customer approves a quote three weeks later, '
-            'and the team has to go hunting for supplier pricing all over again because nothing '
-            'was saved in one place.</p>'
-            '<p>Does that happen in your business, or have you found a way around it?</p>'
-            '<p>I\'m also trying to connect a small group of print and promo owners inside BNI '
-            'who are interested in sharing best practices. If that sounds useful, happy to '
-            'loop you in.</p>'
-            + SIGNATURE
+            '<p>Thought you might find this interesting. I asked about 20 BNI members in print '
+            'and promo how they handle artwork approvals and order tracking. Almost everyone said '
+            'some version of "email back and forth until someone finally says yes."</p>'
+            '<p>I actually built a tool to fix this for my own shop in Dublin. It connects quotes, '
+            'approvals, orders and invoicing in one place. Happy to share what I learned if '
+            'you\'re dealing with the same thing.</p>'
+            '<p>Either way, no worries.</p>'
+            + SIGNATURE_PEER
         ),
     },
     # ------------------------------------------------------------------
-    # SEQ 3: Design Partner Invitation (Day 10)
-    # Highest-converting. BNI ethos of helping members build things.
-    # Scarcity without pressure. Clear value prop (40% off).
+    # SEQ 3: Design Partner Invitation (Day 16)
+    # Clear offer, clear scarcity, clear ask. 70 words.
     # ------------------------------------------------------------------
     3: {
         "A": {
-            "subject": "Small group forming - curious if you'd be interested",
-            "template_name": "bni_seq3_partner",
+            "subject": "would you want input on this?",
+            "template_name": "bni_v2_seq3_partner",
         },
         "B": {
-            "subject": "Looking for a few industry partners",
-            "template_name": "bni_seq3_partner_alt",
+            "subject": "looking for 5 BNI members to help shape this",
+            "template_name": "bni_v2_seq3_partner_name",
         },
         "body_html": (
             '<p>Hi {{FNAME}},</p>'
-            '<p>After speaking with a number of BNI members in print and promo, the same '
-            'operational pain points keep surfacing - quoting takes too long, artwork approvals '
-            'get lost in email, and supplier orders end up being re-entered into accounting '
-            'manually.</p>'
-            '<p>Because of that, I\'m putting together a small group of design partners - '
-            'five businesses in the industry who want to help shape what we\'re building at '
+            '<p>I\'m building a system specifically for print and promo shops, quotes, artwork '
+            'approvals, orders, invoicing, all in one place. It\'s called '
             '<a href="https://taggiq.com/">TaggIQ</a>.</p>'
-            '<p>What that looks like:</p>'
-            '<ul>'
-            '<li>You tell us what slows your team down</li>'
-            '<li>We build features around your actual workflow</li>'
-            '<li>You get early access and founding-partner pricing (40% off the first year)</li>'
-            '</ul>'
-            '<p>I\'m keeping this to five businesses so we can give each one proper attention. '
-            'Two spots are already taken.</p>'
-            '<p>If that sounds interesting, I\'d love to show you what we\'ve built so far and '
-            'hear how your team currently works. Happy to jump on a quick 15-minute call '
-            'whenever suits.</p>'
-            + SIGNATURE
+            '<p>I\'m looking for 5 BNI members to be design partners: tell me what slows your '
+            'team down, and I\'ll build around your workflow. Partners get 40% off year one.</p>'
+            '<p>2 spots taken. Worth a 15-min chat?</p>'
+            + SIGNATURE_FOUNDER
         ),
     },
     # ------------------------------------------------------------------
-    # SEQ 4: Social Proof + Soft Close (Day 15)
-    # Quantified pain (30-60 min/order). Real partner results.
-    # BNI warmth in closing.
+    # SEQ 4: Social Proof (Day 28)
+    # Specific results from real shops. Low-pressure walkthrough offer.
     # ------------------------------------------------------------------
     4: {
         "A": {
-            "subject": "Something I keep hearing from print shops",
-            "template_name": "bni_seq4_proof",
+            "subject": "from 4 tools to 1 screen",
+            "template_name": "bni_v2_seq4_proof",
         },
         "B": {
-            "subject": "Interesting pattern from BNI promo businesses",
-            "template_name": "bni_seq4_proof_alt",
+            "subject": "{{FNAME}}, quick update from BNI print shops",
+            "template_name": "bni_v2_seq4_proof_name",
         },
         "body_html": (
             '<p>Hi {{FNAME}},</p>'
-            '<p>Something interesting has come up in conversations with print and promo '
-            'businesses over the past few weeks.</p>'
-            '<p>Several teams told me they spend anywhere from 30 minutes to an hour per order '
-            're-entering the same information - moving from quotes to artwork approvals to '
-            'supplier orders and then copying it all into Xero or QuickBooks.</p>'
-            '<p>A few early partners are now running that entire flow through '
-            '<a href="https://taggiq.com/">TaggIQ</a>. One team told me their quote-to-invoice '
-            'process went from touching four different tools to one screen.</p>'
-            '<p>If you\'re ever curious to see how it works, I\'m happy to give you a quick '
-            'walkthrough - no commitment, just 15 minutes.</p>'
-            '<p>Either way, always great connecting with fellow BNI members in the industry.</p>'
-            + SIGNATURE
+            '<p>Quick update. A few print and promo shops in BNI started using '
+            '<a href="https://taggiq.com/">TaggIQ</a> over the past month.</p>'
+            '<p>One team told me they went from using four different tools per order to one screen, '
+            'quote to invoice. Another said artwork approvals that used to take days over email '
+            'now close in hours.</p>'
+            '<p>If you\'re ever curious, happy to show you in 15 minutes. No pitch, just a walkthrough.</p>'
+            '<p>Either way, always great being connected through BNI.</p>'
+            + SIGNATURE_FOUNDER
         ),
     },
     # ------------------------------------------------------------------
-    # SEQ 5: Breakup (Day 21)
-    # "Should I stop?" = highest open rate pattern. Permission-based close.
+    # SEQ 5: Breakup (Day 42)
+    # Shortest email. Permission-based close.
     # ------------------------------------------------------------------
     5: {
         "A": {
-            "subject": "Should I stop reaching out?",
-            "template_name": "bni_seq5_breakup",
+            "subject": "should I stop reaching out?",
+            "template_name": "bni_v2_seq5_breakup",
         },
         "B": {
-            "subject": "Should I stop reaching out, {{FNAME}}?",
-            "template_name": "bni_seq5_breakup_name",
+            "subject": "{{FNAME}}, one last one",
+            "template_name": "bni_v2_seq5_breakup_name",
         },
         "body_html": (
             '<p>Hi {{FNAME}},</p>'
-            '<p>I\'ve sent a few messages and I know how busy things get running a business, '
-            'so I wanted to check - is this something you\'d like to hear more about, or would '
-            'you prefer I stop reaching out?</p>'
-            '<p>Either way is completely fine. Just didn\'t want to keep landing in your inbox '
-            'if it\'s not relevant.</p>'
-            + SIGNATURE
+            '<p>I know how busy things get running a shop, so I\'ll keep this short.</p>'
+            '<p>Is streamlining your workflow something you\'d want to explore, or would you '
+            'prefer I stop reaching out? Either way is completely fine.</p>'
+            + SIGNATURE_FOUNDER
         ),
     },
 }
@@ -229,117 +205,89 @@ SEQ_NAMES = {
 # ---------------------------------------------------------------------------
 CAMPAIGN_OVERRIDES = {
     "embroidery": {
-        # Seq 1: Broaden "print and promo" to include embroidery/apparel
+        # Seq 1: Embroidery-specific question
         1: {
             "A": {
-                "subject": "Fellow BNI member in decorated apparel",
-                "template_name": "bni_emb_seq1_peer",
+                "subject": "quick question about {{COMPANY}}",
+                "template_name": "bni_emb_v2_seq1_question",
             },
             "B": {
-                "subject": "{{FNAME}}, quick one from a fellow BNI member",
-                "template_name": "bni_emb_seq1_peer_name",
+                "subject": "{{FNAME}}, how do you collect sizes for big orders?",
+                "template_name": "bni_emb_v2_seq1_question_name",
             },
             "body_html": (
                 '<p>Hi {{FNAME}},</p>'
-                '<p>Hope you\'re well. I came across your profile on BNI Connect and noticed '
-                'we\'re both in the decorated apparel and promo space, so I thought I\'d say hello.</p>'
-                '<p>I run a print and promo shop in Dublin, and one thing that always drove me mad '
-                'was having everything in different places. Quotes in one tool, artwork approvals '
-                'over email, purchase orders somewhere else, and then re-entering everything into '
-                'Xero at the end. The same order getting typed four different times.</p>'
-                '<p>In the end, I built something to solve it for our own shop. It\'s called '
-                '<a href="https://taggiq.com/">TaggIQ</a> and it connects the whole journey from '
-                'quote to invoice in one place, built specifically for how businesses like ours '
-                'actually work.</p>'
-                '<p>I\'d be really interested to hear how you\'re managing this at {{COMPANY}}. '
-                'Always great to learn how other BNI members in the industry handle their workflow.</p>'
-                '<p>If you\'re curious, I\'d be happy to share what we built. No pressure at all.</p>'
-                + SIGNATURE
+                '<p>Spotted you on BNI Connect, looks like we\'re both in the decorated apparel world.</p>'
+                '<p>Quick question: how does your team collect sizes when a customer orders uniforms '
+                'for 30-40 staff? I\'ve talked to a bunch of BNI members recently and most are still '
+                'chasing sizes across emails, WhatsApp and spreadsheets.</p>'
+                '<p>Curious if you\'ve found something that works or if it\'s still a headache.</p>'
+                + SIGNATURE_PEER
             ),
         },
-        # Seq 2: Full rewrite - embroidery-specific pain points
+        # Seq 2: Embroidery-specific shared pain
         2: {
             "A": {
-                "subject": "Quick question for fellow BNI embroidery shops",
-                "template_name": "bni_emb_seq2_curiosity",
+                "subject": "the size collection problem",
+                "template_name": "bni_emb_v2_seq2_pain",
             },
             "B": {
-                "subject": "{{FNAME}}, curious how other BNI members handle this",
-                "template_name": "bni_emb_seq2_curiosity_name",
+                "subject": "{{FNAME}}, thought you'd find this interesting",
+                "template_name": "bni_emb_v2_seq2_pain_name",
             },
             "body_html": (
                 '<p>Hi {{FNAME}},</p>'
-                '<p>I\'ve been chatting with a few BNI members in the embroidery and decorated '
-                'apparel space recently. It\'s interesting how differently everyone manages things '
-                '- some use spreadsheets for size collection, others are chasing customers over '
-                'email for logo placement approvals, and quite a few are still re-keying orders '
-                'into Xero by hand.</p>'
-                '<p>One thing that keeps coming up: a customer sends through a uniform order for '
-                '40 staff, and the team ends up chasing sizes across emails, WhatsApp messages, '
-                'and spreadsheets for days before they can even place a garment order.</p>'
-                '<p>Does that happen at {{COMPANY}}, or have you found a better way?</p>'
-                '<p>I\'m also connecting a small group of embroidery and apparel business owners '
-                'inside BNI who want to share best practices. Happy to loop you in if that\'s useful.</p>'
-                + SIGNATURE
+                '<p>Thought you might find this interesting. I asked about 20 BNI members in '
+                'embroidery and decorated apparel how they handle size collection and artwork approvals. '
+                'Almost everyone said some version of "chase them over email for days."</p>'
+                '<p>I actually built a tool to fix this for my own shop in Dublin. It handles quotes, '
+                'size collection, artwork approvals, orders and invoicing in one place. Happy to share '
+                'what I learned if you\'re dealing with the same thing.</p>'
+                '<p>Either way, no worries.</p>'
+                + SIGNATURE_PEER
             ),
         },
-        # Seq 3: Tweak opening to reference embroidery pain points
+        # Seq 3: Same partner offer, embroidery framing
         3: {
             "A": {
-                "subject": "Small group forming - curious if you'd be interested",
-                "template_name": "bni_emb_seq3_partner",
+                "subject": "would you want input on this?",
+                "template_name": "bni_emb_v2_seq3_partner",
             },
             "B": {
-                "subject": "Looking for a few industry partners",
-                "template_name": "bni_emb_seq3_partner_alt",
+                "subject": "looking for 5 BNI members to help shape this",
+                "template_name": "bni_emb_v2_seq3_partner_name",
             },
             "body_html": (
                 '<p>Hi {{FNAME}},</p>'
-                '<p>After speaking with a number of BNI members in embroidery and decorated apparel, '
-                'the same operational pain points keep surfacing - quoting takes too long, size '
-                'collection is a nightmare, and orders end up being re-entered into accounting '
-                'manually.</p>'
-                '<p>Because of that, I\'m putting together a small group of design partners - '
-                'five businesses in the industry who want to help shape what we\'re building at '
+                '<p>I\'m building a system specifically for embroidery and apparel shops, quotes, '
+                'size collection, artwork approvals, orders, invoicing, all in one place. It\'s called '
                 '<a href="https://taggiq.com/">TaggIQ</a>.</p>'
-                '<p>What that looks like:</p>'
-                '<ul>'
-                '<li>You tell us what slows your team down</li>'
-                '<li>We build features around your actual workflow</li>'
-                '<li>You get early access and founding-partner pricing (40% off the first year)</li>'
-                '</ul>'
-                '<p>I\'m keeping this to five businesses so we can give each one proper attention. '
-                'Two spots are already taken.</p>'
-                '<p>If that sounds interesting, I\'d love to show you what we\'ve built so far and '
-                'hear how your team currently works. Happy to jump on a quick 15-minute call '
-                'whenever suits.</p>'
-                + SIGNATURE
+                '<p>I\'m looking for 5 BNI members to be design partners: tell me what slows your '
+                'team down, and I\'ll build around your workflow. Partners get 40% off year one.</p>'
+                '<p>2 spots taken. Worth a 15-min chat?</p>'
+                + SIGNATURE_FOUNDER
             ),
         },
-        # Seq 4: Fix subject lines + tweak body for embroidery
+        # Seq 4: Embroidery-specific proof
         4: {
             "A": {
-                "subject": "Something I keep hearing from embroidery businesses",
-                "template_name": "bni_emb_seq4_proof",
+                "subject": "from 4 tools to 1 screen",
+                "template_name": "bni_emb_v2_seq4_proof",
             },
             "B": {
-                "subject": "Interesting pattern from BNI apparel businesses",
-                "template_name": "bni_emb_seq4_proof_alt",
+                "subject": "{{FNAME}}, quick update from BNI apparel shops",
+                "template_name": "bni_emb_v2_seq4_proof_name",
             },
             "body_html": (
                 '<p>Hi {{FNAME}},</p>'
-                '<p>Something interesting has come up in conversations with embroidery and '
-                'decorated apparel businesses over the past few weeks.</p>'
-                '<p>Several teams told me they spend anywhere from 30 minutes to an hour per order '
-                're-entering the same information - chasing sizes, confirming decoration specs, '
-                'placing garment orders, and then copying it all into Xero or QuickBooks.</p>'
-                '<p>A few early partners are now running that entire flow through '
-                '<a href="https://taggiq.com/">TaggIQ</a>. One team told me their quote-to-invoice '
-                'process went from touching four different tools to one screen.</p>'
-                '<p>If you\'re ever curious to see how it works, I\'m happy to give you a quick '
-                'walkthrough - no commitment, just 15 minutes.</p>'
-                '<p>Either way, always great connecting with fellow BNI members in the industry.</p>'
-                + SIGNATURE
+                '<p>Quick update. A few embroidery and apparel shops in BNI started using '
+                '<a href="https://taggiq.com/">TaggIQ</a> over the past month.</p>'
+                '<p>One team told me they went from using four different tools per order to one screen, '
+                'quote to invoice. Another said size collection that used to take days of chasing '
+                'now happens through a single link.</p>'
+                '<p>If you\'re ever curious, happy to show you in 15 minutes. No pitch, just a walkthrough.</p>'
+                '<p>Either way, always great being connected through BNI.</p>'
+                + SIGNATURE_FOUNDER
             ),
         },
         # Seq 5: No override needed - breakup is universal

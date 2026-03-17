@@ -1,6 +1,6 @@
 # Paperclip Outreach
 
-Multi-product B2B outreach system for TaggIQ, Fully Promoted Ireland, and Kritno. Django + SQLite, cron-driven email campaigns with Zoho IMAP/SMTP for reply handling.
+Multi-product B2B outreach system for TaggIQ, Fully Promoted Ireland, and Kritno. Django + SQLite, cron-driven email campaigns with Zoho IMAP/SMTP for reply handling. Solo founder - Prakash Inani.
 
 ## Quick Reference
 
@@ -8,11 +8,27 @@ Multi-product B2B outreach system for TaggIQ, Fully Promoted Ireland, and Kritno
 - **Settings**: `outreach/settings.py`
 - **All models/views/admin**: `campaigns/` app
 
+## Campaign Send Scripts
+
+**IMPORTANT:** Do NOT use the `send_campaign` management command for sending outreach emails — it only has placeholder content. Each product has its own send scripts with proper templates:
+
+| Product | Directory | Send Script | Templates |
+|---------|-----------|------------|-----------|
+| TaggIQ (BNI) | `bni-scraper/` | `send_promo_global.py`, `send_embroidery.py`, `send_email1_all.py` | In script + `email_templates.md` |
+| Fully Promoted Ireland | `fp-ireland-master/` | `send_campaign.py` | In script + `email_templates.md` |
+
+Always refer to the product-specific directory for email templates, subject lines, and send logic before sending any campaign emails.
+
+## Sequence Filtering Rules
+
+- **Seq 1 (Opener):** Send to `status='new'` prospects only
+- **Seq 2-5 (Follow-ups):** Send to `status='contacted'` prospects only
+- **Always use include-based filtering** (`status='contacted'`), never exclude-based (`exclude status__in=[...]`). Prospects with statuses like `interested`, `demo_scheduled`, `engaged` get personalized replies via `/email-expert`, not automated sequences.
+
 ## Key Commands
 
 | Command | Purpose |
 |---------|---------|
-| `send_campaign` | Send outreach emails via SES |
 | `process_queue` | Send queued/scheduled emails |
 | `check_replies` | Fetch Zoho IMAP, classify inbound, execute auto-actions |
 | `review_replies` | Interactive CLI to review flagged replies |
@@ -29,3 +45,61 @@ Multi-product B2B outreach system for TaggIQ, Fully Promoted Ireland, and Kritno
 ## Slash Commands
 
 - `/email-expert` — Draft personalized email replies in Prakash's voice. Reads flagged inbound emails, generates warm/conversational replies following real example patterns, includes scheduling links for interested parties.
+
+## Skill & Agent Routing
+
+Match the task to the right tool. Don't over-orchestrate simple tasks.
+
+### Direct skill invocation (most tasks)
+
+| Task type | Skill | When to use |
+|-----------|-------|-------------|
+| New idea, simplify a flow, brainstorm | `/innovator-engineer` | Before building something new or when something feels too complex |
+| Requirements, scope, priorities | `/product-manager` | Defining what to build and why |
+| System design, architecture decisions | `/cto-architect` | Before building multi-component features |
+| API, database, server-side code | `/backend-engineer` | Any backend implementation work |
+| UI components, frontend code | `/frontend-engineer` | Any frontend implementation work |
+| AI feature design | `/ai-architect` | Deciding where/how AI fits in the product |
+| AI implementation | `/ai-engineer` | Building LLM integrations, prompts, RAG |
+| Tests, edge cases, QA | `/qa-automation` | After code changes, before shipping |
+| Security review | `/security-auditor` | Auth changes, data handling, API exposure |
+| GDPR, accessibility, compliance | `/compliance-officer` | Before launch or when handling personal data |
+| UI/UX design | `/ui-designer` | Screen layouts, design system decisions |
+| User research, friction analysis | `/ux-researcher` | When a flow feels wrong or users are confused |
+
+### Multi-skill orchestration (complex features only)
+
+Use `/chief-orchestrator` when a task clearly needs 3+ skills working in sequence. It will pick the right skills and run them in order.
+
+Don't use it for single-skill tasks - that's overhead without value.
+
+### Built-in agents (parallel/delegated work)
+
+Use agents when:
+- Research tasks that would bloat the conversation (Explore, general-purpose)
+- Independent tasks that can run in parallel
+- Scaffolding new projects (rapid-prototyper)
+- Running/fixing tests after code changes (test-writer-fixer)
+
+### Rule of thumb
+
+1. Simple task -> invoke one skill directly
+2. Multi-step feature -> chain 2-3 skills yourself (you decide order)
+3. Full feature build -> /chief-orchestrator
+4. Research/exploration -> Explore agent or general-purpose agent
+
+## Products
+
+| Product | Campaign ID | Directory |
+|---------|-------------|-----------|
+| TaggIQ BNI | `64ed1454-18fc-4783-9438-da18143f7312` | `bni-scraper/` |
+| TaggIQ BNI Promo Global | `9cdc1870-476b-4bfe-91ff-9661bd62c662` | `bni-scraper/` |
+| TaggIQ BNI Embroidery Global | `9dc977d3-f793-4051-905c-30c82b76dcd6` | `bni-scraper/` |
+| FP Ireland Franchise Recruitment | `50eecf8f-c4a0-4a2d-9335-26d56870101e` | `fp-ireland-master/` |
+
+## Coding Preferences
+
+- Python for backend/scripts, Django for web services
+- Keep it simple - no abstractions until the third time you need one
+- Conversational email copy - not sales copy, not corporate
+- Test with real data before shipping to production

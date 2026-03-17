@@ -1,178 +1,179 @@
-# BNI TaggIQ Email Sequence
+# BNI TaggIQ Email Sequence v2
 # Merge fields: {{FNAME}}, {{COMPANY}}, {{CITY}}, {{SEGMENT}}
-# Sequence: Peer -> Curiosity -> Design Partner -> Social Proof -> Breakup
-# Timing: Day 0, Day 5, Day 10, Day 15, Day 21
-# Psychology: Relationship-first, insight-second, invitation-third
+# Sequence: Conversation Starter -> Shared Pain -> Invitation -> Social Proof -> Breakup
+# Timing: Day 0, Day 7, Day 16, Day 28, Day 42
+# Psychology: Question-first, relationship-second, product-third
+# Every email under 100 words. No pitch in Email 1. Product introduced gradually.
 
 ---
 
-## EMAIL 1: Peer Story (Day 0)
+## EMAIL 1: Conversation Starter (Day 0)
+
+**Goal:** Get a reply. That's it. No pitch, no product mention.
 
 **Subject A/B test:**
-- A: "Fellow BNI member in print and promo"
-- B: "{{FNAME}}, quick one from a fellow BNI member"
+- A: "quick question about {{COMPANY}}"
+- B: "{{FNAME}}, how do you handle artwork approvals?"
 
 ---
 
 Hi {{FNAME}},
 
-Hope you're well. I came across your profile on BNI Connect and noticed we're both in the print and promo space, so I thought I'd say hello.
+Spotted you on BNI Connect, looks like we're both in the print and promo world.
 
-I run a print and promo shop in Dublin, and one thing that always drove me mad was having everything in different places. Quotes in one tool, artwork approvals over email, purchase orders somewhere else, and then re-entering everything into Xero at the end. The same order getting typed four different times.
+Quick question: how does your team handle artwork approvals? I've talked to a bunch of BNI members recently and it's wild how many are still chasing approvals over email and WhatsApp.
 
-In the end, I built something to solve it for our own shop. It's called [TaggIQ](https://taggiq.com/) and it connects the whole journey from quote to invoice in one place, built specifically for how print and promo businesses actually work.
+Curious if you've found something that works or if it's still a pain.
 
-I'd be really interested to hear how you're managing this at {{COMPANY}}. Always great to learn how other BNI members in the industry handle their workflow.
-
-If you're curious, I'd be happy to share what we built. No pressure at all.
-
-Best regards,
-Prakash Inani
-Founder, [TaggIQ](https://taggiq.com/)
-Kingswood Business Park, Dublin
+Cheers,
+Prakash
 
 ---
 
+**Word count:** ~60
+**Why it works:** One specific question they can answer in one sentence. No product mention. Feels like a peer asking for advice, not a founder selling software.
 
-## EMAIL 2: Curiosity (Day 5 -only if no reply)
+
+## EMAIL 2: Shared Pain (Day 7, only if no reply)
+
+**Goal:** Share what you learned, introduce what you built naturally.
 
 **Subject A/B test:**
-- A: "Quick question for fellow BNI print shops"
-- B: "{{FNAME}}, curious how other BNI members handle this"
+- A: "the artwork approval problem"
+- B: "{{FNAME}}, thought you'd find this interesting"
 
 ---
 
 Hi {{FNAME}},
 
-I've been chatting with a few BNI members in the print and promo space over the past couple of weeks. It's been eye-opening how differently everyone runs things -spreadsheets, Xero workarounds, DecoNetwork, even WhatsApp threads for artwork approvals.
+Thought you might find this interesting. I asked about 20 BNI members in print and promo how they handle artwork approvals and order tracking. Almost everyone said some version of "email back and forth until someone finally says yes."
 
-One thing that keeps coming up: a customer approves a quote three weeks later, and the team has to go hunting for supplier pricing all over again because nothing was saved in one place.
+I actually built a tool to fix this for my own shop in Dublin. It connects quotes, approvals, orders and invoicing in one place. Happy to share what I learned if you're dealing with the same thing.
 
-Does that happen in your business, or have you found a way around it?
+Either way, no worries.
 
-I'm also trying to connect a small group of print and promo owners inside BNI who are interested in sharing best practices. If that sounds useful, happy to loop you in.
-
-Best regards,
-Prakash Inani
-Founder, [TaggIQ](https://taggiq.com/)
-Kingswood Business Park, Dublin
+Prakash
 
 ---
 
+**Word count:** ~80
+**Why it works:** TaggIQ introduced as "a tool I built" not "our platform." Shares insight from real conversations. Low-pressure CTA.
 
-## EMAIL 3: Design Partner Invitation (Day 10 -only if no reply)
+
+## EMAIL 3: Design Partner Invitation (Day 16, only if no reply)
+
+**Goal:** Make them feel valued. Invite them to shape the product.
 
 **Subject A/B test:**
-- A: "Small group forming -curious if you'd be interested"
-- B: "Looking for a few industry partners"
+- A: "would you want input on this?"
+- B: "looking for 5 BNI members to help shape this"
 
 ---
 
 Hi {{FNAME}},
 
-After speaking with a number of BNI members in print and promo, the same operational pain points keep surfacing -quoting takes too long, artwork approvals get lost in email, and supplier orders end up being re-entered into accounting manually.
+I'm building a system specifically for print and promo shops, quotes, artwork approvals, orders, invoicing, all in one place. It's called [TaggIQ](https://taggiq.com/).
 
-Because of that, I'm putting together a small group of design partners -five businesses in the industry who want to help shape what we're building at TaggIQ.
+I'm looking for 5 BNI members to be design partners: tell me what slows your team down, and I'll build around your workflow. Partners get 40% off year one.
 
-What that looks like:
-- You tell us what slows your team down
-- We build features around your actual workflow
-- You get early access and founding-partner pricing (40% off the first year)
+2 spots taken. Worth a 15-min chat?
 
-I'm keeping this to five businesses so we can give each one proper attention. Two spots are already taken.
-
-If that sounds interesting, I'd love to show you what we've built so far and hear how your team currently works. Happy to jump on a quick 15-minute call whenever suits.
-
-Best regards,
-Prakash Inani
-Founder, [TaggIQ](https://taggiq.com/)
-Kingswood Business Park, Dublin
+Prakash
 
 ---
 
+**Word count:** ~70
+**Why it works:** Clear offer, clear scarcity, clear ask. BNI members love helping other members build things. The ask is tiny (15 min).
 
-## EMAIL 4: Social Proof + Soft Close (Day 15 -only if no reply)
+
+## EMAIL 4: Social Proof (Day 28, only if no reply)
+
+**Goal:** Show real results from real shops. Make them curious enough to look.
 
 **Subject A/B test:**
-- A: "Something I keep hearing from print shops"
-- B: "Interesting pattern from BNI promo businesses"
+- A: "from 4 tools to 1 screen"
+- B: "{{FNAME}}, quick update from BNI print shops"
 
 ---
 
 Hi {{FNAME}},
 
-Something interesting has come up in conversations with print and promo businesses over the past few weeks.
+Quick update. A few print and promo shops in BNI started using [TaggIQ](https://taggiq.com/) over the past month.
 
-Several teams told me they spend anywhere from 30 minutes to an hour per order re-entering the same information -moving from quotes to artwork approvals to supplier orders and then copying it all into Xero or QuickBooks.
+One team told me they went from using four different tools per order to one screen, quote to invoice. Another said artwork approvals that used to take days over email now close in hours.
 
-A few early partners are now running that entire flow through TaggIQ. One team told me their quote-to-invoice process went from touching four different tools to one screen.
+If you're ever curious, happy to show you in 15 minutes. No pitch, just a walkthrough.
 
-If you're ever curious to see how it works, I'm happy to give you a quick walkthrough -no commitment, just 15 minutes.
+Either way, always great being connected through BNI.
 
-Either way, always great connecting with fellow BNI members in the industry.
-
-Best regards,
-Prakash Inani
-Founder, [TaggIQ](https://taggiq.com/)
-Kingswood Business Park, Dublin
+Prakash
 
 ---
 
+**Word count:** ~80
+**Why it works:** Specific results (4 tools to 1, days to hours). "No pitch, just a walkthrough" removes pressure. Warm BNI close.
 
-## EMAIL 5: Breakup (Day 21 -only if no reply)
 
-**Subject:**
-- "Should I stop reaching out?"
+## EMAIL 5: Breakup (Day 42, only if no reply)
+
+**Goal:** Permission-based close. Give them an easy out, which paradoxically increases replies.
+
+**Subject A/B test:**
+- A: "should I stop reaching out?"
+- B: "{{FNAME}}, one last one"
 
 ---
 
 Hi {{FNAME}},
 
-I've sent a few messages and I know how busy things get running a business, so I wanted to check -is this something you'd like to hear more about, or would you prefer I stop reaching out?
+I know how busy things get running a shop, so I'll keep this short.
 
-Either way is completely fine. Just didn't want to keep landing in your inbox if it's not relevant.
+Is streamlining your workflow something you'd want to explore, or would you prefer I stop reaching out? Either way is completely fine.
 
-Best regards,
-Prakash Inani
-Founder, [TaggIQ](https://taggiq.com/)
-Kingswood Business Park, Dublin
+Prakash
+
+---
+
+**Word count:** ~40
+**Why it works:** Shortest email in the sequence. Respects their time. "Either way is completely fine" gives permission to say no, which paradoxically gets more yes replies.
 
 ---
 
 # DESIGN NOTES
 
-## Why this sequence works (BNI psychology):
+## What changed in v2:
 
-1. **Email 1 -Peer Story**: Positions you as "one of them". Asks a question to invite reply. Mentions product only after establishing common ground.
-2. **Email 2 -Curiosity**: No pitch. Starts a conversation about a shared pain point. Plants the community-building seed ("small group of BNI owners sharing best practices").
-3. **Email 3 -Design Partner**: Highest-converting email. BNI members love helping other members build things. Scarcity ("five businesses, two spots taken") creates urgency without pressure.
-4. **Email 4 -Social Proof**: Quantifies the pain (30-60 min per order). Shows real results (four tools to one screen). Soft demo offer with "no commitment, just 15 minutes".
-5. **Email 5 -Breakup**: "Should I stop?" subject line has highest open rate of any cold email pattern. Giving permission to say no paradoxically increases positive replies.
+1. **Email 1 has zero product mention.** Its only job is to start a conversation about a shared pain (artwork approvals). This is the biggest change.
+2. **Every email is under 100 words.** The old sequence had emails at 150+. Mobile readers scan, they don't read paragraphs.
+3. **Sign-off is "Prakash" not "Best regards, Prakash Inani, Founder, TaggIQ..."** The full signature felt corporate. A first-name sign-off feels like a peer. Full signature in replies only.
+4. **Timing is slower: Day 0, 7, 16, 28, 42** instead of 0, 5, 10, 15, 21. BNI is relationship-based, 5 emails in 3 weeks felt pushy. 6 weeks feels patient.
+5. **Subject lines are specific and curious** not generic. "how do you handle artwork approvals?" beats "Fellow BNI member in print and promo."
+6. **Product is introduced gradually:** Email 1 (no mention) -> Email 2 ("I built a tool") -> Email 3 (named, with offer) -> Email 4 (results) -> Email 5 (breakup).
 
 ## Key principles:
-- Each email is under 150 words
-- No bullet-point feature lists (except Email 3 which uses them for the offer)
-- Reads like a real person wrote it
-- BNI connection referenced in every email -it's the trust signal
-- Each email has ONE idea, not five
-- Subject lines are conversational, not marketing-y
-- Send Tuesday-Thursday, 7-9 AM before their day gets busy
+- Each email under 100 words
+- No bullet-point feature lists
+- Reads like a text from a friend, not a newsletter
+- BNI connection referenced naturally, not forced
+- Each email has ONE ask
+- Subject lines create curiosity, not announce a pitch
+- Send Tuesday-Thursday, 7-9 AM local time
 - If they reply to any email, STOP the sequence and switch to personal conversation
 
 ## A/B Testing Strategy:
-- Variant A: Generic/curiosity-driven subject
-- Variant B: Personalized with {{FNAME}} or direct
+- Variant A: Curiosity/outcome-driven subject
+- Variant B: Personalized with {{FNAME}} or direct question
 - Track reply rates per variant per sequence to optimize
 
 ## Merge Fields:
-- `{{FNAME}}` -First name of decision maker
-- `{{COMPANY}}` -Business name
-- `{{CITY}}` -City (for future geo-personalization)
-- `{{SEGMENT}}` -Business segment (for future segment-specific content)
+- `{{FNAME}}` - First name of decision maker
+- `{{COMPANY}}` - Business name
+- `{{CITY}}` - City (for future geo-personalization)
+- `{{SEGMENT}}` - Business segment (for future segment-specific content)
 
 ## Campaign Safeguards:
 - max_emails_per_prospect: 5 (covers full sequence)
-- follow_up_days: 5 (gap between sequences)
+- follow_up_days: 7 (minimum gap between sequences)
 - require_sequence_order: true (must send seq N before N+1)
 - Only send to status=contacted (replied/engaged prospects get personal follow-up)
 - Suppression list checked before every send

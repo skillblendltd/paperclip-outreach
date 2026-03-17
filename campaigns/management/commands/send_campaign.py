@@ -74,11 +74,18 @@ class Command(BaseCommand):
         # Get eligible prospects
         suppressed_emails = set(Suppression.objects.values_list('email', flat=True))
 
+        # Seq 1 goes to 'new', Seq 2+ goes to 'contacted' only
+        # Never use exclude-based filtering — interested/demo_scheduled/engaged
+        # get personalized replies, not automated sequences
+        if seq_override == 1 or seq_override == 0:
+            allowed_statuses = ['new', 'contacted']
+        else:
+            allowed_statuses = ['contacted']
+
         qs = Prospect.objects.filter(
             campaign=campaign,
             send_enabled=True,
-        ).exclude(
-            status__in=['not_interested', 'opted_out']
+            status__in=allowed_statuses,
         ).exclude(
             Q(email='') | Q(email__isnull=True)
         )

@@ -9,27 +9,19 @@ import urllib.error
 API_BASE = "http://localhost:8002/api"
 CAMPAIGN_ID = "9dc977d3-f793-4051-905c-30c82b76dcd6"
 
-SUBJECT_A = "Fellow BNI member in print and promo"
-SUBJECT_B = "{{FNAME}}, quick one from a fellow BNI member"
+SUBJECT_A = "quick question about {{COMPANY}}"
+SUBJECT_B = "{{FNAME}}, how do you collect sizes for big orders?"
 
 BODY_HTML = """
 <p>Hi {{FNAME}},</p>
 
-<p>Hope you're well. I came across your profile on BNI Connect and noticed we're both in the print and promo space, so I thought I'd say hello.</p>
+<p>Spotted you on BNI Connect, looks like we're both in the decorated apparel world.</p>
 
-<p>I run a print and promo shop in Dublin, and one thing that always drove me mad was having everything in different places. Quotes in one tool, artwork approvals over email, purchase orders somewhere else, and then re-entering everything into Xero at the end. The same order getting typed four different times.</p>
+<p>Quick question: how does your team collect sizes when a customer orders uniforms for 30-40 staff? I've talked to a bunch of BNI members recently and most are still chasing sizes across emails, WhatsApp and spreadsheets.</p>
 
-<p>In the end, I built something to solve it for our own shop. It's called <a href="https://taggiq.com/">TaggIQ</a> and it connects the whole journey from quote to invoice in one place, built specifically for how print and promo businesses actually work.</p>
+<p>Curious if you've found something that works or if it's still a headache.</p>
 
-<p>I'd be really interested to hear how you're managing this at {{COMPANY}}. Always great to learn how other BNI members in the industry handle their workflow.</p>
-
-<p>If you're curious, I'd be happy to share what we built. No pressure at all.</p>
-
-<p>Best regards,<br>
-Prakash Inani<br>
-Founder, <a href="https://taggiq.com/">TaggIQ</a><br>
-Kingswood Business Park, Dublin<br>
-<a href="https://taggiq.com/">https://taggiq.com</a></p>
+<p>Prakash</p>
 """.strip()
 
 
