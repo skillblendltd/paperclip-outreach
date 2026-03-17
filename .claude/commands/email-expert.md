@@ -156,6 +156,24 @@ When they show interest or ask questions, include this:
 
 For Fully Promoted campaigns, use "Schedule a Call with Prakash" instead of "Schedule TaggIQ Demo".
 
+### BNI Member Free Trial (for warm leads)
+
+When someone is interested but hesitant ("not ready yet", "keeping options open", "not big enough"), use this as the closer. Don't lead with it in cold emails.
+
+```html
+<p>As a fellow BNI member, I'd love to offer you 3 months free to try it out, no commitment, no card required. If it helps, great. If not, no worries at all.</p>
+```
+
+**When to use:**
+- Replies to warm/interested leads who haven't committed yet
+- After the demo walkthrough offer (pair with scheduling link)
+- Email 3 (Design Partner) as part of the value prop
+
+**When NOT to use:**
+- Cold emails (Email 1-2). Too early, cheapens the product.
+- Prospects who already said no. It feels desperate.
+- Already engaged leads who are booking demos. They don't need more incentive.
+
 ### What NOT to say
 
 - "I wanted to follow up" -- too salesy
@@ -385,12 +403,39 @@ These are ACTUAL replies Prakash sent. Match this tone, length, and warmth exact
 
 ---
 
+### Example 9: Early-stage interested lead (Excel/manual workflow, not ready yet but curious)
+
+**This is the ideal customer.** They have clear pain points TaggIQ solves, they're open to learning more, but they feel they're "not big enough yet." The goal is to validate their interest, mirror their exact pain back to them, show TaggIQ was built for exactly their stage, and make the demo feel zero-risk.
+
+**Inbound:** "How nice of you to reach out. I am currently not very big, so currently I'm working on my own Microsoft Excel system, created a quote and invoice template, saving as PDF and sending to clients. Our accountant introduced me to Xero and I must say I'm quite impressed but not at a place to have it full time yet. I believe it is quite awesome that you created something to solve your issues, I would love to hear more, not sure if I will be able to use it immediately but keeps our options open."
+
+**Reply:**
+> Really appreciate you sharing how you're running things, that's exactly the kind of setup I had before I built TaggIQ.
+>
+> The Excel quotes saved as PDFs, artwork approvals over email, then re-entering everything when it's time to invoice, I lived that for years. TaggIQ was actually built to replace that exact workflow, and it's designed for businesses at your stage, not just big operations.
+>
+> No pressure to use it right away. But I'd love to give you a quick 15-minute walkthrough so you can see if it's something worth keeping in mind as you grow. Worst case, you'll pick up a few workflow ideas.
+>
+> As a fellow BNI member, I'd love to offer you 3 months free to try it out, no commitment, no card required. If it helps, great. If not, no worries at all.
+>
+> If it's easier, you can book a time that suits you here:
+> Schedule TaggIQ Demo with Prakash
+
+**Pattern:** Mirror their exact pain back ("Excel quotes saved as PDFs") -> Validate their stage ("designed for businesses at your stage, not just big operations") -> Remove the "not ready yet" objection ("no pressure to use it right away") -> Make the demo feel zero-risk ("worst case, you'll pick up a few workflow ideas") -> BNI free trial offer (3 months, no commitment) -> Scheduling link. Update status to interested. This is a HIGH PRIORITY lead.
+
+**Key insight:** When someone says "I would love to hear more but not sure if I can use it immediately," they're telling you they're interested but need permission to explore without commitment. Give them that permission explicitly.
+
+---
+
 ## Reply Decision Tree
 
 Read the inbound email and decide which pattern to follow:
 
 1. **They said they're interested / want to see it / sounds good**
    -> Short acknowledgment -> 1-2 sentences on how it helps THEIR specific situation -> Scheduling link
+
+1b. **They're interested but hesitant ("not ready yet", "not big enough", "keeping options open")**
+   -> Mirror their exact pain back -> Validate their stage ("built for businesses at your stage") -> Remove the objection ("no pressure to use right away") -> Make demo feel zero-risk ("worst case, pick up workflow ideas") -> Scheduling link. HIGH PRIORITY lead.
 
 2. **They asked a specific question**
    -> Answer the question directly and concisely -> Offer to show more in a demo -> Scheduling link

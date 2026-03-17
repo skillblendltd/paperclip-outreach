@@ -74,7 +74,7 @@ Hi {{FNAME}},
 
 I'm building a system specifically for print and promo shops, quotes, artwork approvals, orders, invoicing, all in one place. It's called [TaggIQ](https://taggiq.com/).
 
-I'm looking for 5 BNI members to be design partners: tell me what slows your team down, and I'll build around your workflow. Partners get 40% off year one.
+I'm looking for 5 BNI members to be design partners: tell me what slows your team down, and I'll build around your workflow. As a fellow BNI member, I'd love to offer you 3 months free to try it out, no commitment, no card required.
 
 2 spots taken. Worth a 15-min chat?
 
