@@ -37,33 +37,30 @@ Promoted store in Ireland but didn't convert.
 
 ## EMAIL 1: The Re-Engagement (Day 0)
 
-**Purpose:** Remind them they enquired. Establish Fully Promoted as #1. Ask
-if they're still open to business opportunities.
+**Purpose:** Remind them they enquired. We weren't ready then, now we are. One proof point. Easy reply.
 
 **Subject line options (A/B test):**
-- A: "{{FNAME}}, are you still open to business opportunities?"
-- B: "You enquired about Fully Promoted -things have changed, {{FNAME}}"
+- A: "Fully Promoted Ireland - quick update, {{FNAME}}"
+- B: "{{FNAME}}, remember your franchise enquiry?"
 
 ---
 
 Hi {{FNAME}},
 
-You enquired some time back about the Fully Promoted franchise opportunity in Ireland, and I wanted to reach out personally to see if you're still open to exploring business opportunities.
+You enquired about the Fully Promoted franchise in Ireland back in {{YEAR}}. At the time, we weren't quite ready to launch here.
 
-A lot has happened since {{YEAR}}.
+Now we are.
 
-Fully Promoted is now the world's largest promotional products franchise -ranked #1 in our category by Entrepreneur Magazine for 25 years running, with over 275 locations across 10 countries and still growing.
+Fully Promoted is the world's largest promotional products franchise - #1 in our category for 25 years running, with over 300 locations worldwide. And we're now looking for franchise partners across Ireland.
 
-The reason I'm reaching out is that we're now bringing Fully Promoted to Ireland, and I'm looking for the right franchise partners to help make that happen.
+I'm Prakash, the Master Franchisee for Ireland. Would love to have a quick chat and fill you in, or send over the franchise brochure if you'd prefer a read first.
 
-I'm Prakash, the Master Franchisee for Ireland. Would be great to have a quick chat and fill you in on where things are at. Happy to send over the franchise brochure too if you'd like a read first.
+Just hit reply either way. Would be great to hear from you.
 
-Either way, just hit reply and let me know. Would love to hear from you.
-
-Best regards,
+Cheers,
 Prakash Inani
 Master Franchisee, Fully Promoted Ireland
-Kingswood Business Park, Dublin
+Unit A20, Kingswood Business Park, Dublin
 fullypromoted.ie
 
 ---
@@ -71,39 +68,28 @@ fullypromoted.ie
 
 ## EMAIL 2: Why This, Why Now (Day 5, only if no reply)
 
-**Purpose:** Paint the business case. Show them why promotional products is a
-smart space and why Ireland is the right market at the right time.
+**Purpose:** One compelling idea - recurring revenue + open Irish market. Shorter than Email 1. Personal angle.
 
 **Subject line options (A/B test):**
-- A: "Why promotional products is a recession-resistant business"
-- B: "The franchise opportunity I wish I'd seen 10 years ago"
+- A: "Quick thought on the Irish market, {{FNAME}}"
+- B: "Why I picked Fully Promoted for Ireland"
 
 ---
 
 Hi {{FNAME}},
 
-I sent you a note last week about Fully Promoted Ireland and I wanted to follow up with a bit more context, because the numbers really do speak for themselves.
+Wanted to follow up on my email about Fully Promoted Ireland.
 
-The promotional products industry globally is worth over $26 billion -and it's growing. Every business in Ireland needs branded merchandise: uniforms, workwear, corporate gifts, trade show materials, marketing collateral. It's not a trend. It's a permanent, recurring business need.
+The thing that sold me on this franchise: every business needs branded products. Uniforms, corporate gifts, trade show gear, marketing materials. And they need them again next quarter, and the quarter after. It's a recurring relationship, not a one-off sale.
 
-That's what makes Fully Promoted so compelling as a franchise. Your clients don't buy once and disappear. Staff turn over, companies rebrand, events happen every quarter. You build relationships and they keep coming back, year after year.
+Ireland doesn't have a dominant franchise in this space yet. The partners who come in now get first pick of territories.
 
-Here's what you get with a Fully Promoted franchise:
+Happy to walk you through the full picture on a quick call if you're curious. Just reply and we'll find a time.
 
-- A turnkey operation: all equipment, software, and store setup included
-- Intensive 4-week training programme (no prior industry experience needed)
-- Established supplier relationships from day one
-- Ongoing support from a global network of 275+ franchisees
-- A brand that's been ranked #1 in its category for 25 consecutive years
-
-Ireland is a brand-new market for Fully Promoted, which means the franchise partners who come in now will have first pick of territories.
-
-Would you be open to a 15-minute call this week? I can walk you through the full opportunity pack. Happy to work around your schedule.
-
-Best regards,
+Cheers,
 Prakash Inani
 Master Franchisee, Fully Promoted Ireland
-Kingswood Business Park, Dublin
+Unit A20, Kingswood Business Park, Dublin
 fullypromoted.ie
 
 ---
@@ -111,42 +97,37 @@ fullypromoted.ie
 
 ## EMAIL 3: Social Proof & Success Stories (Day 12, only if no reply)
 
-**Purpose:** Overcome doubt with real franchisee stories. Plant the idea of
-being part of Ireland's founding group.
+**Purpose:** Real names, real numbers. Open with the interesting thing. "Founding group" language. Shorter sign-off.
 
 **Subject line options (A/B test):**
-- A: "From corporate job to million-dollar franchise owner"
-- B: "How Fully Promoted franchisees are building real businesses"
+- A: "How a first-timer built a million-dollar franchise"
+- B: "Something I thought you'd find interesting, {{FNAME}}"
 
 ---
 
 Hi {{FNAME}},
 
-I've been reaching out about the Fully Promoted franchise opportunity in Ireland and I thought you might find this interesting.
+Thought you might find this relevant.
 
-One of the things that convinced me to take on the Ireland master franchise was the success stories from existing owners around the world.
+Michelle Bottino left her corporate career in 2018 to open a Fully Promoted store in Illinois. No industry experience. Within a few years, she'd built it into a million-dollar operation. Another franchisee in Ohio grew 72% in a single year.
 
-Michelle Bottino left her corporate career in 2018 to open a Fully Promoted store in Illinois. Within a few years, she'd grown it into a million-dollar operation. A franchisee in Ohio saw 72% sales growth in a single year. Others have come from completely different backgrounds -retail, hospitality, corporate -and built thriving businesses because the system does the heavy lifting.
+Most of our successful owners came from completely different backgrounds. The system handles the heavy lifting - your job is building relationships with local businesses.
 
-That's the beauty of this model. You don't need to be an expert in promotional products. Fully Promoted gives you the training, the suppliers, the technology, and the brand. Your job is building relationships with local businesses.
+I'm putting together the first group of franchise partners for Ireland. Would love to include you in that conversation if the timing works.
 
-I'm currently putting together the founding group of franchise partners for Ireland's launch. This is a ground-floor opportunity -the kind that doesn't come around often.
+Worth a quick chat?
 
-I'd genuinely love to include you in that conversation. Would a quick Zoom call work for you this week or next?
-
-Best regards,
-Prakash Inani
-Master Franchisee, Fully Promoted Ireland
-Kingswood Business Park, Dublin
-fullypromoted.ie
+Cheers,
+Prakash
+Fully Promoted Ireland
+Unit A20, Kingswood Business Park, Dublin
 
 ---
 
 
 ## EMAIL 4: Handle Objections & Create Urgency (Day 20, only if no reply)
 
-**Purpose:** Address common hesitations directly. Emphasise limited territories.
-Make it easy to take the next step.
+**Purpose:** FAQ format for the analytical mind. Territory scarcity. Softer CTA than before.
 
 **Subject line options (A/B test):**
 - A: "Quick question, {{FNAME}}"
@@ -160,31 +141,27 @@ I've reached out a couple of times about Fully Promoted Ireland and I understand
 
 When people consider a franchise, the three things they usually ask are:
 
-1. "Do I need experience?" -No. Fully Promoted provides 4 weeks of intensive training and ongoing support. Many of our most successful franchisees came from completely unrelated industries.
+1. "Do I need experience?" - No. Fully Promoted provides 4 weeks of intensive training and ongoing support. Many of our most successful franchisees came from completely unrelated industries.
 
-2. "What's the investment?" -The franchise fee is very competitive for a brand of this calibre, and the total investment includes a fully fitted-out, turnkey store ready to trade from day one.
+2. "What's the investment?" - The franchise fee is very competitive for a brand of this calibre, and the total investment includes a fully fitted-out, turnkey store ready to trade from day one.
 
-3. "Is there really a market for this in Ireland?" -Every business in Ireland needs branded products. Uniforms, corporate gifts, event merchandise, marketing materials. It's a €500M+ market and there's currently no dominant branded franchise serving it.
+3. "Is there really a market for this in Ireland?" - Every business in Ireland needs branded products. Uniforms, corporate gifts, event merchandise, marketing materials. It's a large market and there's currently no dominant branded franchise serving it.
 
-I'm allocating territories across Ireland right now -Dublin, Cork, Galway, Limerick, Waterford and beyond. Once they're assigned, they're gone.
+I'm allocating territories across Ireland right now - Dublin, Cork, Galway, Limerick, Waterford and beyond. Once they're assigned, they're gone.
 
-If you've even a small interest, a 15-minute call will give you everything you need to make an informed decision. No hard sell, no obligation.
+If any of that sounds relevant, just reply and I'll send over the details. Happy to chat or just share the brochure - whatever works best.
 
-Just reply "interested" and I'll set it up.
-
-Best regards,
-Prakash Inani
-Master Franchisee, Fully Promoted Ireland
-Kingswood Business Park, Dublin
-fullypromoted.ie
+Cheers,
+Prakash
+Fully Promoted Ireland
+Unit A20, Kingswood Business Park, Dublin
 
 ---
 
 
 ## EMAIL 5: The Breakup Email (Day 28, only if no reply)
 
-**Purpose:** Final touch. Low pressure, high respect. Leave the door open.
-Breakup emails often get the highest response rates.
+**Purpose:** Graceful exit. No more selling. Pure respect. Shortest email in the sequence.
 
 **Subject:** "Closing your file, {{FNAME}}"
 
@@ -192,21 +169,16 @@ Breakup emails often get the highest response rates.
 
 Hi {{FNAME}},
 
-I've reached out a few times about the Fully Promoted franchise opportunity in Ireland and I haven't heard back, so I'm going to assume the timing isn't right for you.
+I've reached out a few times about Fully Promoted Ireland and haven't heard back, so I'll assume the timing isn't right.
 
-Completely understand -not every opportunity is the right fit at the right time.
+Completely understand. If things change down the road, my door is always open. Just reply to this email anytime.
 
-I'm going to close your enquiry file on my end, but if things change down the road and you'd like to explore this, my door is always open. Just reply to this email anytime.
+Wishing you all the best, {{FNAME}}.
 
-For what it's worth, Fully Promoted is celebrating 25 years in business this year, and we're just getting started in Ireland. The opportunity will only grow from here.
-
-I wish you all the best, {{FNAME}}.
-
-Warm regards,
-Prakash Inani
-Master Franchisee, Fully Promoted Ireland
-Kingswood Business Park, Dublin
-fullypromoted.ie
+Cheers,
+Prakash
+Fully Promoted Ireland
+Unit A20, Kingswood Business Park, Dublin
 
 ---
 
@@ -214,11 +186,11 @@ fullypromoted.ie
 # CAMPAIGN DESIGN NOTES
 
 ## Email sequence psychology:
-1. **Email 1 (Re-Engagement)** -Triggers memory, establishes credibility (#1 ranked, $131M), asks one simple question: "Are you still interested?" Low friction.
-2. **Email 2 (Business Case)** -For the analytical mind. Market size, recurring revenue model, what's included, why Ireland is perfect timing. This is the "convince me" email.
-3. **Email 3 (Social Proof)** -Stories beat statistics. Real franchisee names, real numbers (72% growth, million-dollar operation). Plants "founding group" urgency.
-4. **Email 4 (Objection Handling)** -Directly tackles the 3 biggest fears (experience, money, market). Territory scarcity creates real urgency. Easy CTA: just reply "interested".
-5. **Email 5 (Breakup)** -"Closing your file" creates loss aversion. Breakup emails consistently get 30-40% of total campaign replies. Respectful, leaves door open.
+1. **Email 1 (Re-Engagement)** - "We weren't ready, now we are." Honest, triggers memory, one proof point (#1 ranked). Easy reply CTA.
+2. **Email 2 (Business Case)** - One idea: recurring revenue + open market. Personal angle ("what sold me"). Shorter than Email 1.
+3. **Email 3 (Social Proof)** - Real names, real numbers. Opens with the story, not "I've been reaching out." Founding group language.
+4. **Email 4 (Objection Handling)** - FAQ format for the 3 big fears. Territory scarcity. Soft CTA ("whatever works best").
+5. **Email 5 (Breakup)** - Shortest email. No more selling. Pure graceful exit. Leaves door open.
 
 ## Key principles:
 - Conversational tone -reads like Prakash personally wrote it, not a marketing team
@@ -230,15 +202,13 @@ fullypromoted.ie
 - Subject lines are curiosity-driven, never salesy or ALL CAPS
 
 ## Tier-specific adjustments:
-- **Tier A** (Discovery Day/Application): Add to Email 1: "I can see you got quite far
-  in the process previously -I'd especially love to reconnect and hear what's changed."
-- **Tier B** (Tour/Webinar): Standard sequence
-- **Tier C** (Inquiry only): Standard sequence -these need the most warming
+- Same email for all tiers. No tier-specific additions.
+- Tier A/B/C distinction used only for send ordering (hottest leads first).
 
 ## A/B test plan:
-- Email 1: Test "still open to opportunities" vs "things have changed" framing
-- Email 2: Test rational (recession-resistant) vs emotional (wish I'd seen this) subject
-- Email 3: Test specific story vs general claim in subject
+- Email 1: Test "quick update" (direct) vs "remember your enquiry?" (memory trigger)
+- Email 2: Test "Irish market" (rational) vs "why I picked" (personal) subject
+- Email 3: Test specific story headline vs curiosity ("something interesting")
 - Email 4: Test "quick question" (curiosity gap) vs personalised question
 - Email 5: No A/B -single "Closing your file" subject (proven breakup formula)
 - Decision point: After 48 hours, compare open rates per variant

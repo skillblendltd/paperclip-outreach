@@ -146,11 +146,11 @@ class ProspectAdmin(admin.ModelAdmin):
     list_display = [
         'business_name', 'product_badge', 'campaign', 'tier_badge', 'score',
         'status_badge', 'email', 'decision_maker_name',
-        'city', 'emails_sent', 'send_enabled', 'last_emailed_at',
+        'city', 'emails_sent', 'send_enabled', 'best_practices_group', 'last_emailed_at',
     ]
-    list_filter = [ProductListFilter, 'campaign', 'tier', 'status', 'segment', 'send_enabled', 'region', 'emails_sent']
+    list_filter = [ProductListFilter, 'campaign', 'tier', 'status', 'segment', 'send_enabled', 'best_practices_group', 'region', 'emails_sent']
     search_fields = ['business_name', 'email', 'decision_maker_name', 'city', 'region']
-    list_editable = ['send_enabled']
+    list_editable = ['send_enabled', 'best_practices_group']
     list_select_related = ['campaign']
     readonly_fields = ['emails_sent', 'last_emailed_at', 'created_at', 'updated_at']
     list_per_page = 50
@@ -170,7 +170,7 @@ class ProspectAdmin(admin.ModelAdmin):
             'fields': ('business_type', 'segment', 'tier', 'score')
         }),
         ('Outreach Status', {
-            'fields': ('status', 'send_enabled', 'emails_sent', 'last_emailed_at')
+            'fields': ('status', 'send_enabled', 'best_practices_group', 'emails_sent', 'last_emailed_at')
         }),
         ('Intel', {
             'fields': ('current_tools', 'pain_signals', 'notes'),

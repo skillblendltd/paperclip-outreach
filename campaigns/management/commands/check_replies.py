@@ -50,9 +50,50 @@ CLASSIFICATION_RULES = [
 ]
 
 
+def strip_quoted_text(body: str) -> str:
+    """Remove quoted original email text, keeping only the new reply.
+
+    Email clients quote the original message in different ways:
+    - Gmail: "On Tue, 17 Mar 2026... wrote:"
+    - Outlook EN: "From: Prakash Inani..."
+    - Outlook IT: "Da: Prakash Inani..."
+    - Outlook SE: "Från: Prakash Inani..."
+    - Outlook DE: "Von: Prakash Inani..."
+    - Outlook FR/ES: "De: Prakash Inani..."
+    - Generic: "-------- Original Message --------"
+    - Quote markers: lines starting with ">"
+    """
+    lines = body.split('\n')
+    # Patterns that indicate the start of quoted text
+    quote_patterns = [
+        re.compile(r'^On .+ wrote:\s*$', re.IGNORECASE),
+        re.compile(r'^-{3,}\s*Original Message\s*-{3,}', re.IGNORECASE),
+        re.compile(r'^(From|Da|Från|Von|De|Van)\s*:', re.IGNORECASE),
+    ]
+
+    cut_index = len(lines)
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        for pattern in quote_patterns:
+            if pattern.search(stripped):
+                cut_index = i
+                break
+        if cut_index != len(lines):
+            break
+
+    # Take only text above the quote boundary
+    new_text = '\n'.join(lines[:cut_index])
+
+    # Also strip any lines that start with ">" (inline quoting)
+    cleaned_lines = [l for l in new_text.split('\n') if not l.strip().startswith('>')]
+    return '\n'.join(cleaned_lines).strip()
+
+
 def classify_email(subject: str, body: str) -> str:
     """Classify an email by keyword matching. Returns classification string."""
-    text = f'{subject}\n{body}'.lower()
+    # Strip quoted text so our own unsubscribe footer doesn't trigger false positives
+    clean_body = strip_quoted_text(body)
+    text = f'{subject}\n{clean_body}'.lower()
 
     for classification, keywords in CLASSIFICATION_RULES:
         for keyword in keywords:
@@ -60,7 +101,7 @@ def classify_email(subject: str, body: str) -> str:
                 return classification
 
     # If contains a question mark and not matched above, it's a question
-    if '?' in body:
+    if '?' in clean_body:
         return 'question'
 
     return 'other'

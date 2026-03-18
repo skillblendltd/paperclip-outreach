@@ -119,6 +119,7 @@ class Prospect(BaseModel):
     notes = models.TextField(blank=True, default='')
 
     send_enabled = models.BooleanField(default=True, help_text='Uncheck to block outreach')
+    best_practices_group = models.BooleanField(default=False, help_text='Member of BNI best practices community group')
 
     class Meta:
         db_table = 'prospects'
