@@ -1,10 +1,13 @@
 """
-Check Zoho IMAP for inbound replies, classify them, and execute auto-actions.
+Check IMAP mailboxes for inbound replies, classify them, and execute auto-actions.
+
+Supports multiple mailboxes via MailboxConfig model.
+Falls back to settings.ZOHO_IMAP_* if no MailboxConfig records exist (backward compatible).
 
 Run via cron every 5 minutes:
     */5 * * * * cd /path/to/paperclip-outreach && venv/bin/python manage.py check_replies
 
-Safe to run repeatedly — deduplicates via Message-ID.
+Safe to run repeatedly - deduplicates via Message-ID.
 """
 import imaplib
 import email
@@ -16,12 +19,18 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
 
-from campaigns.models import Campaign, Prospect, EmailLog, EmailQueue, InboundEmail, Suppression
+from django.db.models import Q
+
+from campaigns.models import (
+    Campaign, Prospect, EmailLog, EmailQueue,
+    InboundEmail, Suppression, ReplyTemplate, MailboxConfig,
+)
+from campaigns.email_service import EmailService
 
 logger = logging.getLogger(__name__)
 
 
-# Classification rules — checked in order, first match wins
+# Classification rules - checked in order, first match wins
 CLASSIFICATION_RULES = [
     ('opt_out', [
         'unsubscribe', 'remove me', 'stop emailing', 'take me off', 'opt out',
@@ -51,20 +60,8 @@ CLASSIFICATION_RULES = [
 
 
 def strip_quoted_text(body: str) -> str:
-    """Remove quoted original email text, keeping only the new reply.
-
-    Email clients quote the original message in different ways:
-    - Gmail: "On Tue, 17 Mar 2026... wrote:"
-    - Outlook EN: "From: Prakash Inani..."
-    - Outlook IT: "Da: Prakash Inani..."
-    - Outlook SE: "Från: Prakash Inani..."
-    - Outlook DE: "Von: Prakash Inani..."
-    - Outlook FR/ES: "De: Prakash Inani..."
-    - Generic: "-------- Original Message --------"
-    - Quote markers: lines starting with ">"
-    """
+    """Remove quoted original email text, keeping only the new reply."""
     lines = body.split('\n')
-    # Patterns that indicate the start of quoted text
     quote_patterns = [
         re.compile(r'^On .+ wrote:\s*$', re.IGNORECASE),
         re.compile(r'^-{3,}\s*Original Message\s*-{3,}', re.IGNORECASE),
@@ -81,17 +78,13 @@ def strip_quoted_text(body: str) -> str:
         if cut_index != len(lines):
             break
 
-    # Take only text above the quote boundary
     new_text = '\n'.join(lines[:cut_index])
-
-    # Also strip any lines that start with ">" (inline quoting)
     cleaned_lines = [l for l in new_text.split('\n') if not l.strip().startswith('>')]
     return '\n'.join(cleaned_lines).strip()
 
 
 def classify_email(subject: str, body: str) -> str:
     """Classify an email by keyword matching. Returns classification string."""
-    # Strip quoted text so our own unsubscribe footer doesn't trigger false positives
     clean_body = strip_quoted_text(body)
     text = f'{subject}\n{clean_body}'.lower()
 
@@ -100,7 +93,6 @@ def classify_email(subject: str, body: str) -> str:
             if keyword in text:
                 return classification
 
-    # If contains a question mark and not matched above, it's a question
     if '?' in clean_body:
         return 'question'
 
@@ -120,7 +112,6 @@ def extract_text_body(msg: email.message.Message) -> str:
                         return payload.decode(charset, errors='replace')
                     except (LookupError, UnicodeDecodeError):
                         return payload.decode('utf-8', errors='replace')
-        # Fallback: try text/html if no text/plain
         for part in msg.walk():
             if part.get_content_type() == 'text/html':
                 payload = part.get_payload(decode=True)
@@ -130,7 +121,6 @@ def extract_text_body(msg: email.message.Message) -> str:
                         html = payload.decode(charset, errors='replace')
                     except (LookupError, UnicodeDecodeError):
                         html = payload.decode('utf-8', errors='replace')
-                    # Strip HTML tags for classification
                     return re.sub(r'<[^>]+>', '', html)
     else:
         payload = msg.get_payload(decode=True)
@@ -152,36 +142,144 @@ STATUS_RANK = {
 
 
 class Command(BaseCommand):
-    help = 'Check Zoho IMAP for reply emails, classify, and execute auto-actions'
+    help = 'Check IMAP mailboxes for reply emails, classify, and execute auto-actions'
 
     def add_arguments(self, parser):
         parser.add_argument('--dry-run', action='store_true', help='Preview without making changes')
-        parser.add_argument('--limit', type=int, default=0, help='Max emails to process (0=no limit)')
-        parser.add_argument('--campaign', help='Only process replies for this campaign')
+        parser.add_argument('--limit', type=int, default=0, help='Max emails to process per mailbox (0=no limit)')
+        parser.add_argument('--campaign', help='Only process replies for this campaign name')
+        parser.add_argument('--mailbox', help='Only check this mailbox (campaign name or product)')
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         limit = options['limit']
         campaign_filter = options.get('campaign')
+        mailbox_filter = options.get('mailbox')
 
-        # Validate config
-        if not settings.ZOHO_IMAP_EMAIL or not settings.ZOHO_IMAP_PASSWORD:
+        # Build list of mailboxes to check
+        mailboxes = self._get_mailboxes(campaign_filter, mailbox_filter)
+
+        if not mailboxes:
             self.stderr.write(self.style.ERROR(
-                'ZOHO_IMAP_EMAIL and ZOHO_IMAP_PASSWORD must be set in .env'
+                'No mailboxes configured. Either create MailboxConfig records in admin '
+                'or set ZOHO_IMAP_EMAIL/ZOHO_IMAP_PASSWORD in .env'
             ))
             return
 
+        total_processed = 0
+        total_actions = {}
+
+        for mb_info in mailboxes:
+            label = mb_info.get('label', mb_info['imap_email'])
+            self.stdout.write(f'\n{"=" * 60}')
+            self.stdout.write(f'Mailbox: {label}')
+            self.stdout.write(f'{"=" * 60}')
+
+            processed, actions = self._process_mailbox(
+                imap_host=mb_info['imap_host'],
+                imap_port=mb_info['imap_port'],
+                imap_email=mb_info['imap_email'],
+                imap_password=mb_info['imap_password'],
+                campaign=mb_info.get('campaign'),
+                mailbox_obj=mb_info.get('mailbox_obj'),
+                dry_run=dry_run,
+                limit=limit,
+            )
+
+            total_processed += processed
+            for cls, count in actions.items():
+                total_actions[cls] = total_actions.get(cls, 0) + count
+
+        # Grand summary
+        self.stdout.write(f'\n{"=" * 60}')
+        self.stdout.write(f'TOTAL: {total_processed} email(s) processed across {len(mailboxes)} mailbox(es)')
+        for cls, count in total_actions.items():
+            if count:
+                self.stdout.write(f'  {cls}: {count}')
+        if dry_run:
+            self.stdout.write(self.style.WARNING('\n[DRY RUN] No changes were made.'))
+
+    def _get_mailboxes(self, campaign_filter, mailbox_filter):
+        """Build list of mailbox configs to check. Falls back to settings.py."""
+
+        # Check for MailboxConfig records in DB
+        mb_qs = MailboxConfig.objects.filter(is_active=True).select_related('campaign')
+
+        if mailbox_filter:
+            mb_qs = mb_qs.filter(
+                Q(campaign__name__icontains=mailbox_filter) |
+                Q(campaign__product__icontains=mailbox_filter)
+            )
+
+        if campaign_filter:
+            mb_qs = mb_qs.filter(campaign__name__icontains=campaign_filter)
+
+        if mb_qs.exists():
+            # Use DB-configured mailboxes
+            return [
+                {
+                    'label': f'{mb.campaign.name} <{mb.imap_email}>',
+                    'imap_host': mb.imap_host,
+                    'imap_port': mb.imap_port,
+                    'imap_email': mb.imap_email,
+                    'imap_password': mb.imap_password,
+                    'campaign': mb.campaign,
+                    'mailbox_obj': mb,
+                }
+                for mb in mb_qs
+            ]
+
+        # Fallback: use settings.py (backward compatible with existing TaggIQ setup)
+        if settings.ZOHO_IMAP_EMAIL and settings.ZOHO_IMAP_PASSWORD:
+            campaign_obj = None
+            if campaign_filter:
+                campaign_obj = Campaign.objects.filter(name__icontains=campaign_filter).first()
+
+            return [
+                {
+                    'label': f'Settings fallback <{settings.ZOHO_IMAP_EMAIL}>',
+                    'imap_host': settings.ZOHO_IMAP_HOST,
+                    'imap_port': settings.ZOHO_IMAP_PORT,
+                    'imap_email': settings.ZOHO_IMAP_EMAIL,
+                    'imap_password': settings.ZOHO_IMAP_PASSWORD,
+                    'campaign': campaign_obj,
+                    'mailbox_obj': None,
+                }
+            ]
+
+        return []
+
+    def _process_mailbox(self, imap_host, imap_port, imap_email, imap_password,
+                         campaign, mailbox_obj, dry_run, limit):
+        """Process a single IMAP mailbox. Returns (processed_count, actions_dict)."""
+
+        actions = {'opt_out': 0, 'bounce': 0, 'not_interested': 0, 'out_of_office': 0,
+                   'interested': 0, 'question': 0, 'other': 0}
+        processed = 0
+        skipped_dedup = 0
+        skipped_no_match = 0
+
         # Connect to IMAP
-        self.stdout.write(f'Connecting to {settings.ZOHO_IMAP_HOST}:{settings.ZOHO_IMAP_PORT}...')
+        self.stdout.write(f'Connecting to {imap_host}:{imap_port}...')
         try:
-            imap = imaplib.IMAP4_SSL(settings.ZOHO_IMAP_HOST, settings.ZOHO_IMAP_PORT)
-            imap.login(settings.ZOHO_IMAP_EMAIL, settings.ZOHO_IMAP_PASSWORD)
+            imap = imaplib.IMAP4_SSL(imap_host, imap_port)
+            imap.login(imap_email, imap_password)
             imap.select('INBOX')
         except Exception as e:
-            self.stderr.write(self.style.ERROR(f'IMAP connection failed: {e}'))
-            return
+            error_msg = f'IMAP connection failed: {e}'
+            self.stderr.write(self.style.ERROR(error_msg))
+            if mailbox_obj and not dry_run:
+                mailbox_obj.last_error = error_msg
+                mailbox_obj.save(update_fields=['last_error', 'updated_at'])
+            return 0, actions
 
-        self.stdout.write(self.style.SUCCESS('Connected to Zoho IMAP.'))
+        self.stdout.write(self.style.SUCCESS(f'Connected to {imap_email}'))
+
+        # Clear last error on successful connect
+        if mailbox_obj and not dry_run:
+            mailbox_obj.last_error = ''
+            mailbox_obj.last_checked_at = timezone.now()
+            mailbox_obj.save(update_fields=['last_error', 'last_checked_at', 'updated_at'])
 
         # Search for unseen messages
         try:
@@ -189,33 +287,18 @@ class Command(BaseCommand):
             if status != 'OK':
                 self.stderr.write(self.style.ERROR(f'IMAP search failed: {status}'))
                 imap.logout()
-                return
+                return 0, actions
         except Exception as e:
             self.stderr.write(self.style.ERROR(f'IMAP search error: {e}'))
             imap.logout()
-            return
+            return 0, actions
 
         msg_ids = data[0].split() if data[0] else []
         self.stdout.write(f'Found {len(msg_ids)} unseen message(s).')
 
         if not msg_ids:
             imap.logout()
-            return
-
-        # Pre-load campaign filter if specified
-        campaign_obj = None
-        if campaign_filter:
-            campaign_obj = Campaign.objects.filter(name__icontains=campaign_filter).first()
-            if not campaign_obj:
-                self.stderr.write(self.style.ERROR(f'Campaign not found: {campaign_filter}'))
-                imap.logout()
-                return
-
-        processed = 0
-        skipped_dedup = 0
-        skipped_no_match = 0
-        actions = {'opt_out': 0, 'bounce': 0, 'not_interested': 0, 'out_of_office': 0,
-                   'interested': 0, 'question': 0, 'other': 0}
+            return 0, actions
 
         for msg_id in msg_ids:
             if limit and processed >= limit:
@@ -245,7 +328,7 @@ class Command(BaseCommand):
                 subject = msg.get('Subject', '(no subject)')
                 in_reply_to = msg.get('In-Reply-To', '').strip()
 
-                # Parse date (naive datetime — USE_TZ=False with SQLite)
+                # Parse date
                 date_str = msg.get('Date', '')
                 try:
                     received_at = parsedate_to_datetime(date_str)
@@ -257,25 +340,44 @@ class Command(BaseCommand):
                 # Extract body
                 body_text = extract_text_body(msg)
 
-                # Match to prospect (case-insensitive email lookup)
-                prospect_qs = Prospect.objects.filter(email__iexact=from_email_addr)
-                if campaign_obj:
-                    prospect_qs = prospect_qs.filter(campaign=campaign_obj)
+                # Match to prospect
+                # If we have a specific campaign (from MailboxConfig), scope to it
+                # Otherwise search across all campaigns (legacy fallback)
+                if campaign:
+                    prospect_qs = Prospect.objects.filter(
+                        email__iexact=from_email_addr, campaign=campaign
+                    )
+                else:
+                    prospect_qs = Prospect.objects.filter(email__iexact=from_email_addr)
+
                 prospect = prospect_qs.select_related('campaign').first()
+
+                # If mailbox is campaign-specific but no match, also try cross-campaign
+                # (someone might reply from a different email than expected)
+                if not prospect and campaign:
+                    prospect = Prospect.objects.filter(
+                        email__iexact=from_email_addr
+                    ).select_related('campaign').first()
 
                 if not prospect:
                     skipped_no_match += 1
-                    # Still save for audit, but mark SEEN so we don't re-process
+                    # Mark as read so we don't reprocess
                     if not dry_run:
                         imap.store(msg_id, '+FLAGS', '\\Seen')
+
+                    # For campaign-specific mailboxes: only save if it looks like
+                    # a real reply (has In-Reply-To header). Skip notifications,
+                    # newsletters, daft.ie alerts, etc.
+                    if campaign and not in_reply_to:
+                        continue
+
                     self.stdout.write(self.style.WARNING(
-                        f'  NO MATCH: {from_email_addr} — {subject[:60]}'
+                        f'  NO MATCH: {from_email_addr} - {subject[:60]}'
                     ))
-                    # Save unmatched inbound for manual review
                     if not dry_run:
                         InboundEmail.objects.create(
                             prospect=None,
-                            campaign=None,
+                            campaign=campaign,
                             from_email=from_email_addr,
                             from_name=from_name,
                             subject=subject,
@@ -285,13 +387,13 @@ class Command(BaseCommand):
                             classification='other',
                             needs_reply=True,
                             received_at=received_at,
-                            notes='No matching prospect found.',
+                            notes=f'No matching prospect found. Mailbox: {imap_email}',
                         )
                     continue
 
-                campaign = prospect.campaign
+                matched_campaign = prospect.campaign
 
-                # Find most recent EmailLog for this prospect to get sequence
+                # Find most recent EmailLog for sequence tracking
                 last_log = EmailLog.objects.filter(
                     prospect=prospect, status='sent'
                 ).order_by('-sequence_number').first()
@@ -301,12 +403,11 @@ class Command(BaseCommand):
                 classification = classify_email(subject, body_text)
                 actions[classification] += 1
 
-                # Determine needs_reply
                 needs_reply = classification in ('interested', 'question', 'other')
 
                 label = f'{prospect.business_name} <{from_email_addr}>'
                 self.stdout.write(
-                    f'  {classification.upper():15s} {label} — {subject[:50]}'
+                    f'  {classification.upper():15s} {label} - {subject[:50]}'
                 )
 
                 if dry_run:
@@ -316,7 +417,7 @@ class Command(BaseCommand):
                 # Save InboundEmail
                 inbound = InboundEmail.objects.create(
                     prospect=prospect,
-                    campaign=campaign,
+                    campaign=matched_campaign,
                     from_email=from_email_addr,
                     from_name=from_name,
                     subject=subject,
@@ -329,8 +430,14 @@ class Command(BaseCommand):
                     received_at=received_at,
                 )
 
-                # Execute auto-actions
+                # Execute auto-actions (opt-out, bounce, not-interested, etc.)
                 self._execute_actions(prospect, inbound, classification)
+
+                # Auto-reply if campaign has it enabled and template exists
+                if (matched_campaign.auto_reply_enabled
+                        and classification in ('interested', 'question')
+                        and needs_reply):
+                    self._try_auto_reply(prospect, inbound, matched_campaign, mailbox_obj)
 
                 # Mark IMAP message as SEEN
                 imap.store(msg_id, '+FLAGS', '\\Seen')
@@ -342,16 +449,82 @@ class Command(BaseCommand):
 
         imap.logout()
 
-        # Summary
-        self.stdout.write('\n' + '=' * 60)
-        self.stdout.write(f'Processed: {processed}')
-        self.stdout.write(f'Skipped (dedup): {skipped_dedup}')
-        self.stdout.write(f'Skipped (no match): {skipped_no_match}')
-        for cls, count in actions.items():
-            if count:
-                self.stdout.write(f'  {cls}: {count}')
-        if dry_run:
-            self.stdout.write(self.style.WARNING('\n[DRY RUN] No changes were made.'))
+        # Summary for this mailbox
+        self.stdout.write(f'\nProcessed: {processed}, Dedup: {skipped_dedup}, No match: {skipped_no_match}')
+
+        return processed, actions
+
+    def _try_auto_reply(self, prospect, inbound, campaign, mailbox_obj):
+        """Send a template-based auto-reply if template exists for this campaign+classification."""
+        template = ReplyTemplate.objects.filter(
+            campaign=campaign,
+            classification=inbound.classification,
+            is_active=True,
+        ).first()
+
+        if not template:
+            self.stdout.write(f'    -> No active reply template for {campaign.name}/{inbound.classification}')
+            return
+
+        # Build template variables
+        fname = prospect.decision_maker_name.split()[0] if prospect.decision_maker_name else 'there'
+        variables = {
+            'FNAME': fname,
+            'COMPANY': prospect.business_name,
+            'CITY': prospect.city,
+            'SEGMENT': prospect.get_segment_display() if prospect.segment else prospect.business_type,
+            'ORIGINAL_SUBJECT': inbound.subject,
+            'ORIGINAL_BODY_SHORT': inbound.body_text[:500],
+        }
+
+        rendered_subject = EmailService.render_template(template.subject_template, variables)
+        rendered_body = EmailService.render_template(template.body_html_template, variables)
+
+        # Get SMTP config: prefer mailbox, fallback to settings
+        smtp_config = mailbox_obj.get_smtp_config() if mailbox_obj else None
+
+        try:
+            result = EmailService.send_reply(
+                to_email=inbound.from_email,
+                subject=rendered_subject,
+                body_html=rendered_body,
+                in_reply_to=inbound.message_id,
+                references=inbound.in_reply_to or inbound.message_id,
+                from_email=campaign.from_email or None,
+                from_name=campaign.from_name or None,
+                smtp_config=smtp_config,
+            )
+
+            # Log the reply
+            EmailLog.objects.create(
+                campaign=campaign,
+                prospect=prospect,
+                to_email=inbound.from_email,
+                subject=rendered_subject,
+                body_html=rendered_body,
+                sequence_number=0,
+                template_name=f'auto_reply_{inbound.classification}',
+                status='sent',
+                ses_message_id=result.get('message_id', ''),
+                triggered_by='auto_reply',
+            )
+
+            # Update inbound
+            inbound.replied = True
+            inbound.auto_replied = True
+            inbound.reply_sent_at = timezone.now()
+            inbound.needs_reply = False
+            inbound.save(update_fields=[
+                'replied', 'auto_replied', 'reply_sent_at', 'needs_reply', 'updated_at'
+            ])
+
+            self.stdout.write(self.style.SUCCESS(
+                f'    -> Auto-replied ({inbound.classification}) to {inbound.from_email}'
+            ))
+
+        except Exception as e:
+            logger.exception(f'Auto-reply failed for {inbound.from_email}: {e}')
+            self.stderr.write(self.style.ERROR(f'    -> Auto-reply FAILED: {e}'))
 
     def _execute_actions(self, prospect, inbound, classification):
         """Execute automated actions based on classification. No email sending."""
@@ -364,7 +537,6 @@ class Command(BaseCommand):
                 email=prospect.email,
                 defaults={'reason': 'opt_out', 'notes': f'Auto-detected from reply: {inbound.subject[:100]}'}
             )
-            # Cancel pending queue items
             cancelled = EmailQueue.objects.filter(
                 prospect=prospect, status='pending'
             ).update(status='cancelled', error_message='Prospect opted out')
@@ -399,7 +571,6 @@ class Command(BaseCommand):
             ))
 
         elif classification == 'out_of_office':
-            # Just note it, no status change
             note = f'[Auto] OOO reply received {timezone.now().strftime("%Y-%m-%d")}'
             if prospect.notes:
                 prospect.notes = f'{note}\n{prospect.notes}'
@@ -411,7 +582,6 @@ class Command(BaseCommand):
             self.stdout.write('    -> Out of office noted')
 
         elif classification == 'interested':
-            # Only escalate status, never downgrade
             current_rank = STATUS_RANK.get(prospect.status, 0)
             if current_rank < STATUS_RANK.get('interested', 3):
                 prospect.status = 'interested'

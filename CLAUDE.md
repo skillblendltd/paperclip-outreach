@@ -23,7 +23,7 @@ Always refer to the product-specific directory for email templates, subject line
 
 - **Seq 1 (Opener):** Send to `status='new'` prospects only
 - **Seq 2-5 (Follow-ups):** Send to `status='contacted'` prospects only
-- **Always use include-based filtering** (`status='contacted'`), never exclude-based (`exclude status__in=[...]`). Prospects with statuses like `interested`, `demo_scheduled`, `engaged` get personalized replies via `/email-expert`, not automated sequences.
+- **Always use include-based filtering** (`status='contacted'`), never exclude-based (`exclude status__in=[...]`). Prospects with statuses like `interested`, `demo_scheduled`, `engaged` get personalized replies via `/taggiq-email-expert` or `/fp-email-expert`, not automated sequences.
 
 ## Key Commands
 
@@ -36,15 +36,18 @@ Always refer to the product-specific directory for email templates, subject line
 
 ## Email Reply Workflow
 
-1. `check_replies` runs via cron every 5 mins — classifies inbound as interested/question/opt_out/bounce/etc.
+1. `check_replies` runs via cron every 5 mins (monitors all active mailboxes via MailboxConfig)
 2. Opt-outs, bounces, not-interested get auto-handled (suppress, disable, cancel queue)
 3. Interested, question, other get flagged with `needs_reply=True`
-4. Use Claude Code skill `/email-expert` to draft personalized AI replies
+4. Use product-specific reply skills:
+   - `/taggiq-email-expert` for TaggIQ campaign replies (Zoho SMTP)
+   - `/fp-email-expert` for Fully Promoted Ireland replies (Google Workspace SMTP)
 5. Review and send via `review_replies` or directly via the skill's send instructions
 
 ## Slash Commands
 
-- `/email-expert` — Draft personalized email replies in Prakash's voice. Reads flagged inbound emails, generates warm/conversational replies following real example patterns, includes scheduling links for interested parties.
+- `/taggiq-email-expert` — Autonomous TaggIQ email replies. Reads flagged TaggIQ inbound emails, generates replies in Prakash's voice, sends via Zoho SMTP.
+- `/fp-email-expert` — Autonomous FP Ireland franchise replies. Reads flagged Fully Promoted inbound emails, generates replies focused on booking calls, sends via Google Workspace SMTP.
 
 ## Skill & Agent Routing
 

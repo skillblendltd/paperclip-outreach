@@ -114,8 +114,15 @@ class EmailService:
         original_date: str = None,
         original_subject: str = None,
         original_body_html: str = None,
+        smtp_config: dict = None,
     ) -> Dict[str, str]:
-        """Send reply via Zoho SMTP for proper email threading.
+        """Send reply via SMTP for proper email threading.
+
+        Args:
+            smtp_config: Optional dict with keys: host, port, email, password.
+                         If provided, uses these SMTP credentials instead of settings.
+                         This enables multi-mailbox support (per-campaign SMTP).
+                         Falls back to settings.ZOHO_SMTP_* if not provided.
 
         If original_body_html is provided, it will be quoted below the reply
         body, mimicking how email clients display the original message.
@@ -165,10 +172,17 @@ class EmailService:
             return {"status": "sent", "message_id": msg_id}
 
         try:
-            smtp_host = settings.ZOHO_SMTP_HOST
-            smtp_port = settings.ZOHO_SMTP_PORT
-            smtp_user = settings.ZOHO_SMTP_EMAIL
-            smtp_pass = settings.ZOHO_SMTP_PASSWORD
+            # Use dynamic SMTP config if provided, otherwise fall back to settings
+            if smtp_config:
+                smtp_host = smtp_config['host']
+                smtp_port = smtp_config['port']
+                smtp_user = smtp_config['email']
+                smtp_pass = smtp_config['password']
+            else:
+                smtp_host = settings.ZOHO_SMTP_HOST
+                smtp_port = settings.ZOHO_SMTP_PORT
+                smtp_user = settings.ZOHO_SMTP_EMAIL
+                smtp_pass = settings.ZOHO_SMTP_PASSWORD
 
             # Generate proper Message-ID for this reply
             generated_msg_id = make_msgid(domain=from_address.split('@')[1] if '@' in from_address else 'taggiq.com')

@@ -10,7 +10,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db.models import Count, Q
 
-from .models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, InboundEmail, ReplyTemplate
+from .models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, InboundEmail, ReplyTemplate, MailboxConfig
 from .forms import CsvUploadForm
 
 
@@ -613,6 +613,53 @@ class ReplyTemplateAdmin(admin.ModelAdmin):
             'border-radius:3px;font-size:11px">{}</span>',
             colour, obj.get_classification_display()
         )
+
+
+@admin.register(MailboxConfig)
+class MailboxConfigAdmin(admin.ModelAdmin):
+    list_display = [
+        'campaign', 'imap_email', 'is_active', 'last_checked_badge', 'last_error_short',
+    ]
+    list_filter = ['is_active']
+    list_select_related = ['campaign']
+    readonly_fields = ['last_checked_at', 'last_error']
+
+    fieldsets = (
+        (None, {
+            'fields': ('campaign', 'is_active'),
+        }),
+        ('IMAP (Reading Replies)', {
+            'fields': ('imap_host', 'imap_port', 'imap_email', 'imap_password'),
+        }),
+        ('SMTP (Sending Replies)', {
+            'fields': ('smtp_host', 'smtp_port', 'smtp_email', 'smtp_password'),
+        }),
+        ('Status', {
+            'fields': ('last_checked_at', 'last_error'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name in ('imap_password', 'smtp_password'):
+            from django.forms import PasswordInput
+            kwargs['widget'] = PasswordInput(render_value=True)
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    @admin.display(description='Last Checked')
+    def last_checked_badge(self, obj):
+        if obj.last_checked_at:
+            return obj.last_checked_at.strftime('%Y-%m-%d %H:%M')
+        return format_html('<span style="color:#999">Never</span>')
+
+    @admin.display(description='Last Error')
+    def last_error_short(self, obj):
+        if obj.last_error:
+            return format_html(
+                '<span style="color:#e74c3c">{}</span>',
+                obj.last_error[:80]
+            )
+        return format_html('<span style="color:#27ae60">OK</span>')
 
 
 @admin.register(Suppression)

@@ -252,6 +252,48 @@ class InboundEmail(BaseModel):
         return f'{self.from_email} - {self.classification} - {self.subject[:50]}'
 
 
+class MailboxConfig(BaseModel):
+    """IMAP/SMTP credentials per campaign for multi-mailbox reply monitoring."""
+
+    campaign = models.OneToOneField(
+        Campaign, on_delete=models.CASCADE, related_name='mailbox',
+        help_text='Campaign this mailbox monitors replies for',
+    )
+
+    # IMAP (reading replies)
+    imap_host = models.CharField(max_length=200, default='imappro.zoho.eu')
+    imap_port = models.IntegerField(default=993)
+    imap_email = models.EmailField(help_text='Email address to check for replies')
+    imap_password = models.CharField(max_length=500)
+
+    # SMTP (sending replies back)
+    smtp_host = models.CharField(max_length=200, default='smtppro.zoho.eu')
+    smtp_port = models.IntegerField(default=465)
+    smtp_email = models.EmailField(help_text='Email address to send replies from')
+    smtp_password = models.CharField(max_length=500)
+
+    is_active = models.BooleanField(default=True, help_text='Enable monitoring for this mailbox')
+    last_checked_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True, default='')
+
+    class Meta:
+        db_table = 'mailbox_configs'
+        ordering = ['campaign__name']
+
+    def __str__(self):
+        status = 'ON' if self.is_active else 'OFF'
+        return f'{self.campaign.name} <{self.imap_email}> [{status}]'
+
+    def get_smtp_config(self):
+        """Return SMTP config dict for EmailService.send_reply()."""
+        return {
+            'host': self.smtp_host,
+            'port': self.smtp_port,
+            'email': self.smtp_email,
+            'password': self.smtp_password,
+        }
+
+
 class Suppression(BaseModel):
     REASON_CHOICES = [
         ('opt_out', 'Opted Out'),
