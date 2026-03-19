@@ -115,6 +115,7 @@ class EmailService:
         original_subject: str = None,
         original_body_html: str = None,
         smtp_config: dict = None,
+        attachments: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, str]:
         """Send reply via SMTP for proper email threading.
 
@@ -123,6 +124,8 @@ class EmailService:
                          If provided, uses these SMTP credentials instead of settings.
                          This enables multi-mailbox support (per-campaign SMTP).
                          Falls back to settings.ZOHO_SMTP_* if not provided.
+            attachments: Optional list of dicts with keys: filename, content (bytes),
+                         content_type (optional, defaults to application/octet-stream).
 
         If original_body_html is provided, it will be quoted below the reply
         body, mimicking how email clients display the original message.
@@ -207,6 +210,16 @@ class EmailService:
             html_part = MIMEText(full_html, 'html')
             msg_body.attach(html_part)
             msg.attach(msg_body)
+
+            # Attach files if provided
+            if attachments:
+                for attachment in attachments:
+                    att = MIMEApplication(attachment['content'])
+                    att.add_header(
+                        'Content-Disposition', 'attachment',
+                        filename=attachment['filename']
+                    )
+                    msg.attach(att)
 
             # Port 465 = direct SSL, port 587 = STARTTLS
             if smtp_port == 465:
