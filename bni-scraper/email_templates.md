@@ -48,7 +48,9 @@ Hi {{FNAME}},
 
 Thought you might find this interesting. I asked about 20 BNI members in print and promo how they handle artwork approvals and order tracking. Almost everyone said some version of "email back and forth until someone finally says yes."
 
-I actually built a tool to fix this for my own shop in Dublin. It connects quotes, approvals, orders and invoicing in one place. Happy to share what I learned if you're dealing with the same thing.
+I actually built a tool to fix this for my own shop in Dublin. It's called [TaggIQ](https://taggiq.com/) and it connects quotes, approvals, orders and invoicing in one place. I'm also putting together a small group of BNI promo owners to share best practices on workflow.
+
+Happy to share what I learned if you're dealing with the same thing.
 
 Either way, no worries.
 
