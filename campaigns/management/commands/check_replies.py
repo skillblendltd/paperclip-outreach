@@ -215,19 +215,35 @@ class Command(BaseCommand):
             mb_qs = mb_qs.filter(campaign__name__icontains=campaign_filter)
 
         if mb_qs.exists():
-            # Use DB-configured mailboxes
-            return [
-                {
-                    'label': f'{mb.campaign.name} <{mb.imap_email}>',
-                    'imap_host': mb.imap_host,
-                    'imap_port': mb.imap_port,
-                    'imap_email': mb.imap_email,
-                    'imap_password': mb.imap_password,
-                    'campaign': mb.campaign,
-                    'mailbox_obj': mb,
-                }
-                for mb in mb_qs
-            ]
+            # Deduplicate by IMAP email - multiple campaigns can share one inbox
+            # Group campaigns by imap_email so we only connect once per inbox
+            seen_emails = {}
+            for mb in mb_qs:
+                key = mb.imap_email.lower()
+                if key not in seen_emails:
+                    seen_emails[key] = {
+                        'label': f'{mb.imap_email}',
+                        'imap_host': mb.imap_host,
+                        'imap_port': mb.imap_port,
+                        'imap_email': mb.imap_email,
+                        'imap_password': mb.imap_password,
+                        'campaign': None,  # search across all campaigns for this inbox
+                        'mailbox_obj': mb,
+                        'campaigns': [mb.campaign],
+                    }
+                else:
+                    seen_emails[key]['campaigns'].append(mb.campaign)
+
+            # If only one campaign for this inbox, scope to it
+            for key, info in seen_emails.items():
+                if len(info['campaigns']) == 1:
+                    info['campaign'] = info['campaigns'][0]
+                    info['label'] = f'{info["campaigns"][0].name} <{info["imap_email"]}>'
+                else:
+                    names = ', '.join(c.name for c in info['campaigns'])
+                    info['label'] = f'{info["imap_email"]} ({len(info["campaigns"])} campaigns)'
+
+            return list(seen_emails.values())
 
         # Fallback: use settings.py (backward compatible with existing TaggIQ setup)
         if settings.ZOHO_IMAP_EMAIL and settings.ZOHO_IMAP_PASSWORD:
