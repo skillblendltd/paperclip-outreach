@@ -62,58 +62,58 @@ Prakash
 **Why it works:** TaggIQ introduced as "a tool I built" not "our platform." Shares insight from real conversations. Low-pressure CTA.
 
 
-## EMAIL 3: Design Partner Invitation (Day 16, only if no reply)
+## EMAIL 3: The Honest Builder (Day 16, only if no reply)
 
-**Goal:** Make them feel valued. Invite them to shape the product.
+**Goal:** Lead with the builder story. Ask for feedback, not a sale. Offer free trial as BNI perk.
 
 **Subject A/B test:**
-- A: "would you want input on this?"
-- B: "looking for 5 BNI members to help shape this"
+- A: "built this for my own shop, curious what you'd think"
+- B: "{{FNAME}}, quick favour to ask"
 
 ---
 
 Hi {{FNAME}},
 
-I'm building a system specifically for print and promo shops, quotes, artwork approvals, orders, invoicing, all in one place. It's called [TaggIQ](https://taggiq.com/).
+Reaching out again as a fellow BNI member in print and promo. I spent about 20 years building software products (including Toast, the restaurant POS) before starting my own promo shop in Dublin. When I saw how many of us still run on spreadsheets, email threads and manual invoicing, I knew I had to do something about it.
 
-I'm looking for 5 BNI members to be design partners: tell me what slows your team down, and I'll build around your workflow. As a fellow BNI member, I'd love to offer you 3 months free to try it out, no commitment, no card required.
+That's how [TaggIQ](https://taggiq.com/) came about, a POS platform built specifically for print and promo. Quotes, artwork approvals, orders, invoicing, one place.
 
-2 spots taken. Worth a 15-min chat?
+I'd genuinely love your feedback. Worth a 15-minute look? As a fellow BNI member, happy to give you 3 months free to try it. No card, no commitment.
+
+If you prefer to explore on your own first, you can sign up for a free trial at [taggiq.com](https://taggiq.com/signup). Just let me know which suppliers you work with and I'll make sure their catalog is loaded for you.
 
 Prakash
 
 ---
 
-**Word count:** ~70
-**Why it works:** Clear offer, clear scarcity, clear ask. BNI members love helping other members build things. The ask is tiny (15 min).
+**Word count:** ~120
+**Why it works:** Broadens pain hook beyond artwork approvals. Toast credibility signals real software, not a side project. The ask is "give me feedback" not "buy my product." BNI free trial feels earned. Self-trial option catches people who won't book a call, and asking about suppliers gets engagement + intel.
 
 
-## EMAIL 4: Social Proof (Day 28, only if no reply)
+## EMAIL 4: Real Pain, Real Fix (Day 28, only if no reply)
 
-**Goal:** Show real results from real shops. Make them curious enough to look.
+**Goal:** Mirror the exact language prospects use. Make the pain vivid, the fix simple.
 
 **Subject A/B test:**
-- A: "from 4 tools to 1 screen"
-- B: "{{FNAME}}, quick update from BNI print shops"
+- A: "from email chaos to one screen"
+- B: "{{FNAME}}, the artwork approval thing"
 
 ---
 
 Hi {{FNAME}},
 
-Quick update. A few print and promo shops in BNI started using [TaggIQ](https://taggiq.com/) over the past month.
+One thing I keep hearing from BNI members in promo: artwork approvals over email are a nightmare. Clients forget to reply, things slip through the cracks, and you end up chasing instead of selling.
 
-One team told me they went from using four different tools per order to one screen, quote to invoice. Another said artwork approvals that used to take days over email now close in hours.
+That's exactly why I built [TaggIQ](https://taggiq.com/). One place for quotes, approvals, orders and invoicing. No more digging through inboxes.
 
-If you're ever curious, happy to show you in 15 minutes. No pitch, just a walkthrough.
-
-Either way, always great being connected through BNI.
+If you're curious, happy to show you in 15 minutes. If not, no worries at all, always good to be connected through BNI.
 
 Prakash
 
 ---
 
 **Word count:** ~80
-**Why it works:** Specific results (4 tools to 1, days to hours). "No pitch, just a walkthrough" removes pressure. Warm BNI close.
+**Why it works:** Uses real language from prospect conversations ("things slip through the cracks", "email chaos"). Specific and relatable. Single CTA. Warm BNI close whether interested or not.
 
 
 ## EMAIL 5: Breakup (Day 42, only if no reply)
@@ -130,14 +130,16 @@ Hi {{FNAME}},
 
 I know how busy things get running a shop, so I'll keep this short.
 
-Is streamlining your workflow something you'd want to explore, or would you prefer I stop reaching out? Either way is completely fine.
+If streamlining artwork approvals and quoting is ever on your radar, I'm always happy to chat. If not, completely understand.
+
+Either way, wishing you well with the business.
 
 Prakash
 
 ---
 
-**Word count:** ~40
-**Why it works:** Shortest email in the sequence. Respects their time. "Either way is completely fine" gives permission to say no, which paradoxically gets more yes replies.
+**Word count:** ~45
+**Why it works:** Shortest email in the sequence. Names the specific pain instead of generic "workflow." Warm close. Respects their time.
 
 ---
 

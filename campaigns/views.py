@@ -311,6 +311,7 @@ def outreach_prospects(request):
                 'score': p.score,
                 'status': p.status,
                 'emails_sent': p.emails_sent,
+                'last_emailed_at': p.last_emailed_at.isoformat() if p.last_emailed_at else None,
                 'city': p.city,
                 'current_tools': p.current_tools,
                 'pain_signals': p.pain_signals,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Send Email 2 (Shared Pain) to BNI promo global contacts who received Seq 1 7+ days ago."""
+"""Send Email 3 (The Honest Builder) to BNI promo global contacts who received Seq 2."""
 
 import json
 import random
@@ -13,19 +13,19 @@ BATCH_SIZE = 600
 MIN_DELAY = 30
 MAX_DELAY = 60
 
-SUBJECT_A = "the artwork approval problem"
-SUBJECT_B = "{{FNAME}}, thought you'd find this interesting"
+SUBJECT_A = "built this for my own shop, curious what you'd think"
+SUBJECT_B = "{{FNAME}}, quick favour to ask"
 
 BODY_HTML = """
 <p>Hi {{FNAME}},</p>
 
-<p>Thought you might find this interesting. I asked about 20 BNI members in print and promo how they handle artwork approvals and order tracking. Almost everyone said some version of "email back and forth until someone finally says yes."</p>
+<p>Reaching out again as a fellow BNI member in print and promo. I spent about 20 years building software products (including Toast, the restaurant POS) before starting my own promo shop in Dublin. When I saw how many of us still run on spreadsheets, email threads and manual invoicing, I knew I had to do something about it.</p>
 
-<p>I actually built a tool to fix this for my own shop in Dublin. It's called <a href="https://taggiq.com/">TaggIQ</a> and it connects quotes, approvals, orders and invoicing in one place. I'm also putting together a small group of BNI promo owners to share best practices on workflow.</p>
+<p>That's how <a href="https://taggiq.com/">TaggIQ</a> came about, a POS platform built specifically for print and promo. Quotes, artwork approvals, orders, invoicing, one place.</p>
 
-<p>Happy to share what I learned if you're dealing with the same thing.</p>
+<p>I'd genuinely love your feedback. Worth a 15-minute look? As a fellow BNI member, happy to give you 3 months free to try it. No card, no commitment.</p>
 
-<p>Either way, no worries.</p>
+<p>If you prefer to explore on your own first, you can sign up for a free trial at <a href="https://taggiq.com/signup">taggiq.com</a>. Just let me know which suppliers you work with and I'll make sure their catalog is loaded for you.</p>
 
 <p>Prakash</p>
 """.strip()
@@ -43,8 +43,8 @@ def send_email(prospect_id, subject, ab_variant):
         "prospect_id": prospect_id,
         "subject": subject,
         "body_html": BODY_HTML,
-        "sequence_number": 2,
-        "template_name": "bni_email_2",
+        "sequence_number": 3,
+        "template_name": "bni_email_3",
         "ab_variant": ab_variant,
     }
     req = urllib.request.Request(
@@ -58,11 +58,11 @@ def send_email(prospect_id, subject, ab_variant):
 
 def main():
     prospects = get_prospects()
-    # Seq 2: only prospects with exactly 1 email sent (received Seq 1, not replied)
-    to_send = [p for p in prospects if p.get("emails_sent", 0) == 1 and p.get("status") == "contacted"]
+    # Seq 3: only prospects with exactly 2 emails sent (received Seq 1+2, not replied)
+    to_send = [p for p in prospects if p.get("emails_sent", 0) == 2 and p.get("status") == "contacted"]
     batch = to_send[:BATCH_SIZE]
 
-    print(f"[*] Total ready for Seq 2: {len(to_send)}")
+    print(f"[*] Total ready for Seq 3: {len(to_send)}")
     print(f"[*] Sending batch of {len(batch)}")
     print(f"[*] Remaining after this batch: {len(to_send) - len(batch)}\n")
 

@@ -189,6 +189,21 @@ When they show interest or ask questions, include this:
 
 For Fully Promoted campaigns, use "Schedule a Call with Prakash" instead of "Schedule TaggIQ Demo".
 
+### Self-Trial Option (for people who prefer to explore independently)
+
+When offering a demo, always include the self-trial as a low-pressure fallback. Demo stays the primary CTA, self-trial is secondary.
+
+```html
+<p>If you prefer to explore on your own first, you can sign up for a free trial at <a href="https://taggiq.com/signup">taggiq.com</a>. Just let me know which suppliers you work with and I'll make sure their catalog is loaded for you.</p>
+```
+
+**When to use:**
+- Alongside the scheduling link in any reply where you offer a demo
+- When someone seems interested but unlikely to book a call (busy, timezone issues, introverted)
+- NOT as a standalone CTA without the demo offer first
+
+**Do NOT mention the 30-day vs 90-day trial distinction in emails.** Self-trial gives 30 days, demo booking gives 90 days, but mentioning this makes the self-trial feel like a lesser option. Keep it simple: "free trial" for both. The 90-day bonus gets mentioned verbally during the demo as a nice surprise.
+
 ### BNI Member Free Trial (for warm leads)
 
 When someone is interested but hesitant ("not ready yet", "keeping options open", "not big enough"), use this as the closer. Don't lead with it in cold emails.
@@ -561,10 +576,16 @@ Read the inbound email and decide which pattern to follow:
 7. **They said they're happy / not interested (but politely)**
    -> Respect it completely -> Don't try to convince -> Brief pivot to what inspired TaggIQ (don't over-praise their tool) -> Warm close, leave door open softly
 
-8. **Can't tell what they want / generic reply**
+8. **They describe the pain without realising it ("we do our best", "email threads", "we manage")**
+   -> This is NOT "not interested". Signal words: "we do our best", "we manage", "it works for now", "email threads", "WhatsApp", "we just follow up", "not perfect but". These mean "it's not ideal but we live with it."
+   -> Use RELATE-THEN-REVEAL pattern: validate their answer -> share that you had the same experience ("that's exactly what we were doing too") -> name the pain casually ("things slipped through the cracks") -> reveal TaggIQ as personal story ("that's what got me building TaggIQ") -> one soft ask ("happy to show you if you're ever curious")
+   -> NO demo link, NO features, NO free trial. Just plant the seed.
+   -> Update status to `engaged`, not `not_interested`
+
+9. **Can't tell what they want / generic reply**
    -> Thank them -> Brief value prop relevant to their business type -> "No pressure at all" soft CTA
 
-9. **Empty body / just a signature / test email**
+10. **Empty body / just a signature / test email**
    -> Skip, don't send. Mark as replied.
 
 ---

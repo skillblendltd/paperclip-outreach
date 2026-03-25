@@ -15,7 +15,8 @@ Multi-product B2B outreach system for TaggIQ, Fully Promoted Ireland, and Kritno
 | Product | Directory | Send Script | Templates |
 |---------|-----------|------------|-----------|
 | TaggIQ (BNI) | `bni-scraper/` | `send_promo_global.py`, `send_embroidery.py`, `send_email1_all.py` | In script + `email_templates.md` |
-| Fully Promoted Ireland | `fp-ireland-master/` | `send_campaign.py` | In script + `email_templates.md` |
+| Fully Promoted Ireland (Franchise) | `fp-ireland-master/` | `send_campaign.py` | In script + `email_templates.md` |
+| FP Dublin BNI Print & Promo | `fp-ireland-master/` | `send_bni_promo.py` | In script (segment-personalised) |
 
 Always refer to the product-specific directory for email templates, subject lines, and send logic before sending any campaign emails.
 
@@ -33,6 +34,15 @@ Always refer to the product-specific directory for email templates, subject line
 | `check_replies` | Fetch Zoho IMAP, classify inbound, execute auto-actions |
 | `review_replies` | Interactive CLI to review flagged replies |
 | `seed_reply_templates` | Populate ReplyTemplate table (reference templates) |
+
+## Website Demo Requests
+
+When Prakash shares a new website demo request (name, company, email, phone, country, date):
+1. Check if their email exists in BNI campaign DB
+2. If **existing prospect**: update status to `demo_scheduled`, add phone + notes with date
+3. If **new prospect**: create under Promo Global campaign, status `demo_scheduled`, `send_enabled=False`, notes tagged as "Website inquiry, not from BNI outreach"
+4. **Do NOT send any email** — TaggIQ system sends the demo welcome email automatically
+5. Just confirm to Prakash whether they're from BNI or new
 
 ## Email Reply Workflow
 
@@ -99,6 +109,7 @@ Use agents when:
 | TaggIQ BNI Promo Global | `9cdc1870-476b-4bfe-91ff-9661bd62c662` | `bni-scraper/` |
 | TaggIQ BNI Embroidery Global | `9dc977d3-f793-4051-905c-30c82b76dcd6` | `bni-scraper/` |
 | FP Ireland Franchise Recruitment | `50eecf8f-c4a0-4a2d-9335-26d56870101e` | `fp-ireland-master/` |
+| FP Dublin BNI Print & Promo | `3c46cbea-a817-43d5-9532-caecb2e7f01d` | `fp-ireland-master/` |
 
 ## Coding Preferences
 
