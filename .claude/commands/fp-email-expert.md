@@ -103,6 +103,21 @@ print(f'Sent to {inbound.from_email}')
 ### Threading Rule - ALWAYS run check_replies first
 When the user shares an email directly (pasting content), do NOT reply immediately. Always run `check_replies --mailbox fullypromoted` first so the email gets into the database with its proper Message-ID. Then use the InboundEmail record.
 
+### Misclassification Check - CRITICAL
+After running `check_replies`, ALWAYS review auto-classified emails before acting. The classifier can get it wrong, especially on short mobile replies. Common misclassification patterns:
+
+- **Short "thank you" + request misread as opt-out** — e.g. "Thank you. Would u be able to set up a meeting next week?" was classified as opt_out. This is actually an INTERESTED/HOT lead wanting a call.
+- **Brief positive replies misread as not_interested** — Short iPhone replies like "Yes sounds good" or "Send me details" can be misread.
+- **Forwarded emails misread as bounces** — Someone forwarding your email to a colleague isn't a bounce.
+
+**When you find a misclassification:**
+1. Fix the InboundEmail classification
+2. Fix the Prospect status (undo any opt_out/suppression)
+3. Re-enable send_enabled if it was disabled
+4. Reply appropriately based on what they actually said
+
+If Prakash tells you a classification was wrong, fix it immediately and update the prospect record.
+
 ### Skip Rules
 - Skip emails with empty body (just a signature) - mark as replied with no send
 - Skip emails from prakash@fullypromoted.ie (test emails from Prakash himself) - mark as replied

@@ -20,6 +20,15 @@ Multi-product B2B outreach system for TaggIQ, Fully Promoted Ireland, and Kritno
 
 Always refer to the product-specific directory for email templates, subject lines, and send logic before sending any campaign emails.
 
+## Lead Scraping
+
+| Source | Directory | Scripts |
+|--------|-----------|---------|
+| BNI Connect | `bni-scraper/` | `scrape_bni.py`, `import_promo_global.py` |
+| Google Maps | `google-maps-scraper/` | `scrape_maps.py`, `import_prospects.py` |
+
+**Google Maps Scraper** uses Google Places API (New) for business data + Playwright for email extraction from websites. Requires `GOOGLE_PLACES_API_KEY` in `.env`. See `google-maps-scraper/.env.example`.
+
 ## Sequence Filtering Rules
 
 - **Seq 1 (Opener):** Send to `status='new'` prospects only
@@ -58,6 +67,7 @@ When Prakash shares a new website demo request (name, company, email, phone, cou
 
 - `/taggiq-email-expert` — Autonomous TaggIQ email replies. Reads flagged TaggIQ inbound emails, generates replies in Prakash's voice, sends via Zoho SMTP.
 - `/fp-email-expert` — Autonomous FP Ireland franchise replies. Reads flagged Fully Promoted inbound emails, generates replies focused on booking calls, sends via Google Workspace SMTP.
+- `/launch-campaign` — Full GTM pipeline: scrape Google Maps → clean/dedupe → import → create send script → send. Pauses at checkpoints for approval before importing and sending.
 
 ## Skill & Agent Routing
 

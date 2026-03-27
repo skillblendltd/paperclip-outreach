@@ -54,18 +54,30 @@ CLASSIFICATION_RULES = [
         'interested', 'tell me more', 'sounds good', 'sounds great',
         "let's talk", "let's chat", 'happy to chat', 'love to hear',
         'show me', 'demo', 'schedule', 'call me', 'sign me up',
-        'want to learn more', 'set up a time',
+        'want to learn more', 'set up a time', 'set up a meeting',
+        'teams meeting', 'zoom meeting', 'book a call', 'grab a time',
+        'would like to chat', 'give me a call', 'send me the brochure',
+        'send me details', 'send me more info', 'yes please',
+        'meeting next week', 'chat next week', 'call next week',
     ]),
 ]
 
 
 def strip_quoted_text(body: str) -> str:
     """Remove quoted original email text, keeping only the new reply."""
+    # Normalize non-breaking spaces to regular spaces
+    body = body.replace('\xa0', ' ').replace('\u200b', '')
+    # Split inline "Sent from my iPhone" so text before it is preserved
+    body = re.sub(r'\s*Sent from my (iPhone|iPad|Samsung|Galaxy|Android)', r'\nSent from my \1', body, flags=re.IGNORECASE)
+    # Handle iPhone-style inline quotes where "Sent from my iPhone" runs into "On ... wrote:"
+    body = re.sub(r'(Sent from my (?:iPhone|iPad|Samsung|Galaxy|Android))\s*On ', r'\1\nOn ', body, flags=re.IGNORECASE)
     lines = body.split('\n')
     quote_patterns = [
         re.compile(r'^On .+ wrote:\s*$', re.IGNORECASE),
+        re.compile(r'On .+wrote:', re.IGNORECASE),
         re.compile(r'^-{3,}\s*Original Message\s*-{3,}', re.IGNORECASE),
         re.compile(r'^(From|Da|Från|Von|De|Van)\s*:', re.IGNORECASE),
+        re.compile(r'^Sent from my (iPhone|iPad|Samsung|Galaxy|Android)', re.IGNORECASE),
     ]
 
     cut_index = len(lines)
