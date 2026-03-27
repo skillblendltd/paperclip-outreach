@@ -68,13 +68,11 @@ Unit A20, Kingswood Business Park, Dublin<br>
         "body_html": """
 <p>Hi {{FNAME}},</p>
 
-<p>Wanted to follow up on my email about Fully Promoted Ireland.</p>
+<p>Prakash here from Fully Promoted Ireland. You enquired about a franchise with us a while back, so I wanted to reach out.</p>
 
-<p>The thing that sold me on this franchise: every business needs branded products. Uniforms, corporate gifts, trade show gear, marketing materials. And they need them again next quarter, and the quarter after. It's a recurring relationship, not a one-off sale.</p>
+<p>I'm the Master Franchisee for Ireland and we're now actively looking for franchise partners. The thing I love about this model is that every business needs branded products, uniforms, and marketing materials, and they come back for more every quarter. It's a proper recurring revenue business.</p>
 
-<p>Ireland doesn't have a dominant franchise in this space yet. The partners who come in now get first pick of territories.</p>
-
-<p>Happy to walk you through the full picture on a quick call if you're curious. Just reply and we'll find a time.</p>
+<p>Would be great to have a quick chat if you're open to it. Here's a link to grab a time that suits you: <a href="https://calendar.app.google/yFLeFoyP3XscHsBs8">https://calendar.app.google/yFLeFoyP3XscHsBs8</a></p>
 
 <p>Cheers,<br>
 Prakash Inani<br>

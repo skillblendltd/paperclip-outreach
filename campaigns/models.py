@@ -70,6 +70,7 @@ class Prospect(BaseModel):
         ('design_partner', 'Design Partner'),
         ('not_interested', 'Not Interested'),
         ('opted_out', 'Opted Out'),
+        ('follow_up_later', 'Follow Up Later'),
     ]
 
     TIER_CHOICES = [
@@ -117,6 +118,8 @@ class Prospect(BaseModel):
     current_tools = models.CharField(max_length=500, blank=True, default='')
     pain_signals = models.TextField(blank=True, default='')
     notes = models.TextField(blank=True, default='')
+
+    follow_up_after = models.DateField(null=True, blank=True, help_text='Date to follow up with this prospect')
 
     send_enabled = models.BooleanField(default=True, help_text='Uncheck to block outreach')
     best_practices_group = models.BooleanField(default=False, help_text='Member of BNI best practices community group')

@@ -204,6 +204,28 @@ When offering a demo, always include the self-trial as a low-pressure fallback. 
 
 **Do NOT mention the 30-day vs 90-day trial distinction in emails.** Self-trial gives 30 days, demo booking gives 90 days, but mentioning this makes the self-trial feel like a lesser option. Keep it simple: "free trial" for both. The 90-day bonus gets mentioned verbally during the demo as a nice surprise.
 
+### Signed Up for Trial (HOT LEAD — push for demo)
+
+When a prospect signs up for the self-trial, they are now a HOT lead. They've taken action. The goal is to get them on a call while they're actively exploring, so you can guide them and close.
+
+```html
+<p>Great to see you signed up! If it helps, I am happy to give you a quick 15-minute walkthrough to get you up and running faster. I can also set up your suppliers and show you the shortcuts that matter most for your workflow.</p>
+
+<p><a href="https://calendar.app.google/fzQ5iQLGHakimfjv7">Schedule a Quick Walkthrough with Prakash</a></p>
+
+<p>In the meantime, let me know which suppliers you work with and I'll make sure their catalogs are loaded for you.</p>
+```
+
+**When to use:**
+- Immediately when Prakash tells you a prospect signed up for the trial
+- This is higher priority than any sequence email — respond same day
+
+**Key points:**
+- Frame the demo as "walkthrough to help you get the most out of it", not a sales pitch
+- Ask about their suppliers (gets engagement + loads relevant data)
+- Update prospect status to `interested` if not already higher
+- These leads convert best when you catch them while they're still exploring
+
 ### BNI Member Free Trial (for warm leads)
 
 When someone is interested but hesitant ("not ready yet", "keeping options open", "not big enough"), use this as the closer. Don't lead with it in cold emails.
