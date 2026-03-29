@@ -26,7 +26,7 @@ SEGMENT     = "apparel_embroidery"
 
 # Send window: Tue–Thu only, between 10am and 5pm Irish time
 IRISH_TZ       = pytz.timezone("Europe/Dublin")
-SEND_DAYS      = {1, 2, 3}   # Mon=0 … Sun=6 — Tuesday=1, Wednesday=2, Thursday=3
+SEND_DAYS      = {0, 1, 2, 3, 4}   # Mon=0 … Fri=4
 SEND_HOUR_MIN  = 10
 SEND_HOUR_MAX  = 17
 
@@ -64,8 +64,8 @@ def check_send_window():
     now = datetime.now(IRISH_TZ)
     if now.weekday() not in SEND_DAYS:
         day_name = now.strftime("%A")
-        print(f"[!] Today is {day_name} — send window is Tuesday to Thursday only.")
-        print("    Run again on Tuesday, Wednesday, or Thursday.")
+        print(f"[!] Today is {day_name} — send window is Monday to Friday only.")
+        print("    Run again on a weekday.")
         return False
     if not (SEND_HOUR_MIN <= now.hour < SEND_HOUR_MAX):
         print(f"[!] Current Irish time is {now.strftime('%H:%M')} — send window is 10:00–17:00.")
