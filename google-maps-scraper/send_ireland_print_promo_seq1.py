@@ -20,7 +20,7 @@ import pytz
 
 # ── Config ──────────────────────────────────────────────────────────────────
 API_BASE    = "http://localhost:8002/api"
-CAMPAIGN_ID = "REPLACE_WITH_PRINT_PROMO_CAMPAIGN_ID"  # fill in after Monday import
+CAMPAIGN_ID = "0ad82b87-c55e-4458-a426-cef6baf0d088"
 BATCH_SIZE  = 100
 SEGMENTS    = {"promo_distributor", "print_shop"}
 

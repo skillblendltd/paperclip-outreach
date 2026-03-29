@@ -20,7 +20,7 @@ import pytz
 
 # ── Config ──────────────────────────────────────────────────────────────────
 API_BASE    = "http://localhost:8002/api"
-CAMPAIGN_ID = "REPLACE_WITH_APPAREL_CAMPAIGN_ID"  # fill in after Monday import
+CAMPAIGN_ID = "7a44100a-d848-4619-b239-d8502c74e052"
 BATCH_SIZE  = 100
 SEGMENT     = "apparel_embroidery"
 

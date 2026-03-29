@@ -20,7 +20,7 @@ import pytz
 
 # ── Config ──────────────────────────────────────────────────────────────────
 API_BASE    = "http://localhost:8002/api"
-CAMPAIGN_ID = "REPLACE_WITH_SIGNS_CAMPAIGN_ID"   # fill in after Monday import
+CAMPAIGN_ID = "74de42a1-5bab-4e31-ada8-c200b18f1403"
 BATCH_SIZE  = 100
 SEGMENT     = "signs"
 
