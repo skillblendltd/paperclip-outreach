@@ -51,7 +51,7 @@ CAMPAIGNS = {
 # Signature — short for cold outreach, full for replies
 # Cold emails sign off as just "Prakash" (peer tone)
 # ---------------------------------------------------------------------------
-SIGNATURE_PEER = '<p>Prakash</p>'  # Seq 1-2: pure peer tone
+SIGNATURE_PEER = '<p>Prakash<br>Founder, <a href="https://taggiq.com/">TaggIQ</a></p>'  # Seq 1-2: peer tone with link
 
 SIGNATURE_FOUNDER = '<p>Prakash<br>Founder, <a href="https://taggiq.com/">TaggIQ</a></p>'  # Seq 3-5: adds credibility
 
@@ -111,7 +111,8 @@ TEMPLATES = {
             '<p>Thought you might find this interesting. I asked about 20 BNI members in print '
             'and promo how they handle artwork approvals and order tracking. Almost everyone said '
             'some version of "email back and forth until someone finally says yes."</p>'
-            '<p>I actually built a tool to fix this for my own shop in Dublin. It connects quotes, '
+            '<p>I actually built a tool to fix this for my own shop in Dublin. It\'s called '
+            '<a href="https://taggiq.com/">TaggIQ</a> and it connects quotes, '
             'approvals, orders and invoicing in one place. Happy to share what I learned if '
             'you\'re dealing with the same thing.</p>'
             '<p>Either way, no worries.</p>'

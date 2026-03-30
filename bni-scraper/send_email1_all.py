@@ -21,7 +21,8 @@ BODY_HTML = """
 
 <p>Curious if you've found something that works or if it's still a pain.</p>
 
-<p>Prakash</p>
+<p>Prakash<br>
+Founder, <a href="https://taggiq.com/">TaggIQ</a></p>
 """.strip()
 
 

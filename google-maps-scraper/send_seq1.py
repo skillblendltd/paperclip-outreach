@@ -26,7 +26,9 @@ BODY_HTML = """
 
 <p>Curious how you manage it.</p>
 
-<p>Prakash</p>
+<p>Prakash<br>
+Founder, TaggIQ<br>
+<a href="https://taggiq.com">taggiq.com</a></p>
 """.strip()
 
 

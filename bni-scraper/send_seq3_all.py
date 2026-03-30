@@ -33,7 +33,8 @@ BODY_HTML = """
 
 <p>If you prefer to explore on your own first, you can sign up for a free trial at <a href="https://taggiq.com/signup">taggiq.com</a>. Just let me know which suppliers you work with and I'll make sure their catalog is loaded for you.</p>
 
-<p>Prakash</p>
+<p>Prakash<br>
+Founder, <a href="https://taggiq.com/">TaggIQ</a></p>
 """.strip()
 
 
