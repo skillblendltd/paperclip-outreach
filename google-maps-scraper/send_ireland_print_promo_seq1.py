@@ -53,7 +53,9 @@ cracks.</p>
 
 <p>If this isn't something you handle, feel free to pass it along to whoever manages artwork and orders.</p>
 
-<p>Prakash</p>\
+<p>Prakash<br>
+Founder, TaggIQ<br>
+<a href="https://taggiq.com">taggiq.com</a></p>\
 """
 
 

@@ -17,13 +17,13 @@ Usage:
 
 import argparse
 import csv
+import importlib
 import json
 import os
 import sys
 import time
 from datetime import datetime
 
-from config import SEARCH_QUERIES, OUTPUT_DIR, WEBSITE_SCRAPE_DELAY
 from places_client import PlacesClient
 from email_extractor import EmailExtractor
 
@@ -89,7 +89,14 @@ def main():
     parser.add_argument("--resume", action="store_true", help="Resume from existing output file")
     parser.add_argument("--output", "-o", default=None, help="Custom output filename (without path)")
     parser.add_argument("--headed", action="store_true", help="Show browser window (for debugging)")
+    parser.add_argument("--config", "-c", default="config", help="Config module name (default: config, e.g. config_uk)")
     args = parser.parse_args()
+
+    # Load config module
+    cfg = importlib.import_module(args.config)
+    SEARCH_QUERIES = cfg.SEARCH_QUERIES
+    OUTPUT_DIR = cfg.OUTPUT_DIR
+    WEBSITE_SCRAPE_DELAY = cfg.WEBSITE_SCRAPE_DELAY
 
     # Determine search queries
     if args.query and args.location:
