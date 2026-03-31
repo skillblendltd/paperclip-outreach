@@ -43,40 +43,7 @@ if [ "$FLAGGED" -gt 0 ]; then
         --allowedTools "Bash,Read,Write,Edit,Glob,Grep" \
         --max-turns 30 \
         --output-format text \
-        -p "Run check_replies for the TaggIQ mailbox, then invoke /taggiq-email-expert to handle any flagged emails autonomously.
-
-Step 1:
-\`\`\`
-cd /Users/pinani/Documents/paperclip-outreach && venv/bin/python manage.py check_replies --mailbox taggiq
-\`\`\`
-
-Step 2: Invoke /taggiq-email-expert to read all flagged TaggIQ inbound emails and send replies autonomously.
-
-Step 3: After sending each reply, update the prospect's status in the DB based on what they said:
-- They asked about pricing, features, or want a demo → status='interested'
-- They booked or confirmed a demo time → status='demo_scheduled'
-- They are actively engaging back and forth → status='engaged'
-- They said not interested, too busy, wrong fit → status='not_interested', send_enabled=False
-- They are a potential reseller/channel partner → status='design_partner'
-- They just replied with a polite acknowledgement (no clear signal) → leave status as-is
-
-Use this snippet for each prospect after replying:
-\`\`\`
-cd /Users/pinani/Documents/paperclip-outreach
-venv/bin/python manage.py shell -c \"
-from campaigns.models import Prospect
-p = Prospect.objects.get(id='<PROSPECT_ID>')
-p.status = '<NEW_STATUS>'
-p.save(update_fields=['status', 'updated_at'])
-print(f'Updated {p.business_name} -> {p.status}')
-\"
-\`\`\`
-
-Also update notes with a brief summary of what they said, e.g.:
-\`\`\`
-p.notes = (p.notes or '') + '\n[2026-03-31] Replied asking about Solopress API integration.'
-p.save(update_fields=['notes', 'updated_at'])
-\`\`\`" \
+        -p "/taggiq-email-expert" \
         >> "$CLAUDE_LOG" 2>&1
 
     EXIT_CODE=$?
