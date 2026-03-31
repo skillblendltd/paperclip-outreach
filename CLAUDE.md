@@ -1,10 +1,27 @@
 # Paperclip Outreach — GTM & Campaign Engine
 
-**What this is:** A fully automated B2B outreach system for three products.
-Scrapes leads → imports to campaigns → sends multi-sequence emails → monitors replies → auto-replies via Claude AI → updates CRM status.
+**What this is:** A fully autonomous B2B outreach system for three products.
+Scrapes leads → imports to campaigns → sends multi-sequence emails → monitors replies → auto-replies via Claude AI → updates CRM status. **Zero human intervention required for day-to-day operation.**
 
 **Owner:** Prakash Inani — solo founder running TaggIQ (software), Fully Promoted Ireland (franchise), and Kritno.
 **Stack:** Django + SQLite + AWS SES + Zoho IMAP + Claude CLI
+
+## Cron Schedule (fully autonomous)
+
+| Cron | Script | What it does |
+|------|--------|--------------|
+| `0 11 * * 1-5` | `run_campaigns.sh` | Daily Mon–Fri 11am IST: sends all due sequences across all campaigns |
+| `*/10 * * * *` | `run_reply_monitor.sh` | Every 10 min: checks Zoho IMAP, auto-handles opt-outs/bounces, invokes `claude -p "/taggiq-email-expert"` for flagged replies |
+| `0 23 * * *` | `backup_to_gdrive.sh` | Nightly: backs up db.sqlite3 to Google Drive |
+
+### Daily send pipeline (`run_campaigns.sh`):
+1. `bni-scraper/send_sequence.py` — BNI Ireland + Promo Global + Embroidery Global (seq 1–5)
+2. `google-maps-scraper/send_ireland_sequences.py` — Ireland Signs + Apparel + Print & Promo (seq 1–5)
+
+### Logs:
+- `/tmp/campaigns_daily.log` — daily send activity
+- `/tmp/taggiq_reply_monitor.log` — reply monitoring
+- `/tmp/taggiq_claude_replies.log` — Claude reply output
 
 ---
 
@@ -137,27 +154,26 @@ new → [Seq 1 sent] → contacted → [Seq 2–5 sent] → ...
 
 ## Send Scripts Map
 
-All templates live inside the send scripts. Do NOT use `send_campaign` management command (placeholder only).
+**All campaigns run automatically via `run_campaigns.sh` at 11am Mon–Fri. No manual action needed.**
+Do NOT use `send_campaign` management command (placeholder only).
 
-### TaggIQ BNI (bni-scraper/)
+### Automated (via run_campaigns.sh cron)
+| Script | Campaigns covered | Seqs |
+|--------|-------------------|------|
+| `bni-scraper/send_sequence.py` | BNI Ireland, Promo Global, Embroidery Global | 1–5 |
+| `google-maps-scraper/send_ireland_sequences.py` | Ireland Signs, Apparel, Print & Promo | 1–5 |
+
+### Manual one-off scripts (use if cron missed or for testing)
 | Script | Campaign | Seq |
 |--------|----------|-----|
-| `send_email1_all.py` | BNI Ireland | 1 |
-| `send_promo_global.py` | Promo Global | 1 |
-| `send_embroidery.py` | Embroidery Global | 1 |
-| `send_seq2_promo_global.py` | Promo Global | 2 |
-| `send_seq3_all.py` | All BNI | 3 |
-| `send_sequence.py` | All BNI | 2–5 (unified, enforces gaps) |
+| `bni-scraper/send_sequence.py --campaign bni` | BNI Ireland only | 1–5 |
+| `bni-scraper/send_sequence.py --campaign promo` | Promo Global only | 1–5 |
+| `bni-scraper/send_sequence.py --campaign embroidery` | Embroidery only | 1–5 |
+| `google-maps-scraper/send_ireland_sequences.py --campaign signs` | Ireland Signs | 1–5 |
+| `google-maps-scraper/send_ireland_sequences.py --campaign apparel` | Ireland Apparel | 1–5 |
+| `google-maps-scraper/send_ireland_sequences.py --campaign print` | Ireland Print & Promo | 1–5 |
 
-### TaggIQ Ireland Cold (google-maps-scraper/)
-| Script | Campaign | Seq |
-|--------|----------|-----|
-| `send_ireland_signs_seq1.py` | Ireland Signs | 1 |
-| `send_ireland_apparel_seq1.py` | Ireland Apparel | 1 |
-| `send_ireland_print_promo_seq1.py` | Ireland Print & Promo | 1 |
-| *(not yet created)* | Ireland Signs/Apparel/Print | 2 — **due 2026-04-06** |
-
-### Fully Promoted (fp-ireland-master/)
+### Fully Promoted (fp-ireland-master/) — manual only
 | Script | Campaign | Seq |
 |--------|----------|-----|
 | `send_campaign.py` | FP Franchise Recruitment | 1–5 |
