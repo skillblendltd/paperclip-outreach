@@ -381,11 +381,38 @@ class Command(BaseCommand):
                 prospect = prospect_qs.select_related('campaign').first()
 
                 # If mailbox is campaign-specific but no match, also try cross-campaign
-                # (someone might reply from a different email than expected)
                 if not prospect and campaign:
                     prospect = Prospect.objects.filter(
                         email__iexact=from_email_addr
                     ).select_related('campaign').first()
+
+                # Fuzzy match via In-Reply-To: prospect replied from a different domain
+                # Match the SES message ID stored in EmailLog back to a prospect
+                if not prospect and in_reply_to:
+                    ses_id = in_reply_to.strip('<>').split('@')[0]
+                    log = EmailLog.objects.filter(
+                        ses_message_id__icontains=ses_id
+                    ).select_related('prospect__campaign').first()
+                    if log and log.prospect:
+                        prospect = log.prospect
+                        self.stdout.write(self.style.WARNING(
+                            f'  FUZZY MATCH (In-Reply-To): {from_email_addr} -> {prospect.email} ({prospect.business_name})'
+                        ))
+
+                # Last resort: match by first name against decision_maker_name (only if unique match)
+                if not prospect and from_name:
+                    first_name = from_name.strip().split()[0]
+                    qs = Prospect.objects.filter(
+                        decision_maker_name__icontains=first_name,
+                        emails_sent__gt=0,
+                    ).select_related('campaign')
+                    if campaign:
+                        qs = qs.filter(campaign=campaign)
+                    if qs.count() == 1:
+                        prospect = qs.first()
+                        self.stdout.write(self.style.WARNING(
+                            f'  NAME MATCH: {from_email_addr} -> {prospect.email} ({prospect.business_name})'
+                        ))
 
                 if not prospect:
                     skipped_no_match += 1
