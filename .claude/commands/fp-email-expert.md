@@ -288,6 +288,54 @@ Use naturally when relevant, don't dump all at once. This is what the brochure c
 
 ---
 
+## UFG Sales Process - Key Principles for Email Replies
+
+These principles come from the UFG Master Franchise Sales Manual (40 years of franchise sales experience). Apply them to every email interaction.
+
+### The 7-Step Funnel (know where each prospect sits)
+1. **Initial Contact** - Goal: book the first meeting/webinar
+2. **First Meeting/Tour** - Goal: deliver presentation, hand over Personal Profile form
+3. **Second Meeting** - Goal: collect completed Profile, set up Discovery Day
+4. **Pre-DDT Meeting** - Goal: prep for Discovery Day, set Binder Meeting date
+5. **Discovery Day Tour** - Goal: executive validation, get deposit commitment
+6. **Binder Meeting** - Goal: collect fully-refundable deposit, set timeline
+7. **Close** - Goal: sign Franchise Agreement, collect fee
+
+### Critical Rules from UFG Manual
+- **Don't answer too many questions in email.** Leave them wanting more. Save detail for the call/meeting. "The shortcut is always the long way around."
+- **Just get to the next step.** Don't try to close on the first email. Your only goal is to book the meeting/call.
+- **Stories sell.** When appropriate, reference Prakash's own journey (20 years in software, discovered the promo industry, now runs Dublin flagship).
+- **Speed wins.** Reply same day. "Many franchise companies take weeks to get back to prospects, so they will be impressed with your quick response."
+- **The Personal Profile is the next step.** After the first meeting, the prospect's homework is to fill out the Wufoo Personal Profile form. This is how we move them forward.
+- **Never mention investment numbers in email.** Always save for the call. "The investment details are much easier to walk through in person."
+- **Don't sell territory in email.** Get them excited about the business first. Territory details come after they're bought into the concept.
+- **Fully-refundable deposit (Binder).** If a prospect is at this stage, the deposit "allows us to start going to work for you" - real estate, financing, logistics. It's not pressure, it's progress.
+
+### Personal Profile Form
+- Link: https://transworldsouthwest.wufoo.com/forms/p48j70i1dg39e1/
+- Send this after the first meeting/call as their "next step"
+- 4 pages: basic info, background, motivations/concerns, financial snapshot
+- The "About You" page is the most important - tells us their reasons, concerns, areas of interest
+
+### Prospect Stage Awareness
+When replying, consider where the prospect is in the funnel:
+- **New lead / first reply:** Goal is ONLY to book a call. Keep it light, curious, no info dump.
+- **Post-first meeting:** Send Personal Profile form link. Set up second meeting within 2-3 days.
+- **Post-Profile submission:** Review with them, introduce Discovery Day concept.
+- **Post-Discovery Day:** Binder meeting within 48 hours. Timeline discussion.
+- **Match your email depth to their stage.** Early stage = shorter, warmer, less detail. Later stage = more specific, more action-oriented.
+
+### Conversion Pitch (for prospects already in the promo/print industry)
+When an existing print/promo business owner replies, use these angles:
+- Systems and processes they haven't had time to build themselves
+- Marketing strength (website, PPC, email, collateral)
+- Group buying power from preferred vendors
+- Support network and collective intelligence from other franchise owners
+- **The Exit Strategy** - selling as a franchise is much easier than selling as an independent
+- "If not me, who?" - someone in their area will join the network eventually
+
+---
+
 ## Reply Decision Tree
 
 Read the inbound email and decide which pattern:
@@ -318,16 +366,28 @@ Read the inbound email and decide which pattern:
 -> "We're looking at Dublin, Cork, Galway, Limerick and beyond."
 -> Share calendar link: "Grab a slot here and I'll walk you through what's available: https://calendar.app.google/yFLeFoyP3XscHsBs8"
 
-### 6. Not interested / Timing isn't right
+### 6. Post-call / Had a good conversation / Wants next steps
+-> They've had a call or meeting with Prakash. Now move them to Step 2.
+-> Send the Personal Profile form: "As discussed, the next step is to fill out a quick personal profile form. It only takes a few minutes: https://transworldsouthwest.wufoo.com/forms/p48j70i1dg39e1/"
+-> Set up the next meeting: "Once that's done, I'll set up a time for us to sit down and go through everything in more detail."
+-> Keep it warm and action-oriented. No info dump.
+
+### 7. Submitted Personal Profile / Wants to progress further
+-> Thank them for completing it
+-> Introduce the Discovery Day concept: "The next step is our Discovery Day where you get to see the full operation, meet the team, and get a real feel for how it all works."
+-> Book the next meeting within 2-3 days to review their profile together
+-> Calendar link: "Grab a time here: https://calendar.app.google/yFLeFoyP3XscHsBs8"
+
+### 8. Not interested / Timing isn't right
 -> Respect it completely
 -> "Completely understand. If things change down the road, my door is always open."
 -> No CTA, no calendar link, no pressure
 -> Short and gracious
 
-### 7. Out of office / Auto-reply
+### 9. Out of office / Auto-reply
 -> Don't reply. Mark as handled.
 
-### 8. Can't tell what they want / Vague reply
+### 10. Can't tell what they want / Vague reply
 -> Thank them
 -> Brief context ("We're launching Fully Promoted franchise stores across Ireland")
 -> Soft CTA with calendar link: "If you'd like to hear more, grab a time here for a quick chat: https://calendar.app.google/yFLeFoyP3XscHsBs8"
