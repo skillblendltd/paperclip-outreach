@@ -125,31 +125,25 @@ Unit A20, Kingswood Business Park, Dublin
 ---
 
 
-## EMAIL 4: Handle Objections & Create Urgency (Day 20, only if no reply)
+## EMAIL 4: Personal Story & Soft Ask (Day 20, only if no reply)
 
-**Purpose:** FAQ format for the analytical mind. Territory scarcity. Softer CTA than before.
+**Purpose:** Prakash's own story as social proof. No FAQ dump (save for the call). Calendar link for easy booking. UFG manual principle: "stories sell" and "don't answer too many questions in email."
 
 **Subject line options (A/B test):**
 - A: "Quick question, {{FNAME}}"
-- B: "{{FNAME}}, I have a question for you"
+- B: "{{FNAME}}, one last thought"
 
 ---
 
 Hi {{FNAME}},
 
-I've reached out a couple of times about Fully Promoted Ireland and I understand you're busy, so I'll be direct.
+I know I've been in your inbox a few times, so I'll keep this short.
 
-When people consider a franchise, the three things they usually ask are:
+Before I got into this industry, I spent 20 years in software. I had no background in print or promotional products. But I saw how every business in Ireland needs branded gear, uniforms, marketing materials, and they keep coming back for more. That's what convinced me.
 
-1. "Do I need experience?" - No. Fully Promoted provides 4 weeks of intensive training and ongoing support. Many of our most successful franchisees came from completely unrelated industries.
+If you've ever thought about running your own business but weren't sure where to start, this is worth a conversation. No experience needed, and there's a full training and support system behind you from day one.
 
-2. "What's the investment?" - The franchise fee is very competitive for a brand of this calibre, and the total investment includes a fully fitted-out, turnkey store ready to trade from day one.
-
-3. "Is there really a market for this in Ireland?" - Every business in Ireland needs branded products. Uniforms, corporate gifts, event merchandise, marketing materials. It's a large market and there's currently no dominant branded franchise serving it.
-
-I'm allocating territories across Ireland right now - Dublin, Cork, Galway, Limerick, Waterford and beyond. Once they're assigned, they're gone.
-
-If any of that sounds relevant, just reply and I'll send over the details. Happy to chat or just share the brochure - whatever works best.
+Happy to have a quick chat if you're curious. Here's a link to grab a time: https://calendar.app.google/yFLeFoyP3XscHsBs8
 
 Cheers,
 Prakash

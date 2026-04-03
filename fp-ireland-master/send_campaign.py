@@ -6,7 +6,7 @@ Send Fully Promoted Ireland franchise recruitment emails.
   --seq 1  The Re-Engagement (Day 0)
   --seq 2  Why This, Why Now (Day 5)
   --seq 3  Social Proof & Success Stories (Day 12)
-  --seq 4  Handle Objections & Create Urgency (Day 20)
+  --seq 4  Personal Story & Soft Ask (Day 20)
   --seq 5  The Breakup Email (Day 28)
 
 Usage:
@@ -107,27 +107,21 @@ Unit A20, Kingswood Business Park, Dublin</p>
 """.strip(),
     },
     4: {
-        "template_name": "fp_objection_handler",
+        "template_name": "fp_personal_story",
         "subjects": {
             "A": "Quick question, {{FNAME}}",
-            "B": "{{FNAME}}, I have a question for you",
+            "B": "{{FNAME}}, one last thought",
         },
         "body_html": """
 <p>Hi {{FNAME}},</p>
 
-<p>I've reached out a couple of times about Fully Promoted Ireland and I understand you're busy, so I'll be direct.</p>
+<p>I know I've been in your inbox a few times, so I'll keep this short.</p>
 
-<p>When people consider a franchise, the three things they usually ask are:</p>
+<p>Before I got into this industry, I spent 20 years in software. I had no background in print or promotional products. But I saw how every business in Ireland needs branded gear, uniforms, marketing materials, and they keep coming back for more. That's what convinced me.</p>
 
-<p><strong>1. "Do I need experience?"</strong> - No. Fully Promoted provides 4 weeks of intensive training and ongoing support. Many of our most successful franchisees came from completely unrelated industries.</p>
+<p>If you've ever thought about running your own business but weren't sure where to start, this is worth a conversation. No experience needed, and there's a full training and support system behind you from day one.</p>
 
-<p><strong>2. "What's the investment?"</strong> - The franchise fee is very competitive for a brand of this calibre, and the total investment includes a fully fitted-out, turnkey store ready to trade from day one.</p>
-
-<p><strong>3. "Is there really a market for this in Ireland?"</strong> - Every business in Ireland needs branded products. Uniforms, corporate gifts, event merchandise, marketing materials. It's a large market and there's currently no dominant branded franchise serving it.</p>
-
-<p>I'm allocating territories across Ireland right now - Dublin, Cork, Galway, Limerick, Waterford and beyond. Once they're assigned, they're gone.</p>
-
-<p>If any of that sounds relevant, just reply and I'll send over the details. Happy to chat or just share the brochure - whatever works best.</p>
+<p>Happy to have a quick chat if you're curious. Here's a link to grab a time: <a href="https://calendar.app.google/yFLeFoyP3XscHsBs8">Book a call with Prakash</a></p>
 
 <p>Cheers,<br>
 Prakash<br>
@@ -309,7 +303,7 @@ def main():
         1: "The Re-Engagement",
         2: "Why This, Why Now",
         3: "Social Proof & Success Stories",
-        4: "Handle Objections & Urgency",
+        4: "Personal Story & Soft Ask",
         5: "The Breakup Email",
     }
 
