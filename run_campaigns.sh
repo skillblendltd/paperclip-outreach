@@ -10,8 +10,10 @@
 #      → send_sequence.py handles seq 1–5, 7-day gaps enforced by API
 #   2. Ireland cold campaigns (Signs, Apparel, Print & Promo)
 #      → send_ireland_sequences.py handles seq 1–5, 7-day gaps enforced locally
-#   3. Logs everything to /tmp/campaigns_daily.log
-#   4. macOS notification on completion
+#   3. London cold campaigns (Signs, Apparel, Print & Promo)
+#      → send_london_sequences.py handles seq 1–5, 7-day gaps enforced locally
+#   4. Logs everything to /tmp/campaigns_daily.log
+#   5. macOS notification on completion
 # =============================================================================
 
 cd /Users/pinani/Documents/paperclip-outreach
@@ -48,7 +50,15 @@ venv/bin/python google-maps-scraper/send_ireland_sequences.py >> "$LOGFILE" 2>&1
 IRELAND_EXIT=$?
 echo "[$(date)] Ireland sequences done (exit $IRELAND_EXIT)" >> "$LOGFILE"
 
-# ── 3. Summary notification ───────────────────────────────────────────────────
+# ── 3. London cold campaigns (all three) ─────────────────────────────────────
+echo "" >> "$LOGFILE"
+echo "[$(date)] Running London cold sequences..." >> "$LOGFILE"
+
+venv/bin/python google-maps-scraper/send_london_sequences.py >> "$LOGFILE" 2>&1
+LONDON_EXIT=$?
+echo "[$(date)] London sequences done (exit $LONDON_EXIT)" >> "$LOGFILE"
+
+# ── 4. Summary notification ───────────────────────────────────────────────────
 SENT=$(grep -c "SENT \[" "$LOGFILE" 2>/dev/null | tail -1 || echo "?")
 echo "" >> "$LOGFILE"
 echo "[$(date)] Run complete." >> "$LOGFILE"

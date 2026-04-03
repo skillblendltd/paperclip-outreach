@@ -1,0 +1,12 @@
+{
+  "country_code": "canada",
+  "country_name": "Canada",
+  "bni_search_country": "Canada",
+  "searches": [
+    {"keyword": "", "description": "All members"}
+  ],
+  "status": "pending",
+  "last_scraped": null,
+  "total_members": null,
+  "notes": "Medium country. Single search may work, or split by province."
+}

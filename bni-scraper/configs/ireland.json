@@ -1,0 +1,12 @@
+{
+  "country_code": "ireland",
+  "country_name": "Ireland",
+  "bni_search_country": "Ireland",
+  "searches": [
+    {"keyword": "", "description": "All members"}
+  ],
+  "status": "done",
+  "last_scraped": "2026-03-28",
+  "total_members": 425,
+  "notes": "Scraped as fpdublin_bni_mail_list.csv. Small country, single search covers all."
+}

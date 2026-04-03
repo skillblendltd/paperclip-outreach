@@ -1,0 +1,30 @@
+{
+  "country_code": "uk",
+  "country_name": "United Kingdom",
+  "bni_search_country": "United Kingdom",
+  "searches": [
+    {
+      "keyword": "",
+      "description": "All members (blank = everyone in region)"
+    }
+  ],
+  "regions": [
+    "London",
+    "South East",
+    "South West",
+    "East of England",
+    "East Midlands",
+    "West Midlands",
+    "North West",
+    "North East",
+    "Yorkshire and the Humber",
+    "Scotland",
+    "Wales",
+    "Northern Ireland"
+  ],
+  "regions_scraped": [],
+  "status": "in_progress",
+  "last_scraped": "2026-04-02",
+  "total_members": null,
+  "notes": "Large country \u2014 scrape region by region. ~5000+ members total. Use --region flag."
+}

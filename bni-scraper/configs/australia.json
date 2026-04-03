@@ -1,0 +1,12 @@
+{
+  "country_code": "australia",
+  "country_name": "Australia",
+  "bni_search_country": "Australia",
+  "searches": [
+    {"keyword": "", "description": "All members"}
+  ],
+  "status": "pending",
+  "last_scraped": null,
+  "total_members": null,
+  "notes": "Strong BNI presence. English-speaking, good TaggIQ market."
+}

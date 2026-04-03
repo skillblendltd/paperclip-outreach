@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Extract emails from London borough businesses that have websites but no email.
-Reads uk_london_boroughs_20260330.csv, visits websites, writes emails back.
+Extract emails from Central London businesses that have websites but no email.
+Reads uk_london_20260329.csv, visits websites, writes emails back.
 Uses multiprocessing for hard per-site timeout (Playwright blocks SIGALRM).
 """
 
@@ -14,26 +14,24 @@ import multiprocessing
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-CSV_FILE = "output/uk_london_boroughs_20260330.csv"
-JSON_FILE = "output/uk_london_boroughs_20260330.json"
+CSV_FILE = "output/uk_london_20260329.csv"
+JSON_FILE = "output/uk_london_20260329.json"
 DELAY = 2.0
-SITE_TIMEOUT = 60  # seconds — hard kill per site
+SITE_TIMEOUT = 60
 
 
 def _extract_one(website, result_queue):
-    """Run in a child process so it can be killed if it hangs."""
     try:
         from email_extractor import EmailExtractor
         extractor = EmailExtractor()
         email = extractor.extract_email(website)
         extractor.close()
         result_queue.put(email)
-    except Exception as e:
+    except Exception:
         result_queue.put(None)
 
 
 def extract_with_timeout(website):
-    """Extract email with a hard process-level timeout."""
     q = multiprocessing.Queue()
     p = multiprocessing.Process(target=_extract_one, args=(website, q))
     p.start()

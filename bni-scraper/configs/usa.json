@@ -1,0 +1,28 @@
+{
+  "country_code": "usa",
+  "country_name": "United States",
+  "bni_search_country": "United States",
+  "searches": [
+    {"keyword": "promotional products", "description": "Promo products members"},
+    {"keyword": "printer", "description": "Print members"},
+    {"keyword": "embroidery", "description": "Embroidery members"},
+    {"keyword": "sign company", "description": "Signage members"},
+    {"keyword": "", "description": "All members (by state)"}
+  ],
+  "regions": [
+    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+    "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+    "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+    "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+    "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
+    "New Hampshire", "New Jersey", "New Mexico", "New York",
+    "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon",
+    "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+    "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+    "West Virginia", "Wisconsin", "Wyoming"
+  ],
+  "status": "partial",
+  "last_scraped": "2026-03-15",
+  "total_members": null,
+  "notes": "Largest BNI country. Promo keyword scraped (in bni_promo_global.csv). Full scrape needs state-by-state approach."
+}

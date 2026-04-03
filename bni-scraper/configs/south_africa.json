@@ -1,0 +1,12 @@
+{
+  "country_code": "south_africa",
+  "country_name": "South Africa",
+  "bni_search_country": "South Africa",
+  "searches": [
+    {"keyword": "", "description": "All members"}
+  ],
+  "status": "pending",
+  "last_scraped": null,
+  "total_members": null,
+  "notes": "English-speaking. Already have leads like Linda Prudden from here."
+}

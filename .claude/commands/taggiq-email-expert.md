@@ -206,6 +206,14 @@ When they show interest or ask questions, include this:
 
 For Fully Promoted campaigns, use "Schedule a Call with Prakash" instead of "Schedule TaggIQ Demo".
 
+**CRITICAL RULE — send the link, never ask for availability:**
+When someone asks "when are you free?", "what's your availability?", "can we jump on a Zoom?", "please advise your availability", or any variation of wanting to set up a call or meeting — ALWAYS send the scheduling link immediately. Never reply with "what time works for you?" or "what's your schedule like?" — that creates an extra round-trip for no reason. The calendar link IS the answer to availability questions. Let them self-serve.
+
+- Wrong: "Happy to jump on Zoom. What time works for you?"
+- Right: "Happy to jump on Zoom. You can grab a slot here: [scheduling link]"
+
+This applies to all lead types — interested, engaged, design_partner, demo_scheduled. Hot leads especially. The more advanced the conversation, the more friction you eliminate by just sending the link.
+
 ### Self-Trial Option (for people who prefer to explore independently)
 
 When offering a demo, always include the self-trial as a low-pressure fallback. Demo stays the primary CTA, self-trial is secondary.
@@ -630,6 +638,14 @@ Read the inbound email and decide which pattern to follow:
 
 1b. **They're interested but hesitant ("not ready yet", "not big enough", "keeping options open")**
    -> Mirror their exact pain back -> Validate their stage ("built for businesses at your stage") -> Remove the objection ("no pressure to use right away") -> Make demo feel zero-risk ("worst case, pick up workflow ideas") -> Scheduling link. HIGH PRIORITY lead.
+
+1c. **They asked for your availability / want to schedule a call, Zoom, or meeting**
+   -> Signal phrases: "please advise your availability", "can we jump on a Zoom?", "when are you free?", "can we set up a call?", "I'd like to schedule a meeting"
+   -> Send the scheduling link IMMEDIATELY — do NOT ask "what time works for you?" (that is an extra round-trip)
+   -> One sentence acknowledgment + the link. That is the whole reply.
+   -> Email-creator principle: the calendar link IS the path of least resistance. One click beats three emails.
+   -> Example: "Happy to jump on a Zoom, Paul. You can grab a slot that works for you here: [scheduling link]"
+   -> For design_partner leads asking for a follow-up call: same rule — brief acknowledgment of the conversation progress + scheduling link
 
 2. **They asked a specific question**
    -> Answer the question directly and concisely -> Offer to show more in a demo -> Scheduling link

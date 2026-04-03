@@ -40,6 +40,7 @@ if [ "$FLAGGED" -gt 0 ]; then
     echo "[$(date)] === Claude auto-reply run ($FLAGGED flagged) ===" >> "$CLAUDE_LOG"
 
     /Users/pinani/.local/bin/claude \
+        --model sonnet \
         --allowedTools "Bash,Read,Write,Edit,Glob,Grep" \
         --max-turns 30 \
         --output-format text \

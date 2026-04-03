@@ -1,0 +1,12 @@
+{
+  "country_code": "india",
+  "country_name": "India",
+  "bni_search_country": "India",
+  "searches": [
+    {"keyword": "", "description": "All members"}
+  ],
+  "status": "pending",
+  "last_scraped": null,
+  "total_members": null,
+  "notes": "Large BNI presence. May need region-by-region."
+}
