@@ -81,7 +81,7 @@ class Command(BaseCommand):
                 phone__gt='',  # has phone
                 calls_sent__lt=campaign.max_calls_per_prospect,
             ).exclude(
-                status__in=['opted_out', 'not_interested', 'demo_scheduled', 'design_partner'],
+                status__in=['new', 'opted_out', 'not_interested', 'demo_scheduled', 'design_partner'],
             ).exclude(
                 last_called_at__gte=min_gap_cutoff,
             ).order_by('-score', '-tier')[:remaining]
