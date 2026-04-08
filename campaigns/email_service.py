@@ -90,7 +90,7 @@ class EmailService:
                     server.starttls()
                     server.login(smtp_username, smtp_password)
                     all_recipients = to_emails + (cc_emails or [])
-                    server.sendmail(from_address, all_recipients, msg.as_string())
+                    server.sendmail(from_header, all_recipients, msg.as_string())
 
                 logger.info(f"Email sent successfully via AWS SES SMTP. MessageId: {generated_msg_id}")
                 return {"status": "sent", "message_id": generated_msg_id}
