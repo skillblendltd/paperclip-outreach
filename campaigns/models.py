@@ -236,6 +236,37 @@ class CallLog(BaseModel):
         return f'{self.phone_number} - {self.status} - {self.disposition}'
 
 
+class ScriptInsight(BaseModel):
+    """AI-generated analysis of call transcripts to improve the calling script."""
+
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='script_insights')
+    calls_analyzed = models.IntegerField(default=0)
+    date_range = models.CharField(max_length=100, blank=True, default='')
+
+    # Analysis results
+    answer_rate = models.FloatField(default=0, help_text='% of calls answered')
+    interest_rate = models.FloatField(default=0, help_text='% of answered calls showing interest')
+    demo_rate = models.FloatField(default=0, help_text='% of answered calls booking demo')
+
+    top_objections = models.TextField(blank=True, default='', help_text='Most common objections')
+    drop_off_points = models.TextField(blank=True, default='', help_text='Where prospects disengage')
+    working_hooks = models.TextField(blank=True, default='', help_text='What language/hooks get engagement')
+    prospect_language = models.TextField(blank=True, default='', help_text='Actual words prospects use to describe pain')
+    suggestions = models.TextField(blank=True, default='', help_text='Specific script change recommendations')
+
+    # Updated prompt
+    suggested_prompt = models.TextField(blank=True, default='', help_text='Full suggested system prompt')
+    prompt_applied = models.BooleanField(default=False, help_text='Whether this prompt was pushed to Vapi')
+    applied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'script_insights'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.campaign.name} — {self.calls_analyzed} calls — {self.created_at:%Y-%m-%d}'
+
+
 class EmailQueue(BaseModel):
     """
     Staged emails for future sending. Agent queues emails here,
