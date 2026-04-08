@@ -588,8 +588,11 @@ class Command(BaseCommand):
             prospect.status = 'opted_out'
             prospect.send_enabled = False
             prospect.save(update_fields=['status', 'send_enabled', 'updated_at'])
+            # Product-scoped suppression: opt-out only blocks this product, not all products
+            product_ref = prospect.campaign.product_ref if prospect.campaign else None
             Suppression.objects.get_or_create(
                 email=prospect.email,
+                product=product_ref,
                 defaults={'reason': 'opt_out', 'notes': f'Auto-detected from reply: {inbound.subject[:100]}'}
             )
             cancelled = EmailQueue.objects.filter(
@@ -604,8 +607,11 @@ class Command(BaseCommand):
         elif classification == 'bounce':
             prospect.send_enabled = False
             prospect.save(update_fields=['send_enabled', 'updated_at'])
+            # Bounces are product-scoped too (email may work for other products)
+            product_ref = prospect.campaign.product_ref if prospect.campaign else None
             Suppression.objects.get_or_create(
                 email=prospect.email,
+                product=product_ref,
                 defaults={'reason': 'bounce', 'notes': f'Bounce detected from reply: {inbound.subject[:100]}'}
             )
             inbound.status_updated = True

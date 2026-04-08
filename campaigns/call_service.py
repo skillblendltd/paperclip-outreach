@@ -37,14 +37,8 @@ class CallService:
             'Content-Type': 'application/json',
         }
 
-        # Build first message based on segment (matching config.py FIRST_MESSAGES)
-        first_messages = {
-            'signs': f"Hi there, I'm calling from TaggIQ. We work with sign and print shops. Have you got 30 seconds?",
-            'apparel_embroidery': f"Hi there, I'm calling from TaggIQ. We work with embroidery and apparel shops. Have you got 30 seconds?",
-            'print_shop': f"Hi there, I'm calling from TaggIQ. We work with print and promo shops. Have you got 30 seconds?",
-            'promo_distributor': f"Hi there, I'm calling from TaggIQ. We work with promotional product businesses. Have you got 30 seconds?",
-        }
-        first_message = first_messages.get(segment, "Hi there, I'm calling from TaggIQ. We work with print and promo shops. Have you got 30 seconds?")
+        # Look up first message from CallScript model, fallback to defaults
+        first_message = CallService._get_first_message(assistant_id, segment)
 
         payload = {
             'assistantId': assistant_id,
@@ -86,6 +80,37 @@ class CallService:
         except requests.RequestException as e:
             logger.error(f'[CALL SERVICE] Request error: {e}')
             return {'success': False, 'call_id': '', 'error': str(e)}
+
+    @staticmethod
+    def _get_first_message(assistant_id: str, segment: str) -> str:
+        """Look up first message from CallScript model, fallback to hardcoded defaults."""
+        try:
+            from campaigns.models import CallScript, Campaign
+            # Find campaign by vapi_assistant_id
+            campaign = Campaign.objects.filter(vapi_assistant_id=assistant_id).first()
+            if campaign:
+                script = CallScript.objects.filter(
+                    campaign=campaign, segment=segment, is_active=True
+                ).first()
+                if script:
+                    return script.first_message
+                # Try default (empty segment)
+                script = CallScript.objects.filter(
+                    campaign=campaign, segment='', is_active=True
+                ).first()
+                if script:
+                    return script.first_message
+        except Exception:
+            pass
+
+        # Fallback to hardcoded defaults
+        defaults = {
+            'signs': "Hi there, I'm calling from TaggIQ. We work with sign and print shops. Have you got 30 seconds?",
+            'apparel_embroidery': "Hi there, I'm calling from TaggIQ. We work with embroidery and apparel shops. Have you got 30 seconds?",
+            'print_shop': "Hi there, I'm calling from TaggIQ. We work with print and promo shops. Have you got 30 seconds?",
+            'promo_distributor': "Hi there, I'm calling from TaggIQ. We work with promotional product businesses. Have you got 30 seconds?",
+        }
+        return defaults.get(segment, "Hi there, I'm calling from TaggIQ. We work with print and promo shops. Have you got 30 seconds?")
 
     @staticmethod
     def get_call_status(call_id: str) -> Dict[str, Any]:

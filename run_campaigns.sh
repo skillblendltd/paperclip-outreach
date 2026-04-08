@@ -1,19 +1,17 @@
 #!/bin/bash
 # =============================================================================
-# Master Campaign Runner — runs daily via cron
-# Sends all due sequences across all TaggIQ campaigns autonomously.
+# Master Campaign Runner - runs daily via cron
+# Sends all due sequences across ALL campaigns autonomously using the
+# universal sender (send_sequences). DB-driven templates, send windows,
+# rate limiting. Replaces the old 3-script approach.
 #
 # Cron: 0 11 * * 1-5 /Users/pinani/Documents/paperclip-outreach/run_campaigns.sh
 #
 # What this does:
-#   1. BNI campaigns (BNI Ireland, Promo Global, Embroidery Global)
-#      → send_sequence.py handles seq 1–5, 7-day gaps enforced by API
-#   2. Ireland cold campaigns (Signs, Apparel, Print & Promo)
-#      → send_ireland_sequences.py handles seq 1–5, 7-day gaps enforced locally
-#   3. London cold campaigns (Signs, Apparel, Print & Promo)
-#      → send_london_sequences.py handles seq 1–5, 7-day gaps enforced locally
-#   4. Logs everything to /tmp/campaigns_daily.log
-#   5. macOS notification on completion
+#   1. Runs send_sequences for all active campaigns (TaggIQ + FP + any future)
+#   2. Send windows, batch sizes, delays all configured per campaign in DB
+#   3. Logs to /tmp/campaigns_daily.log
+#   4. macOS notification on completion
 # =============================================================================
 
 cd /Users/pinani/Documents/paperclip-outreach
@@ -23,7 +21,7 @@ LOCK="/tmp/campaigns_daily.lock"
 
 # Prevent overlapping runs
 if [ -f "$LOCK" ]; then
-    echo "[$(date)] Already running — skipping" >> "$LOGFILE"
+    echo "[$(date)] Already running - skipping" >> "$LOGFILE"
     exit 0
 fi
 touch "$LOCK"
@@ -31,42 +29,17 @@ trap "rm -f $LOCK" EXIT
 
 echo "" >> "$LOGFILE"
 echo "============================================================" >> "$LOGFILE"
-echo "[$(date)] Daily campaign run starting" >> "$LOGFILE"
+echo "[$(date)] Daily campaign run starting (universal sender)" >> "$LOGFILE"
 echo "============================================================" >> "$LOGFILE"
 
-# ── 1. BNI campaigns (all three) ─────────────────────────────────────────────
-echo "" >> "$LOGFILE"
-echo "[$(date)] Running BNI sequences..." >> "$LOGFILE"
+venv/bin/python manage.py send_sequences >> "$LOGFILE" 2>&1
+EXIT_CODE=$?
 
-venv/bin/python bni-scraper/send_sequence.py >> "$LOGFILE" 2>&1
-BNI_EXIT=$?
-echo "[$(date)] BNI sequences done (exit $BNI_EXIT)" >> "$LOGFILE"
-
-# ── 2. Ireland cold campaigns (all three) ────────────────────────────────────
-echo "" >> "$LOGFILE"
-echo "[$(date)] Running Ireland cold sequences..." >> "$LOGFILE"
-
-venv/bin/python google-maps-scraper/send_ireland_sequences.py >> "$LOGFILE" 2>&1
-IRELAND_EXIT=$?
-echo "[$(date)] Ireland sequences done (exit $IRELAND_EXIT)" >> "$LOGFILE"
-
-# ── 3. London cold campaigns (all three) ─────────────────────────────────────
-echo "" >> "$LOGFILE"
-echo "[$(date)] Running London cold sequences..." >> "$LOGFILE"
-
-venv/bin/python google-maps-scraper/send_london_sequences.py >> "$LOGFILE" 2>&1
-LONDON_EXIT=$?
-echo "[$(date)] London sequences done (exit $LONDON_EXIT)" >> "$LOGFILE"
-
-# ── 4. Summary notification ───────────────────────────────────────────────────
-SENT=$(grep -c "SENT \[" "$LOGFILE" 2>/dev/null | tail -1 || echo "?")
-echo "" >> "$LOGFILE"
-echo "[$(date)] Run complete." >> "$LOGFILE"
+echo "[$(date)] Universal sender done (exit $EXIT_CODE)" >> "$LOGFILE"
 
 # Count today's sends from log
-TODAY=$(date '+%a %d %b')
-TODAY_SENT=$(grep "$TODAY" "$LOGFILE" 2>/dev/null | grep -c "SENT \[" || echo 0)
+TODAY_SENT=$(grep -c "SENT \[" "$LOGFILE" 2>/dev/null | tail -1 || echo 0)
 
-osascript -e "display notification \"Daily send complete — ${TODAY_SENT} emails sent today\" with title \"TaggIQ Campaigns\"" 2>/dev/null || true
+osascript -e "display notification \"Daily send complete - ${TODAY_SENT} emails\" with title \"Outreach Campaigns\"" 2>/dev/null || true
 
 echo "[$(date)] Done. Today's sends: ${TODAY_SENT}" >> "$LOGFILE"
