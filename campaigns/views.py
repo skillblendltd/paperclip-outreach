@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db.models import Q, Count
 
-from campaigns.models import Campaign, Prospect, EmailLog, EmailQueue, Suppression
+from campaigns.models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, CallLog
 from campaigns.email_service import EmailService
 
 logger = logging.getLogger(__name__)
@@ -649,3 +649,140 @@ def outreach_import_prospects(request):
         'skipped': skipped,
         'total': Prospect.objects.filter(campaign=campaign).count(),
     })
+
+
+@csrf_exempt
+def vapi_webhook(request):
+    """
+    Receive Vapi end-of-call webhooks.
+    Updates CallLog with outcome, transcript, recording, and updates Prospect status.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    message_type = data.get('message', {}).get('type', '') if 'message' in data else data.get('type', '')
+
+    # Handle end-of-call report
+    if message_type == 'end-of-call-report':
+        message = data.get('message', data)
+        call_data = message.get('call', {})
+        vapi_call_id = call_data.get('id', '')
+
+        if not vapi_call_id:
+            return JsonResponse({'error': 'No call ID'}, status=400)
+
+        try:
+            call_log = CallLog.objects.get(vapi_call_id=vapi_call_id)
+        except CallLog.DoesNotExist:
+            logger.warning(f'CallLog not found for vapi_call_id: {vapi_call_id}')
+            return JsonResponse({'status': 'ignored', 'reason': 'call not found'})
+
+        # Update call log
+        call_log.transcript = message.get('transcript', '')
+        call_log.recording_url = message.get('recordingUrl', '')
+        call_log.summary = message.get('summary', '')
+
+        # Duration
+        started = call_data.get('startedAt', '')
+        ended = call_data.get('endedAt', '')
+        if started and ended:
+            from datetime import datetime
+            try:
+                start_dt = datetime.fromisoformat(started.replace('Z', '+00:00'))
+                end_dt = datetime.fromisoformat(ended.replace('Z', '+00:00'))
+                call_log.call_duration = int((end_dt - start_dt).total_seconds())
+            except (ValueError, TypeError):
+                pass
+
+        # Determine status from call end reason
+        end_reason = call_data.get('endedReason', '')
+        if end_reason in ('customer-did-not-answer', 'customer-busy'):
+            call_log.status = 'no_answer'
+        elif end_reason == 'voicemail':
+            call_log.status = 'voicemail'
+        elif call_log.call_duration > 0:
+            call_log.status = 'answered'
+
+        # Extract structured data from analysis
+        analysis = message.get('analysis', {})
+        structured = analysis.get('structuredData', {})
+
+        if structured.get('appointmentBooked'):
+            call_log.disposition = 'demo_booked'
+
+        call_summary = structured.get('callSummary', '') or analysis.get('summary', '')
+        if call_summary:
+            call_log.summary = call_summary
+
+        call_log.save()
+
+        # Update prospect based on disposition
+        prospect = call_log.prospect
+        if call_log.disposition == 'demo_booked':
+            prospect.status = 'demo_scheduled'
+        elif call_log.disposition == 'interested':
+            prospect.status = 'interested'
+        elif call_log.disposition == 'not_interested':
+            prospect.status = 'not_interested'
+        elif call_log.disposition == 'do_not_call':
+            prospect.status = 'opted_out'
+            prospect.send_enabled = False
+
+        if call_log.email_captured:
+            if not prospect.email:
+                prospect.email = call_log.email_captured
+
+        if call_log.current_tools:
+            prospect.current_tools = call_log.current_tools
+        if call_log.pain_signals:
+            prospect.pain_signals = call_log.pain_signals
+
+        prospect.save()
+
+        logger.info(f'[VAPI WEBHOOK] Updated call {vapi_call_id}: status={call_log.status}, disposition={call_log.disposition}')
+        return JsonResponse({'status': 'ok', 'call_id': vapi_call_id})
+
+    # Handle function calls (capture_email, end_call, etc.)
+    elif message_type == 'function-call':
+        message = data.get('message', data)
+        func_call = message.get('functionCall', {})
+        func_name = func_call.get('name', '')
+        params = func_call.get('parameters', {})
+
+        call_data = message.get('call', {})
+        vapi_call_id = call_data.get('id', '')
+
+        if not vapi_call_id:
+            return JsonResponse({'status': 'ignored'})
+
+        try:
+            call_log = CallLog.objects.get(vapi_call_id=vapi_call_id)
+        except CallLog.DoesNotExist:
+            return JsonResponse({'status': 'ignored'})
+
+        if func_name == 'capture_email':
+            call_log.email_captured = params.get('email', '')
+            call_log.save(update_fields=['email_captured'])
+
+        elif func_name == 'end_call':
+            disposition = params.get('outcome', 'pending')
+            call_log.disposition = disposition
+            call_log.current_tools = params.get('current_tools', '')
+            call_log.pain_signals = params.get('pain_signals', '')
+            if not call_log.summary:
+                call_log.summary = params.get('summary', '')
+            call_log.save()
+
+        elif func_name == 'schedule_callback':
+            call_log.callback_time = params.get('callback_time', '')
+            call_log.disposition = 'callback_requested'
+            call_log.save(update_fields=['callback_time', 'disposition'])
+
+        return JsonResponse({'status': 'ok'})
+
+    return JsonResponse({'status': 'ignored'})

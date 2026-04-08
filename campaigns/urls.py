@@ -9,4 +9,5 @@ urlpatterns = [
     path('status/', views.outreach_status, name='outreach_status'),
     path('dashboard/', views.outreach_dashboard, name='outreach_dashboard'),
     path('import/', views.outreach_import_prospects, name='outreach_import'),
+    path('webhooks/vapi/', views.vapi_webhook, name='vapi_webhook'),
 ]

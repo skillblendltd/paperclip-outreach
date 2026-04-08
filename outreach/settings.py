@@ -77,6 +77,11 @@ ZOHO_SMTP_PORT = int(os.getenv('ZOHO_SMTP_PORT', '465'))
 ZOHO_SMTP_EMAIL = os.getenv('ZOHO_SMTP_EMAIL', '')
 ZOHO_SMTP_PASSWORD = os.getenv('ZOHO_SMTP_PASSWORD', '')
 
+# Vapi.ai (outbound calling)
+VAPI_API_KEY = os.environ.get('VAPI_API_KEY', '')
+VAPI_PHONE_NUMBER_ID = os.environ.get('VAPI_PHONE_NUMBER_ID', '')
+VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

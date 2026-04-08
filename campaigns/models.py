@@ -51,6 +51,13 @@ class Campaign(BaseModel):
         help_text='Enable autonomous auto-replies for interested/question/other classifications',
     )
 
+    # Call settings
+    calling_enabled = models.BooleanField(default=False, help_text='Enable outbound calling for this campaign')
+    max_calls_per_day = models.IntegerField(default=20, help_text='Max calls per day for this campaign')
+    min_gap_call_minutes = models.IntegerField(default=1, help_text='Min minutes between calls')
+    max_calls_per_prospect = models.IntegerField(default=3, help_text='Max call attempts per prospect')
+    vapi_assistant_id = models.CharField(max_length=100, blank=True, default='', help_text='Vapi assistant ID for outbound calls')
+
     class Meta:
         db_table = 'campaigns'
         ordering = ['name']
@@ -113,6 +120,8 @@ class Prospect(BaseModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
     emails_sent = models.IntegerField(default=0)
     last_emailed_at = models.DateTimeField(null=True, blank=True)
+    calls_sent = models.IntegerField(default=0)
+    last_called_at = models.DateTimeField(null=True, blank=True)
 
     # Extra
     current_tools = models.CharField(max_length=500, blank=True, default='')
@@ -169,6 +178,62 @@ class EmailLog(BaseModel):
 
     def __str__(self):
         return f'{self.to_email} - seq {self.sequence_number} - {self.status}'
+
+
+class CallLog(BaseModel):
+    """Log of outbound calls placed via Vapi."""
+    STATUS_CHOICES = [
+        ('placed', 'Placed'),
+        ('answered', 'Answered'),
+        ('voicemail', 'Voicemail'),
+        ('no_answer', 'No Answer'),
+        ('busy', 'Busy'),
+        ('failed', 'Failed'),
+    ]
+    DISPOSITION_CHOICES = [
+        ('interested', 'Interested'),
+        ('demo_booked', 'Demo Booked'),
+        ('send_info', 'Send Info'),
+        ('callback_requested', 'Callback Requested'),
+        ('not_interested', 'Not Interested'),
+        ('already_using_tool', 'Already Using Tool'),
+        ('wrong_number', 'Wrong Number'),
+        ('gatekeeper_blocked', 'Gatekeeper Blocked'),
+        ('do_not_call', 'Do Not Call'),
+        ('pending', 'Pending'),
+    ]
+
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='call_logs')
+    prospect = models.ForeignKey(Prospect, on_delete=models.CASCADE, related_name='call_logs')
+    phone_number = models.CharField(max_length=50)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='placed')
+    disposition = models.CharField(max_length=30, choices=DISPOSITION_CHOICES, default='pending')
+
+    call_duration = models.IntegerField(default=0, help_text='Duration in seconds')
+    vapi_call_id = models.CharField(max_length=100, blank=True, default='', help_text='Vapi call ID')
+    recording_url = models.URLField(blank=True, default='')
+    transcript = models.TextField(blank=True, default='')
+    summary = models.TextField(blank=True, default='', help_text='AI-generated call summary')
+
+    email_captured = models.EmailField(blank=True, default='', help_text='Email captured during call')
+    callback_time = models.CharField(max_length=100, blank=True, default='', help_text='Requested callback time')
+    current_tools = models.CharField(max_length=500, blank=True, default='', help_text='Tools prospect mentioned')
+    pain_signals = models.TextField(blank=True, default='', help_text='Pain points mentioned')
+
+    triggered_by = models.CharField(max_length=50, default='management_command')
+
+    class Meta:
+        db_table = 'call_log'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['prospect', 'created_at']),
+            models.Index(fields=['campaign', 'status']),
+            models.Index(fields=['vapi_call_id']),
+        ]
+
+    def __str__(self):
+        return f'{self.phone_number} - {self.status} - {self.disposition}'
 
 
 class EmailQueue(BaseModel):

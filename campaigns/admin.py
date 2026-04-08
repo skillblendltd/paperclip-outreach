@@ -10,7 +10,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db.models import Count, Q
 
-from .models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, InboundEmail, ReplyTemplate, MailboxConfig
+from .models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, InboundEmail, ReplyTemplate, MailboxConfig, CallLog
 from .forms import CsvUploadForm
 
 
@@ -146,13 +146,14 @@ class ProspectAdmin(admin.ModelAdmin):
     list_display = [
         'business_name', 'product_badge', 'campaign', 'tier_badge', 'score',
         'status_badge', 'email', 'decision_maker_name',
-        'city', 'emails_sent', 'send_enabled', 'best_practices_group', 'last_emailed_at',
+        'city', 'emails_sent', 'last_emailed_at', 'calls_sent', 'last_called_at',
+        'send_enabled', 'best_practices_group',
     ]
     list_filter = [ProductListFilter, 'campaign', 'tier', 'status', 'segment', 'send_enabled', 'best_practices_group', 'region', 'emails_sent']
     search_fields = ['business_name', 'email', 'decision_maker_name', 'city', 'region']
     list_editable = ['send_enabled', 'best_practices_group']
     list_select_related = ['campaign']
-    readonly_fields = ['emails_sent', 'last_emailed_at', 'created_at', 'updated_at']
+    readonly_fields = ['emails_sent', 'last_emailed_at', 'calls_sent', 'last_called_at', 'created_at', 'updated_at']
     list_per_page = 50
     ordering = ['-score']
 
@@ -170,7 +171,7 @@ class ProspectAdmin(admin.ModelAdmin):
             'fields': ('business_type', 'segment', 'tier', 'score')
         }),
         ('Outreach Status', {
-            'fields': ('status', 'send_enabled', 'best_practices_group', 'emails_sent', 'last_emailed_at')
+            'fields': ('status', 'send_enabled', 'best_practices_group', 'emails_sent', 'last_emailed_at', 'calls_sent', 'last_called_at')
         }),
         ('Intel', {
             'fields': ('current_tools', 'pain_signals', 'notes'),
@@ -191,6 +192,7 @@ class ProspectAdmin(admin.ModelAdmin):
 
     actions = [
         'enable_sending', 'disable_sending',
+        'enable_calling',
         'mark_interested', 'mark_demo_scheduled', 'mark_design_partner',
         'mark_not_interested', 'mark_opted_out',
         'mark_new', 'mark_contacted', 'mark_engaged',
@@ -232,6 +234,10 @@ class ProspectAdmin(admin.ModelAdmin):
     def disable_sending(self, request, queryset):
         updated = queryset.update(send_enabled=False)
         self.message_user(request, f'{updated} prospect(s) sending disabled.')
+
+    @admin.action(description='Enable calling (set send_enabled=True + reset calls_sent)')
+    def enable_calling(self, request, queryset):
+        queryset.update(send_enabled=True, calls_sent=0)
 
     @admin.action(description='Set status: Interested')
     def mark_interested(self, request, queryset):
@@ -454,6 +460,64 @@ class EmailLogAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(CallLog)
+class CallLogAdmin(admin.ModelAdmin):
+    list_display = [
+        'phone_number', 'prospect_link', 'campaign_badge', 'status_badge',
+        'disposition_badge', 'call_duration_display', 'summary_short',
+        'email_captured', 'created_at',
+    ]
+    list_filter = ['status', 'disposition', 'campaign__product', 'campaign']
+    search_fields = ['phone_number', 'prospect__business_name', 'transcript', 'summary']
+    readonly_fields = [
+        'campaign', 'prospect', 'phone_number', 'vapi_call_id',
+        'status', 'disposition', 'call_duration', 'recording_url',
+        'transcript', 'summary', 'email_captured', 'callback_time',
+        'current_tools', 'pain_signals', 'triggered_by', 'created_at',
+    ]
+    list_per_page = 50
+    date_hierarchy = 'created_at'
+
+    def prospect_link(self, obj):
+        return obj.prospect.business_name
+    prospect_link.short_description = 'Business'
+
+    def campaign_badge(self, obj):
+        return obj.campaign.name
+    campaign_badge.short_description = 'Campaign'
+
+    def status_badge(self, obj):
+        colors = {
+            'placed': '#666', 'answered': '#28a745', 'voicemail': '#ffc107',
+            'no_answer': '#6c757d', 'busy': '#fd7e14', 'failed': '#dc3545',
+        }
+        color = colors.get(obj.status, '#666')
+        return format_html('<span style="color:{}; font-weight:bold;">{}</span>', color, obj.get_status_display())
+    status_badge.short_description = 'Status'
+
+    def disposition_badge(self, obj):
+        colors = {
+            'interested': '#28a745', 'demo_booked': '#007bff', 'send_info': '#17a2b8',
+            'not_interested': '#dc3545', 'callback_requested': '#ffc107',
+            'already_using_tool': '#6c757d', 'pending': '#aaa',
+        }
+        color = colors.get(obj.disposition, '#666')
+        return format_html('<span style="color:{};">{}</span>', color, obj.get_disposition_display())
+    disposition_badge.short_description = 'Disposition'
+
+    def call_duration_display(self, obj):
+        if obj.call_duration:
+            mins = obj.call_duration // 60
+            secs = obj.call_duration % 60
+            return f'{mins}:{secs:02d}'
+        return '-'
+    call_duration_display.short_description = 'Duration'
+
+    def summary_short(self, obj):
+        return obj.summary[:80] + '...' if len(obj.summary) > 80 else obj.summary
+    summary_short.short_description = 'Summary'
 
 
 @admin.register(EmailQueue)
