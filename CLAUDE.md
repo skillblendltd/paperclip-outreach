@@ -59,6 +59,7 @@ Franchise recruitment campaign. Prakash is Master Franchisee for Ireland. Re-eng
 |----------|----|------|-----------|-----------|--------|
 | FP Ireland Franchise Recruitment | `50eecf8f-c4a0-4a2d-9335-26d56870101e` | `prakash@fullypromoted.ie` | 193 | Seq 1 + 2 done | Active |
 | FP Dublin BNI Print & Promo | `3c46cbea-a817-43d5-9532-caecb2e7f01d` | `prakash@fullypromoted.ie` | 235 | Seq 1: 76 sent | Active |
+| FP Dublin B2B Corporate Sales | `28a33b89-da16-4fb7-9800-9d8a017b2456` | `office@fullypromoted.ie` | 0 | New - no sequences yet | Setup (sending disabled) |
 
 ### 3. Kritno — `product='kritno'`
 Creative production platform — artwork, proofing, design workflow. Different buyer (designers, agencies, print-heavy businesses). No campaigns active yet. No mailbox set up.
@@ -127,7 +128,8 @@ If someone replies from a different email than what's in DB (e.g. `@lintonmerch.
 |-------|------|-------------|
 | Campaign outbound | AWS SES | All sequence emails — controlled by `campaign.from_email` |
 | TaggIQ replies | Zoho (`prakash@taggiq.com`) | `EmailService.send_reply()` — **always hardcode `from_email='prakash@taggiq.com'`** |
-| FP Ireland replies | Google Workspace (`prakash@fullypromoted.ie`) | FP email expert skill handles this |
+| FP Ireland replies (Prakash) | Google Workspace (`prakash@fullypromoted.ie`) | FP email expert skill handles this |
+| FP Dublin B2B replies (Emma) | Google Workspace (`office@fullypromoted.ie`) | MailboxConfig with app password, IMAP+SMTP via imap.gmail.com / smtp.gmail.com |
 
 **Critical:** BNI campaigns send FROM `prakash@mail.taggiq.com` (SES). But reply-back MUST use `prakash@taggiq.com` (Zoho). If you use `mail.taggiq.com` for replies, Zoho throws 553 relay error.
 
@@ -242,10 +244,31 @@ venv/bin/python manage.py check_replies --mailbox fp
 |---------|---------|
 | `check_replies` | Fetch all mailboxes, classify, auto-handle |
 | `check_replies --mailbox taggiq` | TaggIQ only |
-| `check_replies --mailbox fp` | FP Ireland only |
+| `check_replies --mailbox fp` | FP Ireland only (prakash@ + office@) |
+| `check_replies --mailbox "FP Dublin B2B"` | office@fullypromoted.ie only |
 | `process_queue` | Send queued/scheduled emails |
 | `review_replies` | Interactive CLI for manual reply review |
 | `seed_reply_templates` | Populate ReplyTemplate table |
+
+---
+
+## API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/send/` | POST | Send a single email to a prospect |
+| `/api/queue/` | POST | Queue email(s) for future sending |
+| `/api/queue/status/` | GET | Queue stats per campaign |
+| `/api/prospects/` | GET | List prospects with filters (campaign, product, tier, status, segment) |
+| `/api/status/` | GET | Campaign sending status and safeguards |
+| `/api/dashboard/` | GET | Cross-product overview (all campaigns at a glance) |
+| `/api/import/` | POST | Import prospects as JSON array |
+| `/api/calls/` | GET | List call logs with filters (campaign, product, status, disposition) |
+| `/api/calls/stats/` | GET | Call performance metrics (answer rate, interest rate, demo rate, durations) |
+| `/api/script-insights/` | GET | AI-generated call transcript analysis and script improvements |
+| `/api/webhooks/vapi/` | POST | Vapi end-of-call webhook receiver |
+
+All endpoints support `?campaign_id=` or `?product=` filtering. No auth required (local-only).
 
 ---
 

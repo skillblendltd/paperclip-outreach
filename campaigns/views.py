@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db.models import Q, Count
 
-from campaigns.models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, CallLog
+from campaigns.models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, CallLog, ScriptInsight
 from campaigns.email_service import EmailService
 
 logger = logging.getLogger(__name__)
@@ -786,3 +786,192 @@ def vapi_webhook(request):
         return JsonResponse({'status': 'ok'})
 
     return JsonResponse({'status': 'ignored'})
+
+
+@csrf_exempt
+def outreach_calls(request):
+    """
+    GET /api/calls/?campaign_id=...&status=answered&disposition=interested&limit=50&product=fullypromoted
+    List call logs with filtering.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+
+    product = request.GET.get('product')
+    campaign = None
+    if product and not request.GET.get('campaign_id'):
+        qs = CallLog.objects.filter(
+            campaign__product=product
+        ).select_related('campaign', 'prospect')
+    else:
+        campaign, err = _get_campaign(request)
+        if err:
+            return err
+        product = campaign.product
+        qs = CallLog.objects.filter(
+            campaign=campaign
+        ).select_related('campaign', 'prospect')
+
+    status = request.GET.get('status')
+    if status:
+        qs = qs.filter(status=status)
+
+    disposition = request.GET.get('disposition')
+    if disposition:
+        qs = qs.filter(disposition=disposition)
+
+    has_transcript = request.GET.get('has_transcript')
+    if has_transcript == 'true':
+        qs = qs.exclude(Q(transcript='') | Q(transcript__isnull=True))
+
+    limit = min(int(request.GET.get('limit', 50)), 500)
+    calls = qs.order_by('-created_at')[:limit]
+
+    return JsonResponse({
+        'campaign': campaign.name if campaign else f'all_{product}',
+        'product': product,
+        'count': qs.count(),
+        'calls': [
+            {
+                'id': str(c.id),
+                'prospect_id': str(c.prospect_id),
+                'prospect_name': c.prospect.business_name,
+                'phone_number': c.phone_number,
+                'status': c.status,
+                'disposition': c.disposition,
+                'call_duration': c.call_duration,
+                'vapi_call_id': c.vapi_call_id,
+                'recording_url': c.recording_url,
+                'transcript': c.transcript[:500] if c.transcript else '',
+                'summary': c.summary,
+                'email_captured': c.email_captured,
+                'callback_time': c.callback_time,
+                'current_tools': c.current_tools,
+                'pain_signals': c.pain_signals,
+                'campaign_name': c.campaign.name,
+                'campaign_id': str(c.campaign_id),
+                'created_at': c.created_at.isoformat(),
+            }
+            for c in calls
+        ],
+    })
+
+
+@csrf_exempt
+def outreach_calls_stats(request):
+    """
+    GET /api/calls/stats/?campaign_id=...&product=fullypromoted
+    Call statistics and performance metrics.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+
+    product = request.GET.get('product')
+    campaign = None
+    if product and not request.GET.get('campaign_id'):
+        qs = CallLog.objects.filter(campaign__product=product)
+    else:
+        campaign, err = _get_campaign(request)
+        if err:
+            return err
+        product = campaign.product
+        qs = CallLog.objects.filter(campaign=campaign)
+
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    total = qs.count()
+    today = qs.filter(created_at__gte=today_start).count()
+
+    by_status = {}
+    for code, label in CallLog.STATUS_CHOICES:
+        count = qs.filter(status=code).count()
+        if count > 0:
+            by_status[code] = count
+
+    by_disposition = {}
+    for code, label in CallLog.DISPOSITION_CHOICES:
+        count = qs.filter(disposition=code).count()
+        if count > 0:
+            by_disposition[code] = count
+
+    answered = qs.filter(status='answered')
+    answered_count = answered.count()
+
+    from django.db.models import Avg, Sum
+    avg_duration = answered.aggregate(avg=Avg('call_duration'))['avg'] or 0
+    total_duration = answered.aggregate(total=Sum('call_duration'))['total'] or 0
+
+    answer_rate = round((answered_count / total * 100), 1) if total > 0 else 0
+    interested_count = qs.filter(disposition__in=['interested', 'demo_booked', 'send_info']).count()
+    interest_rate = round((interested_count / answered_count * 100), 1) if answered_count > 0 else 0
+    demo_count = qs.filter(disposition='demo_booked').count()
+    demo_rate = round((demo_count / answered_count * 100), 1) if answered_count > 0 else 0
+
+    return JsonResponse({
+        'campaign': campaign.name if campaign else f'all_{product}',
+        'product': product,
+        'total_calls': total,
+        'calls_today': today,
+        'by_status': by_status,
+        'by_disposition': by_disposition,
+        'answer_rate': answer_rate,
+        'interest_rate': interest_rate,
+        'demo_rate': demo_rate,
+        'avg_call_duration': round(avg_duration, 1),
+        'total_call_minutes': round(total_duration / 60, 1),
+    })
+
+
+@csrf_exempt
+def outreach_script_insights(request):
+    """
+    GET /api/script-insights/?campaign_id=...&product=taggiq&limit=10
+    List AI-generated script insights from call transcript analysis.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+
+    product = request.GET.get('product')
+    campaign = None
+    if product and not request.GET.get('campaign_id'):
+        qs = ScriptInsight.objects.filter(
+            campaign__product=product
+        ).select_related('campaign')
+    else:
+        campaign, err = _get_campaign(request)
+        if err:
+            return err
+        product = campaign.product
+        qs = ScriptInsight.objects.filter(
+            campaign=campaign
+        ).select_related('campaign')
+
+    limit = min(int(request.GET.get('limit', 10)), 50)
+    insights = qs.order_by('-created_at')[:limit]
+
+    return JsonResponse({
+        'campaign': campaign.name if campaign else f'all_{product}',
+        'product': product,
+        'count': qs.count(),
+        'insights': [
+            {
+                'id': str(i.id),
+                'campaign_name': i.campaign.name,
+                'campaign_id': str(i.campaign_id),
+                'calls_analyzed': i.calls_analyzed,
+                'date_range': i.date_range,
+                'answer_rate': i.answer_rate,
+                'interest_rate': i.interest_rate,
+                'demo_rate': i.demo_rate,
+                'top_objections': i.top_objections,
+                'drop_off_points': i.drop_off_points,
+                'working_hooks': i.working_hooks,
+                'prospect_language': i.prospect_language,
+                'suggestions': i.suggestions,
+                'prompt_applied': i.prompt_applied,
+                'applied_at': i.applied_at.isoformat() if i.applied_at else None,
+                'created_at': i.created_at.isoformat(),
+            }
+            for i in insights
+        ],
+    })

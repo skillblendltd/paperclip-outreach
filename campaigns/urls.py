@@ -10,4 +10,7 @@ urlpatterns = [
     path('dashboard/', views.outreach_dashboard, name='outreach_dashboard'),
     path('import/', views.outreach_import_prospects, name='outreach_import'),
     path('webhooks/vapi/', views.vapi_webhook, name='vapi_webhook'),
+    path('calls/', views.outreach_calls, name='outreach_calls'),
+    path('calls/stats/', views.outreach_calls_stats, name='outreach_calls_stats'),
+    path('script-insights/', views.outreach_script_insights, name='outreach_script_insights'),
 ]
