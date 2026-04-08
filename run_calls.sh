@@ -27,6 +27,12 @@ echo "=== Call Campaign Run: $(date) ===" | tee "$LOG_FILE"
 $VENV "$MANAGE" place_calls 2>&1 | tee -a "$LOG_FILE"
 
 echo "" | tee -a "$LOG_FILE"
+
+# Analyze yesterday's calls and auto-improve script (delta mode)
+echo "=== Analyzing calls & improving script ===" | tee -a "$LOG_FILE"
+$VENV "$MANAGE" analyze_calls --apply 2>&1 | tee -a "$LOG_FILE"
+
+echo "" | tee -a "$LOG_FILE"
 echo "=== Completed: $(date) ===" | tee -a "$LOG_FILE"
 
 # Keep last 30 days of logs

@@ -79,7 +79,14 @@ class Command(BaseCommand):
         min_calls = options['min_calls']
         auto_apply = options.get('apply', False)
 
-        since = timezone.now() - timedelta(days=days)
+        # Smart delta: find calls since last analysis (or fall back to --days)
+        last_insight = ScriptInsight.objects.order_by('-created_at').first()
+        if last_insight and not options.get('days_explicit'):
+            since = last_insight.created_at
+            self.stdout.write(f'Delta mode: analyzing calls since last analysis ({since:%Y-%m-%d %H:%M})')
+        else:
+            since = timezone.now() - timedelta(days=days)
+            self.stdout.write(f'Analyzing calls from last {days} days')
 
         # Get calls with transcripts
         calls = CallLog.objects.filter(
