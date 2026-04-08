@@ -69,6 +69,7 @@ def parse_args():
     parser.add_argument("--all-regions", action="store_true", help="Loop through all regions in config (login once, scrape all)")
     parser.add_argument("--output", "-o", type=str, default=None)
     parser.add_argument("--max", "-m", type=int, default=0, help="Max contacts (0=all)")
+    parser.add_argument("--skip", "-s", type=int, default=0, help="Skip first N profiles (resume from where you left off)")
     parser.add_argument("--list-configs", action="store_true", help="List all country configs")
     return parser.parse_args()
 
@@ -419,11 +420,19 @@ def extract_search_results(page):
 
 def extract_profile(page, url):
     """Visit a profile page and extract email, phone, website, etc."""
-    try:
-        page.goto(url, wait_until="networkidle", timeout=25_000)
-        time.sleep(2)
-    except PlaywrightTimeout:
-        return None
+    for attempt in range(3):
+        try:
+            page.goto(url, wait_until="networkidle", timeout=25_000)
+            time.sleep(2)
+            break
+        except PlaywrightTimeout:
+            return None
+        except Exception as e:
+            if attempt < 2:
+                print(f"(retry {attempt+1}: {type(e).__name__})", end=" ", flush=True)
+                time.sleep(5 * (attempt + 1))
+            else:
+                return None
 
     data = {}
     body_text = page.inner_text("body")
@@ -649,6 +658,11 @@ def main():
                 name = basic.get("name", "?")
                 url = basic.get("profile_url", "")
                 print(f"  [{i+1}/{len(results)}] {name}...", end=" ", flush=True)
+
+                if args.skip and i < args.skip:
+                    print("(skipped - resume)")
+                    contacts.append(basic)
+                    continue
 
                 if not url:
                     print("(no link)")

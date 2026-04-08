@@ -134,13 +134,13 @@ TEMPLATES = {
         },
         "body_html": (
             '<p>Hi {{FNAME}},</p>'
-            '<p>I\'m building a system specifically for print and promo shops, quotes, artwork '
-            'approvals, orders, invoicing, all in one place. It\'s called '
-            '<a href="https://taggiq.com/">TaggIQ</a>.</p>'
-            '<p>I\'m looking for 5 BNI members to be design partners: tell me what slows your '
-            'team down, and I\'ll build around your workflow. As a fellow BNI member, I\'d love '
-            'to offer you 3 months free to try it out, no commitment, no card required.</p>'
-            '<p>2 spots taken. Worth a 15-min chat?</p>'
+            '<p>So I built <a href="https://taggiq.com/">TaggIQ</a> because I got tired of '
+            'juggling separate tools for quoting, approvals, orders, and invoicing. '
+            'Now a customer picks a product, approves the artwork in one click, and the job '
+            'flows straight through to invoice and payment. One system, nothing re-keyed.</p>'
+            '<p>I\'m looking for a few BNI members to try it and tell me what they think. '
+            '3 months free, no commitment, no card required.</p>'
+            '<p>Worth a 15-min chat?</p>'
             + SIGNATURE_FOUNDER
         ),
     },
@@ -159,11 +159,11 @@ TEMPLATES = {
         },
         "body_html": (
             '<p>Hi {{FNAME}},</p>'
-            '<p>Quick update. A few print and promo shops in BNI started using '
-            '<a href="https://taggiq.com/">TaggIQ</a> over the past month.</p>'
-            '<p>One team told me they went from using four different tools per order to one screen, '
-            'quote to invoice. Another said artwork approvals that used to take days over email '
-            'now close in hours.</p>'
+            '<p>Quick update. A few BNI print shops started using '
+            '<a href="https://taggiq.com/">TaggIQ</a> recently.</p>'
+            '<p>One told me they went from spending 30 minutes per quote to 5, because '
+            'the quote turns into the order turns into the invoice automatically. Another said '
+            'artwork approvals that took days over email now close in hours with one-click proofing.</p>'
             '<p>If you\'re ever curious, happy to show you in 15 minutes. No pitch, just a walkthrough.</p>'
             '<p>Either way, always great being connected through BNI.</p>'
             + SIGNATURE_FOUNDER
@@ -261,20 +261,20 @@ CAMPAIGN_OVERRIDES = {
             },
             "body_html": (
                 '<p>Hi {{FNAME}},</p>'
-                '<p>I\'m building a system specifically for embroidery and apparel shops, quotes, '
-                'size collection, artwork approvals, orders, invoicing, all in one place. It\'s called '
-                '<a href="https://taggiq.com/">TaggIQ</a>.</p>'
-                '<p>I\'m looking for 5 BNI members to be design partners: tell me what slows your '
-                'team down, and I\'ll build around your workflow. As a fellow BNI member, I\'d love '
-                'to offer you 3 months free to try it out, no commitment, no card required.</p>'
-                '<p>2 spots taken. Worth a 15-min chat?</p>'
+                '<p>So I built <a href="https://taggiq.com/">TaggIQ</a> because I got tired of '
+                'the size collection and approval runaround. Now your customer gets a link, picks '
+                'their sizes, approves the artwork in one click, and the job flows straight through '
+                'to invoicing and payment. One system, nothing chased over email.</p>'
+                '<p>I\'m looking for a few BNI members to try it and tell me what they think. '
+                '3 months free, no commitment, no card required.</p>'
+                '<p>Worth a 15-min chat?</p>'
                 + SIGNATURE_FOUNDER
             ),
         },
         # Seq 4: Embroidery-specific proof
         4: {
             "A": {
-                "subject": "from 4 tools to 1 screen",
+                "subject": "from chasing sizes to one link",
                 "template_name": "bni_emb_v2_seq4_proof",
             },
             "B": {
@@ -283,11 +283,11 @@ CAMPAIGN_OVERRIDES = {
             },
             "body_html": (
                 '<p>Hi {{FNAME}},</p>'
-                '<p>Quick update. A few embroidery and apparel shops in BNI started using '
-                '<a href="https://taggiq.com/">TaggIQ</a> over the past month.</p>'
-                '<p>One team told me they went from using four different tools per order to one screen, '
-                'quote to invoice. Another said size collection that used to take days of chasing '
-                'now happens through a single link.</p>'
+                '<p>Quick update. A few embroidery shops in BNI started using '
+                '<a href="https://taggiq.com/">TaggIQ</a> recently.</p>'
+                '<p>One told me size collection that used to take days of chasing 40 people over '
+                'email now happens through a single link. Another said their quote-to-invoice time '
+                'dropped from hours to minutes because everything flows automatically.</p>'
                 '<p>If you\'re ever curious, happy to show you in 15 minutes. No pitch, just a walkthrough.</p>'
                 '<p>Either way, always great being connected through BNI.</p>'
                 + SIGNATURE_FOUNDER

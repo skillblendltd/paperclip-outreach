@@ -23,8 +23,8 @@
     "Northern Ireland"
   ],
   "regions_scraped": [],
-  "status": "in_progress",
-  "last_scraped": "2026-04-02",
-  "total_members": null,
+  "status": "done",
+  "last_scraped": "2026-04-03",
+  "total_members": 6060,
   "notes": "Large country \u2014 scrape region by region. ~5000+ members total. Use --region flag."
 }

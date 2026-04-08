@@ -113,12 +113,11 @@ TEMPLATES = {
             "B": {"subject": "a different approach to running a sign shop", "template_name": "london_signs_seq3_b"},
             "body_html": (
                 "<p>Hi there,</p>"
-                "<p>I spent about 20 years working in software before getting into the signage and "
-                "print industry, and when I saw how far behind the tools were compared to other "
-                "sectors, I wanted to build something better.</p>"
-                '<p>That\'s why I built <a href="https://taggiq.com">TaggIQ</a>, a platform '
-                "designed for shops like yours. Quotes, artwork approvals, orders, invoicing, "
-                "all in one place.</p>"
+                "<p>I spent 20 years in software before getting into signage, and honestly "
+                "the tools available didn't match how shops actually work.</p>"
+                "<p>So I built TaggIQ. A customer requests a quote, you send it, they approve "
+                "the design in one click, the job flows straight through to invoicing and payment. "
+                "No re-keying, no chasing approvals over email, no separate systems.</p>"
                 "<p>If you're curious, I'd love to offer you a free trial. No commitment, "
                 "no card required.</p>"
                 '<p>You can sign up at <a href="https://taggiq.com/signup">taggiq.com</a> or '
@@ -128,16 +127,15 @@ TEMPLATES = {
             ),
         },
         4: {
-            "A": {"subject": "artwork approvals over email = costly mistakes", "template_name": "london_signs_seq4_a"},
+            "A": {"subject": "the real cost of approving artwork over email", "template_name": "london_signs_seq4_a"},
             "B": {"subject": "one thing most sign shops get wrong", "template_name": "london_signs_seq4_b"},
             "body_html": (
                 "<p>Hi there,</p>"
-                "<p>If your team is still chasing design approvals over email, you know the risk. "
-                "Clients forget to reply, a job goes to production on an old file, and the "
-                "reprint is on you.</p>"
-                '<p>That\'s exactly why I built <a href="https://taggiq.com">TaggIQ</a>. '
-                "Customers approve artwork in one click, you see the status instantly, "
-                "and nothing falls through.</p>"
+                "<p>When a customer approves the wrong version because it was buried in an email "
+                "thread, that reprint is on you.</p>"
+                '<p><a href="https://taggiq.com">TaggIQ</a> gives them one screen, one button. '
+                "They approve it, you see it instantly. No more digging through emails wondering "
+                "which file is the final one.</p>"
                 "<p>Happy to show you how it works if it's ever on your radar.</p>"
                 + SIGNATURE_FULL
             ),
@@ -196,12 +194,12 @@ TEMPLATES = {
             "B": {"subject": "a different approach to running an apparel shop", "template_name": "london_apparel_seq3_b"},
             "body_html": (
                 "<p>Hi there,</p>"
-                "<p>I spent about 20 years working in software before getting into the embroidery "
-                "and decorated apparel industry, and when I saw how far behind the tools were, "
-                "I wanted to build something better.</p>"
-                '<p>That\'s why I built <a href="https://taggiq.com">TaggIQ</a>, a platform '
-                "designed for shops like yours. Quotes, size collection, artwork approvals, "
-                "orders and invoicing, all in one place.</p>"
+                "<p>I spent 20 years in software before getting into embroidery and apparel, "
+                "and honestly the tools available didn't match how shops actually work.</p>"
+                "<p>So I built TaggIQ. You send a quote, your customer picks their sizes through "
+                "a simple link, approves the artwork in one click, and the job flows straight "
+                "through to invoicing and payment. No spreadsheets, no chasing, no re-keying "
+                "the same details three times.</p>"
                 "<p>If you're curious, I'd love to offer you a free trial. No commitment, "
                 "no card required.</p>"
                 '<p>You can sign up at <a href="https://taggiq.com/signup">taggiq.com</a> or '
@@ -211,16 +209,15 @@ TEMPLATES = {
             ),
         },
         4: {
-            "A": {"subject": "size collection over email = nightmare", "template_name": "london_apparel_seq4_a"},
+            "A": {"subject": "chasing 40 people for sizes over email", "template_name": "london_apparel_seq4_a"},
             "B": {"subject": "one thing most apparel shops get wrong", "template_name": "london_apparel_seq4_b"},
             "body_html": (
                 "<p>Hi there,</p>"
-                "<p>If your team is still chasing size charts and artwork approvals over email, "
-                "you know the pain. Jobs get delayed, clients forget to reply, and things slip "
-                "through the cracks.</p>"
-                '<p>That\'s exactly why I built <a href="https://taggiq.com">TaggIQ</a>. '
-                "Customers approve artwork and submit sizes in one place, you see the status "
-                "instantly, and nothing falls through.</p>"
+                "<p>Chasing 40 people for their uniform sizes over email, then manually entering "
+                "it all into a spreadsheet. That's a full day gone on one order.</p>"
+                '<p><a href="https://taggiq.com">TaggIQ</a> gives your customer a link. They pick '
+                "their size, done. You see every response in one place, and the order is ready "
+                "to go to production.</p>"
                 "<p>Happy to show you how it works if it's ever on your radar.</p>"
                 + SIGNATURE_FULL
             ),
@@ -280,12 +277,12 @@ TEMPLATES = {
             "B": {"subject": "a different approach to running a promo shop", "template_name": "london_print_seq3_b"},
             "body_html": (
                 "<p>Hi there,</p>"
-                "<p>I spent about 20 years working in software before getting into the promo "
-                "industry, and when I saw how far behind the tools were compared to other "
-                "sectors, I wanted to build something better.</p>"
-                '<p>That\'s why I built <a href="https://taggiq.com">TaggIQ</a>, a platform '
-                "designed specifically for how promo shops actually run. Quotes, artwork "
-                "approvals, orders, invoicing, all in one place.</p>"
+                "<p>I spent 20 years in software before getting into promo, and honestly "
+                "the tools available didn't match how shops actually work.</p>"
+                "<p>So I built TaggIQ. A customer finds you online, picks a product, uploads "
+                "their logo. You send the quote, they approve the artwork in one click, and "
+                "the job flows straight through to invoicing and payment. No re-keying, "
+                "no chasing approvals over email, no separate systems.</p>"
                 "<p>If you're curious, I'd love to offer you a free trial. No commitment, "
                 "no card required.</p>"
                 '<p>You can sign up at <a href="https://taggiq.com/signup">taggiq.com</a> or '
@@ -295,16 +292,15 @@ TEMPLATES = {
             ),
         },
         4: {
-            "A": {"subject": "artwork approvals over email = nightmare", "template_name": "london_print_seq4_a"},
+            "A": {"subject": "the hidden cost of quoting in promo", "template_name": "london_print_seq4_a"},
             "B": {"subject": "one thing most promo shops get wrong", "template_name": "london_print_seq4_b"},
             "body_html": (
                 "<p>Hi there,</p>"
-                "<p>If your team is still chasing artwork approvals over email, you know the "
-                "pain. Clients forget to reply, files get lost in threads, and things slip "
-                "through the cracks.</p>"
-                '<p>That\'s exactly why I built <a href="https://taggiq.com">TaggIQ</a>. '
-                "Customers approve artwork in one click, you see the status instantly, "
-                "and nothing falls through.</p>"
+                "<p>Most shops I talk to spend 30 minutes building a quote, then re-type "
+                "the same details into a purchase order, then again into an invoice. "
+                "That's three times for the same job.</p>"
+                '<p><a href="https://taggiq.com">TaggIQ</a> does it once. Quote becomes order '
+                "becomes invoice, automatically. One flow, nothing re-keyed.</p>"
                 "<p>Happy to show you how it works if it's ever on your radar.</p>"
                 + SIGNATURE_FULL
             ),

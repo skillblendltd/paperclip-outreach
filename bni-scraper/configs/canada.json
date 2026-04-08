@@ -3,10 +3,31 @@
   "country_name": "Canada",
   "bni_search_country": "Canada",
   "searches": [
-    {"keyword": "", "description": "All members"}
+    {
+      "keyword": "",
+      "description": "All members"
+    }
   ],
-  "status": "pending",
-  "last_scraped": null,
+  "regions": [
+    "Ontario",
+    "British Columbia",
+    "Alberta",
+    "Quebec",
+    "Manitoba",
+    "Saskatchewan",
+    "Nova Scotia",
+    "New Brunswick",
+    "Newfoundland and Labrador",
+    "Prince Edward Island"
+  ],
+  "regions_scraped": [
+    "Ontario",
+    "British Columbia",
+    "Alberta",
+    "Quebec"
+  ],
+  "status": "in_progress",
+  "last_scraped": "2026-04-07",
   "total_members": null,
-  "notes": "Medium country. Single search may work, or split by province."
+  "notes": "Scrape by province. Ontario and BC will be the largest. Use --all-regions to loop through all."
 }
