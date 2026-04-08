@@ -56,14 +56,36 @@ class ProductAdmin(admin.ModelAdmin):
         return obj.campaigns.count()
 
 
+class EmailTemplateInline(admin.TabularInline):
+    model = EmailTemplate
+    extra = 0
+    fields = ['sequence_number', 'ab_variant', 'sequence_label', 'subject_template', 'is_active']
+    ordering = ['sequence_number', 'ab_variant']
+
+
+class MailboxConfigInline(admin.StackedInline):
+    model = MailboxConfig
+    extra = 0
+    max_num = 1
+    fields = ['imap_host', 'imap_port', 'imap_email', 'imap_password',
+              'smtp_host', 'smtp_port', 'smtp_email', 'smtp_password', 'is_active']
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name in ('imap_password', 'smtp_password'):
+            from django.forms import PasswordInput
+            kwargs['widget'] = PasswordInput(render_value=True)
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     list_display = [
         'name', 'product_badge', 'sending_status', 'from_email',
-        'prospect_count', 'max_emails_per_day', 'min_gap_minutes',
+        'prospect_count', 'template_count', 'max_emails_per_day', 'min_gap_minutes',
     ]
     list_filter = ['product_ref__slug', 'sending_enabled']
     search_fields = ['name']
+    inlines = [EmailTemplateInline, MailboxConfigInline]
 
     fieldsets = (
         (None, {
@@ -100,8 +122,16 @@ class CampaignAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(
-            _prospect_count=Count('prospects'),
+            _prospect_count=Count('prospects', distinct=True),
+            _template_count=Count('email_templates', distinct=True),
         )
+
+    @admin.display(description='Templates', ordering='_template_count')
+    def template_count(self, obj):
+        count = obj._template_count
+        if count == 0:
+            return format_html('<span style="color:#e74c3c;font-weight:bold">0</span>')
+        return count
 
     @admin.display(description='Product')
     def product_badge(self, obj):
