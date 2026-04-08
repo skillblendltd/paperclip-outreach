@@ -41,6 +41,8 @@ def render(template, prospect, campaign):
         'CITY': prospect.city or '',
         'SEGMENT': prospect.get_segment_display() if prospect.segment else prospect.business_type or '',
         'YEAR': year or 'a while back',
+        'CHAPTER': prospect.region or 'BNI',
+        'CALENDAR_LINK': 'https://calendar.app.google/yFLeFoyP3XscHsBs8',
     }
 
     subject = _substitute(template.subject_template, variables)
