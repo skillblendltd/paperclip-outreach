@@ -70,6 +70,7 @@ def parse_args():
     parser.add_argument("--output", "-o", type=str, default=None)
     parser.add_argument("--max", "-m", type=int, default=0, help="Max contacts (0=all)")
     parser.add_argument("--skip", "-s", type=int, default=0, help="Skip first N profiles (resume from where you left off)")
+    parser.add_argument("--existing", "-e", type=str, default=None, help="Existing CSV to build on (skip profiles already scraped with email)")
     parser.add_argument("--list-configs", action="store_true", help="List all country configs")
     return parser.parse_args()
 
@@ -185,10 +186,12 @@ def _auto_search(page, config, region=None):
         print(f"[!] Could not click search: {e}")
         input("\n>>> Please click Search manually, then press Enter here... ")
 
-    # Wait for results to appear
+    # Wait for results to appear (longer timeout for large country searches)
     try:
-        page.wait_for_selector('a[href*="networkHome?userId="]', timeout=15_000)
+        page.wait_for_selector('a[href*="networkHome?userId="]', timeout=30_000)
         print("[+] Search results loaded!")
+        # Extra wait for large searches to let initial batch render
+        time.sleep(3)
     except PlaywrightTimeout:
         print("[!] No results detected yet.")
         input("\n>>> Press Enter if results are showing (or fix search manually)... ")
@@ -314,14 +317,35 @@ def scroll_to_load_all(page):
 
     prev_count = 0
     stable_rounds = 0
+    max_stable = 15  # more patience for large country searches
 
-    while stable_rounds < 8:
+    while stable_rounds < max_stable:
         current_count = page.evaluate("""
             () => document.querySelectorAll('a[href*="networkHome?userId="]').length
         """)
 
         if current_count == prev_count:
             stable_rounds += 1
+            # Every 5 stable rounds, try clicking "Load More" / "Show More" buttons
+            if stable_rounds % 5 == 0:
+                clicked = page.evaluate("""
+                    () => {
+                        const btns = document.querySelectorAll('button, a, span');
+                        for (const b of btns) {
+                            const txt = (b.innerText || '').toLowerCase();
+                            if (txt.includes('load more') || txt.includes('show more') || txt.includes('view more') || txt.includes('next')) {
+                                b.click();
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                """)
+                if clicked:
+                    print(f"    Clicked 'Load More' button at {current_count} results...")
+                    time.sleep(3)
+                    stable_rounds = 0
+                    continue
         else:
             stable_rounds = 0
             print(f"    {current_count} results loaded...")
@@ -354,6 +378,9 @@ def scroll_to_load_all(page):
                         d.scrollTop = d.scrollHeight;
                     }
                 }
+
+                // 4. Also scroll main window as last resort
+                window.scrollTo(0, document.body.scrollHeight);
             }
         """)
         time.sleep(2)
@@ -650,6 +677,23 @@ def main():
                 results = results[:args.max]
                 print(f"[*] Limited to {args.max} contacts (--max)")
 
+            # Load existing data if provided (to skip already-scraped profiles)
+            existing_names = set()
+            existing_rows = {}
+            if args.existing:
+                import csv as csv_mod
+                try:
+                    with open(args.existing) as ef:
+                        for row in csv_mod.DictReader(ef):
+                            name_key = row.get("name", "").strip().lower()
+                            if name_key:
+                                existing_names.add(name_key)
+                                if row.get("email", "").strip():
+                                    existing_rows[name_key] = row
+                    print(f"[*] Loaded {len(existing_names)} existing contacts ({len(existing_rows)} with email) from {args.existing}")
+                except Exception as e:
+                    print(f"[!] Could not load existing file: {e}")
+
             # Visit each profile
             print(f"\n[*] Visiting {len(results)} profiles for email/phone...\n")
             contacts = []
@@ -657,7 +701,15 @@ def main():
             for i, basic in enumerate(results):
                 name = basic.get("name", "?")
                 url = basic.get("profile_url", "")
+                name_key = name.strip().lower()
                 print(f"  [{i+1}/{len(results)}] {name}...", end=" ", flush=True)
+
+                # Skip if already scraped with email in existing file
+                if name_key in existing_rows:
+                    merged = {**basic, **existing_rows[name_key]}
+                    contacts.append(merged)
+                    print(f"-> {existing_rows[name_key].get('email', '')} (from existing)")
+                    continue
 
                 if args.skip and i < args.skip:
                     print("(skipped - resume)")

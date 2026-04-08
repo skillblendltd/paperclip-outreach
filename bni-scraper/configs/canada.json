@@ -8,26 +8,8 @@
       "description": "All members"
     }
   ],
-  "regions": [
-    "Ontario",
-    "British Columbia",
-    "Alberta",
-    "Quebec",
-    "Manitoba",
-    "Saskatchewan",
-    "Nova Scotia",
-    "New Brunswick",
-    "Newfoundland and Labrador",
-    "Prince Edward Island"
-  ],
-  "regions_scraped": [
-    "Ontario",
-    "British Columbia",
-    "Alberta",
-    "Quebec"
-  ],
-  "status": "in_progress",
-  "last_scraped": "2026-04-07",
-  "total_members": null,
-  "notes": "Scrape by province. Ontario and BC will be the largest. Use --all-regions to loop through all."
+  "status": "done",
+  "last_scraped": "2026-04-08",
+  "total_members": 20,
+  "notes": "Country-level scrape (no regions). Ontario, BC, Alberta, Quebec already scraped. Merged into canada_merged_20260408.csv (1897 contacts, 1013 emails). Run without --region to get all remaining members in one go."
 }
