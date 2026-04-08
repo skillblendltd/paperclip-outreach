@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class BaseModel(models.Model):
@@ -11,6 +12,44 @@ class BaseModel(models.Model):
         abstract = True
 
 
+class Organization(BaseModel):
+    """Top-level tenant. All data scopes through this."""
+    name = models.CharField(max_length=300)
+    slug = models.SlugField(max_length=100, unique=True)
+    owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='organizations')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'organizations'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Product(BaseModel):
+    """Product line within an organization. Replaces Campaign.product CharField."""
+    SLUG_CHOICES = [
+        ('taggiq', 'TaggIQ'),
+        ('kritno', 'Kritno'),
+        ('fullypromoted', 'Fully Promoted'),
+        ('other', 'Other'),
+    ]
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='products')
+    name = models.CharField(max_length=300)
+    slug = models.SlugField(max_length=100)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'products'
+        unique_together = [('organization', 'slug')]
+        ordering = ['organization', 'name']
+
+    def __str__(self):
+        return f'{self.organization.name} / {self.name}'
+
+
 class Campaign(BaseModel):
     PRODUCT_CHOICES = [
         ('taggiq', 'TaggIQ'),
@@ -20,7 +59,12 @@ class Campaign(BaseModel):
     ]
 
     name = models.CharField(max_length=300, unique=True)
-    product = models.CharField(max_length=30, choices=PRODUCT_CHOICES, default='taggiq')
+    product = models.CharField(max_length=30, choices=PRODUCT_CHOICES, default='taggiq',
+        help_text='Legacy - use product_ref FK instead')
+    product_ref = models.ForeignKey(
+        Product, null=True, blank=True, on_delete=models.CASCADE, related_name='campaigns',
+        help_text='Product this campaign belongs to (new FK)',
+    )
 
     # Sender settings
     from_name = models.CharField(max_length=200, default='', help_text='Sender display name')
@@ -58,13 +102,24 @@ class Campaign(BaseModel):
     max_calls_per_prospect = models.IntegerField(default=3, help_text='Max call attempts per prospect')
     vapi_assistant_id = models.CharField(max_length=100, blank=True, default='', help_text='Vapi assistant ID for outbound calls')
 
+    # Send window (DB-configurable, replaces hardcoded per-script logic)
+    send_window_timezone = models.CharField(max_length=50, default='Europe/Dublin', help_text='Timezone for send window')
+    send_window_start_hour = models.IntegerField(default=10, help_text='Earliest hour to send (0-23)')
+    send_window_end_hour = models.IntegerField(default=17, help_text='Latest hour to send (0-23)')
+    send_window_days = models.CharField(max_length=20, default='0,1,2,3,4', help_text='Comma-separated weekday numbers (0=Mon)')
+    batch_size = models.IntegerField(default=100, help_text='Max prospects to process per run')
+    inter_send_delay_min = models.IntegerField(default=5, help_text='Min seconds between sends')
+    inter_send_delay_max = models.IntegerField(default=60, help_text='Max seconds between sends')
+    priority_cities = models.CharField(max_length=500, blank=True, default='', help_text='Comma-separated cities to send first')
+
     class Meta:
         db_table = 'campaigns'
         ordering = ['name']
 
     def __str__(self):
+        product_label = self.product_ref.slug if self.product_ref else self.product
         status = 'ON' if self.sending_enabled else 'OFF'
-        return f'{self.name} [{self.product}] — {status}'
+        return f'{self.name} [{product_label}] - {status}'
 
 
 class Prospect(BaseModel):
@@ -259,12 +314,20 @@ class ScriptInsight(BaseModel):
     prompt_applied = models.BooleanField(default=False, help_text='Whether this prompt was pushed to Vapi')
     applied_at = models.DateTimeField(null=True, blank=True)
 
+    # Learning loop tracking
+    baseline_answer_rate = models.FloatField(null=True, blank=True, help_text='Answer rate before prompt change')
+    baseline_interest_rate = models.FloatField(null=True, blank=True, help_text='Interest rate before prompt change')
+    post_change_answer_rate = models.FloatField(null=True, blank=True, help_text='Answer rate 1 week after change')
+    post_change_interest_rate = models.FloatField(null=True, blank=True, help_text='Interest rate 1 week after change')
+    improvement_measured = models.BooleanField(default=False, help_text='Whether post-change measurement was done')
+    measured_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         db_table = 'script_insights'
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'{self.campaign.name} — {self.calls_analyzed} calls — {self.created_at:%Y-%m-%d}'
+        return f'{self.campaign.name} - {self.calls_analyzed} calls - {self.created_at:%Y-%m-%d}'
 
 
 class EmailQueue(BaseModel):
@@ -401,16 +464,22 @@ class Suppression(BaseModel):
         ('manual', 'Manually Added'),
     ]
 
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
+    product = models.ForeignKey(
+        Product, null=True, blank=True, on_delete=models.CASCADE, related_name='suppressions',
+        help_text='Product scope. Null = global suppression across all products.',
+    )
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     notes = models.TextField(blank=True, default='')
 
     class Meta:
         db_table = 'suppressions'
         ordering = ['-created_at']
+        unique_together = [('email', 'product')]
 
     def __str__(self):
-        return f'{self.email} - {self.reason}'
+        scope = self.product.slug if self.product else 'GLOBAL'
+        return f'{self.email} - {self.reason} [{scope}]'
 
 
 class ReplyTemplate(BaseModel):
@@ -445,4 +514,116 @@ class ReplyTemplate(BaseModel):
         ordering = ['campaign', 'classification']
 
     def __str__(self):
-        return f'{self.campaign.name} — {self.get_classification_display()} reply'
+        return f'{self.campaign.name} - {self.get_classification_display()} reply'
+
+
+class EmailTemplate(BaseModel):
+    """DB-driven email template. One row per campaign + sequence + variant."""
+
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='email_templates')
+    sequence_number = models.IntegerField(help_text='Sequence number (1-5)')
+    ab_variant = models.CharField(max_length=1, choices=[('A', 'A'), ('B', 'B')])
+    subject_template = models.CharField(
+        max_length=500,
+        help_text='Subject line. Variables: {{FNAME}}, {{COMPANY}}, {{CITY}}, {{YEAR}}, {{SEGMENT}}',
+    )
+    body_html_template = models.TextField(
+        help_text='HTML body. Variables: {{FNAME}}, {{COMPANY}}, {{CITY}}, {{YEAR}}, {{SEGMENT}}',
+    )
+    template_name = models.CharField(max_length=100, help_text='Identifier logged in EmailLog.template_name')
+    sequence_label = models.CharField(max_length=100, blank=True, default='', help_text='Human label, e.g. "Peer Story"')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'email_templates'
+        unique_together = [('campaign', 'sequence_number', 'ab_variant')]
+        ordering = ['campaign', 'sequence_number', 'ab_variant']
+
+    def __str__(self):
+        return f'{self.campaign.name} - Seq {self.sequence_number}{self.ab_variant}'
+
+
+class CallScript(BaseModel):
+    """Per-segment first message for Vapi calls. Replaces hardcoded first_messages in call_service.py."""
+
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='call_scripts')
+    segment = models.CharField(
+        max_length=30, choices=Prospect.SEGMENT_CHOICES, blank=True, default='',
+        help_text='Prospect segment. Empty = default script for this campaign.',
+    )
+    first_message = models.TextField(help_text='Vapi first_message override for this segment')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'call_scripts'
+        unique_together = [('campaign', 'segment')]
+        ordering = ['campaign', 'segment']
+
+    def __str__(self):
+        seg = self.segment or 'default'
+        return f'{self.campaign.name} - {seg}'
+
+
+class PromptTemplate(BaseModel):
+    """DB-managed AI prompts per product. Enables per-tenant prompt customization."""
+
+    FEATURE_CHOICES = [
+        ('email_reply', 'Email Reply Generation'),
+        ('call_analysis', 'Call Transcript Analysis'),
+        ('script_improvement', 'Script Improvement'),
+        ('classification', 'Email Classification'),
+    ]
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='prompt_templates')
+    feature = models.CharField(max_length=30, choices=FEATURE_CHOICES)
+    name = models.CharField(max_length=300, help_text='Human name, e.g. "TaggIQ Email Expert v3"')
+    system_prompt = models.TextField(help_text='Full system prompt for the AI model')
+    model = models.CharField(max_length=100, default='claude-sonnet-4-6', help_text='Model ID to use')
+    max_tokens = models.IntegerField(default=4096)
+    temperature = models.FloatField(default=0.7)
+    is_active = models.BooleanField(default=True)
+    version = models.IntegerField(default=1, help_text='Increment on each update for tracking')
+
+    class Meta:
+        db_table = 'prompt_templates'
+        ordering = ['product', 'feature', '-version']
+
+    def __str__(self):
+        return f'{self.name} (v{self.version})'
+
+
+class AIUsageLog(BaseModel):
+    """Tracks every AI call for cost allocation and observability."""
+
+    FEATURE_CHOICES = [
+        ('email_reply', 'Email Reply'),
+        ('call_analysis', 'Call Analysis'),
+        ('script_improvement', 'Script Improvement'),
+        ('classification', 'Classification'),
+    ]
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='ai_usage_logs')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ai_usage_logs')
+    campaign = models.ForeignKey(Campaign, null=True, blank=True, on_delete=models.SET_NULL, related_name='ai_usage_logs')
+    prospect = models.ForeignKey('Prospect', null=True, blank=True, on_delete=models.SET_NULL, related_name='ai_usage_logs')
+
+    feature = models.CharField(max_length=30, choices=FEATURE_CHOICES)
+    model = models.CharField(max_length=100, help_text='Model ID used')
+    input_tokens = models.IntegerField(default=0)
+    output_tokens = models.IntegerField(default=0)
+    cost_usd = models.DecimalField(max_digits=8, decimal_places=4, default=0)
+    latency_ms = models.IntegerField(default=0)
+    success = models.BooleanField(default=True)
+    error_message = models.TextField(blank=True, default='')
+    prompt_version = models.IntegerField(null=True, blank=True, help_text='PromptTemplate.version used')
+
+    class Meta:
+        db_table = 'ai_usage_log'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['organization', 'created_at']),
+            models.Index(fields=['product', 'feature']),
+        ]
+
+    def __str__(self):
+        return f'{self.feature} - {self.model} - ${self.cost_usd}'

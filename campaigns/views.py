@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db.models import Q, Count
 
-from campaigns.models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, CallLog, ScriptInsight
+from campaigns.models import Campaign, Product, Prospect, EmailLog, EmailQueue, Suppression, CallLog, ScriptInsight
 from campaigns.email_service import EmailService
 
 logger = logging.getLogger(__name__)
@@ -264,7 +264,7 @@ def outreach_prospects(request):
                 'error': f'Invalid product "{product}". Valid: {", ".join(sorted(valid_products))}',
             }, status=400)
         qs = Prospect.objects.filter(
-            campaign__product=product, send_enabled=True
+            campaign__product_ref__slug=product, send_enabled=True
         ).select_related('campaign')
     else:
         campaign, err = _get_campaign(request)
@@ -394,19 +394,19 @@ def outreach_dashboard(request):
         if product_filter and code != product_filter:
             continue
 
-        campaigns = Campaign.objects.filter(product=code).annotate(
+        campaigns = Campaign.objects.filter(product_ref__slug=code).annotate(
             _prospect_count=Count('prospects'),
         )
         if not campaigns.exists():
             continue
 
-        product_prospects = Prospect.objects.filter(campaign__product=code)
+        product_prospects = Prospect.objects.filter(campaign__product_ref__slug=code)
         total_prospects = product_prospects.count()
         with_email = product_prospects.filter(
             send_enabled=True
         ).exclude(Q(email='') | Q(email__isnull=True)).count()
 
-        product_logs = EmailLog.objects.filter(campaign__product=code, status='sent')
+        product_logs = EmailLog.objects.filter(campaign__product_ref__slug=code, status='sent')
         sent_today = product_logs.filter(created_at__gte=today_start).count()
         total_sent = product_logs.count()
 
@@ -801,7 +801,7 @@ def outreach_calls(request):
     campaign = None
     if product and not request.GET.get('campaign_id'):
         qs = CallLog.objects.filter(
-            campaign__product=product
+            campaign__product_ref__slug=product
         ).select_related('campaign', 'prospect')
     else:
         campaign, err = _get_campaign(request)
@@ -869,7 +869,7 @@ def outreach_calls_stats(request):
     product = request.GET.get('product')
     campaign = None
     if product and not request.GET.get('campaign_id'):
-        qs = CallLog.objects.filter(campaign__product=product)
+        qs = CallLog.objects.filter(campaign__product_ref__slug=product)
     else:
         campaign, err = _get_campaign(request)
         if err:
@@ -935,7 +935,7 @@ def outreach_script_insights(request):
     campaign = None
     if product and not request.GET.get('campaign_id'):
         qs = ScriptInsight.objects.filter(
-            campaign__product=product
+            campaign__product_ref__slug=product
         ).select_related('campaign')
     else:
         campaign, err = _get_campaign(request)

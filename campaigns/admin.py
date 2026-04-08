@@ -10,7 +10,11 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db.models import Count, Q
 
-from .models import Campaign, Prospect, EmailLog, EmailQueue, Suppression, InboundEmail, ReplyTemplate, MailboxConfig, CallLog
+from .models import (
+    Organization, Product, Campaign, Prospect, EmailLog, EmailQueue,
+    Suppression, InboundEmail, ReplyTemplate, MailboxConfig, CallLog,
+    ScriptInsight, EmailTemplate, CallScript, PromptTemplate, AIUsageLog,
+)
 from .forms import CsvUploadForm
 
 
@@ -30,18 +34,40 @@ PRODUCT_LABELS = {
 }
 
 
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'is_active', 'product_count', 'created_at']
+    search_fields = ['name', 'slug']
+    prepopulated_fields = {'slug': ('name',)}
+
+    @admin.display(description='Products')
+    def product_count(self, obj):
+        return obj.products.count()
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'organization', 'is_active', 'campaign_count']
+    list_filter = ['organization', 'is_active']
+    search_fields = ['name', 'slug']
+
+    @admin.display(description='Campaigns')
+    def campaign_count(self, obj):
+        return obj.campaigns.count()
+
+
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     list_display = [
         'name', 'product_badge', 'sending_status', 'from_email',
         'prospect_count', 'max_emails_per_day', 'min_gap_minutes',
     ]
-    list_filter = ['product', 'sending_enabled']
+    list_filter = ['product_ref__slug', 'sending_enabled']
     search_fields = ['name']
 
     fieldsets = (
         (None, {
-            'fields': ('name', 'product')
+            'fields': ('name', 'product_ref', 'product')
         }),
         ('Sender', {
             'fields': ('from_name', 'from_email', 'reply_to_email')
@@ -52,6 +78,19 @@ class CampaignAdmin(admin.ModelAdmin):
                 'min_gap_minutes', 'max_emails_per_prospect',
                 'require_sequence_order', 'follow_up_days',
             )
+        }),
+        ('Send Window', {
+            'fields': (
+                'send_window_timezone', 'send_window_start_hour', 'send_window_end_hour',
+                'send_window_days', 'batch_size', 'inter_send_delay_min',
+                'inter_send_delay_max', 'priority_cities',
+            ),
+            'classes': ('collapse',),
+        }),
+        ('Calling', {
+            'fields': ('calling_enabled', 'max_calls_per_day', 'min_gap_call_minutes',
+                       'max_calls_per_prospect', 'vapi_assistant_id'),
+            'classes': ('collapse',),
         }),
         ('Footer', {
             'fields': ('unsubscribe_footer_html',),
@@ -66,8 +105,9 @@ class CampaignAdmin(admin.ModelAdmin):
 
     @admin.display(description='Product')
     def product_badge(self, obj):
-        colour = PRODUCT_COLOURS.get(obj.product, '#95a5a6')
-        label = PRODUCT_LABELS.get(obj.product, obj.product)
+        slug = obj.product_ref.slug if obj.product_ref else obj.product
+        colour = PRODUCT_COLOURS.get(slug, '#95a5a6')
+        label = PRODUCT_LABELS.get(slug, slug)
         return format_html(
             '<span style="background:{};color:#fff;padding:3px 10px;'
             'border-radius:3px;font-weight:bold;font-size:11px">{}</span>',
@@ -728,6 +768,69 @@ class MailboxConfigAdmin(admin.ModelAdmin):
 
 @admin.register(Suppression)
 class SuppressionAdmin(admin.ModelAdmin):
-    list_display = ['email', 'reason', 'notes', 'created_at']
-    list_filter = ['reason']
+    list_display = ['email', 'product_scope', 'reason', 'notes', 'created_at']
+    list_filter = ['reason', 'product__slug']
     search_fields = ['email', 'notes']
+
+    @admin.display(description='Scope')
+    def product_scope(self, obj):
+        if obj.product:
+            slug = obj.product.slug
+            colour = PRODUCT_COLOURS.get(slug, '#95a5a6')
+            label = PRODUCT_LABELS.get(slug, slug)
+            return format_html(
+                '<span style="background:{};color:#fff;padding:3px 8px;border-radius:3px;font-size:11px">{}</span>',
+                colour, label
+            )
+        return format_html('<span style="background:#333;color:#fff;padding:3px 8px;border-radius:3px;font-size:11px">GLOBAL</span>')
+
+
+@admin.register(EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    list_display = ['campaign', 'sequence_number', 'ab_variant', 'sequence_label', 'subject_preview', 'is_active']
+    list_filter = ['campaign__product_ref__slug', 'campaign', 'sequence_number', 'ab_variant', 'is_active']
+    search_fields = ['subject_template', 'template_name', 'sequence_label']
+    ordering = ['campaign', 'sequence_number', 'ab_variant']
+
+    @admin.display(description='Subject')
+    def subject_preview(self, obj):
+        return obj.subject_template[:80]
+
+
+@admin.register(CallScript)
+class CallScriptAdmin(admin.ModelAdmin):
+    list_display = ['campaign', 'segment_display', 'is_active', 'message_preview']
+    list_filter = ['campaign__product_ref__slug', 'campaign', 'is_active']
+
+    @admin.display(description='Segment')
+    def segment_display(self, obj):
+        return obj.segment or 'default'
+
+    @admin.display(description='First Message')
+    def message_preview(self, obj):
+        return obj.first_message[:100]
+
+
+@admin.register(PromptTemplate)
+class PromptTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'product', 'feature', 'model', 'version', 'is_active']
+    list_filter = ['product__slug', 'feature', 'is_active']
+    search_fields = ['name', 'system_prompt']
+
+
+@admin.register(AIUsageLog)
+class AIUsageLogAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'organization', 'product', 'feature', 'model', 'input_tokens', 'output_tokens', 'cost_usd', 'success']
+    list_filter = ['organization', 'product__slug', 'feature', 'model', 'success']
+    date_hierarchy = 'created_at'
+    readonly_fields = [
+        'organization', 'product', 'campaign', 'prospect', 'feature', 'model',
+        'input_tokens', 'output_tokens', 'cost_usd', 'latency_ms', 'success',
+        'error_message', 'prompt_version', 'created_at',
+    ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
