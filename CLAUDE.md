@@ -1,124 +1,188 @@
-# Paperclip Outreach — GTM & Campaign Engine
+# Paperclip Outreach - Autonomous B2B Sales Pipeline
 
-**What this is:** A fully autonomous B2B outreach system for three products.
-Scrapes leads → imports to campaigns → sends multi-sequence emails → monitors replies → auto-replies via Claude AI → updates CRM status. **Zero human intervention required for day-to-day operation.**
+## Project Objective
 
-**Owner:** Prakash Inani — solo founder running TaggIQ (software), Fully Promoted Ireland (franchise), and Kritno.
-**Stack:** Django + SQLite + AWS SES + Zoho IMAP + Claude CLI
+Paperclip Outreach is a fully autonomous, multi-tenant B2B sales pipeline that takes a prospect from cold lead to booked demo with zero human intervention. It combines email outreach, AI-powered voice calling (via Vapi), intelligent reply handling (via Claude), and CRM-level prospect management into a single Django-based engine.
 
-## Cron Schedule (fully autonomous)
+**The complete pipeline:**
+```
+Scrape leads (Google Maps / BNI Connect)
+    -> Import + deduplicate into campaigns
+        -> Send 5-sequence email drip (DB-driven templates, A/B tested)
+            -> Monitor replies every 10 min (IMAP)
+                -> Auto-classify: opt-out, bounce, interested, question
+                    -> Claude AI generates personalized replies (Prakash's voice)
+                    -> Auto-suppress opt-outs (product-scoped)
+            -> Place AI voice calls (Vapi - segment-specific scripts)
+                -> Webhook captures call outcomes, transcripts
+                -> Claude analyzes transcripts -> improves call scripts
+        -> Prospect status escalates: new -> contacted -> interested -> demo_scheduled
+```
 
-| Cron | Script | What it does |
-|------|--------|--------------|
-| `0 11 * * 1-5` | `run_campaigns.sh` | Daily Mon–Fri 11am IST: sends all due sequences across all campaigns |
-| `*/10 * * * *` | `run_reply_monitor.sh` | Every 10 min: checks Zoho IMAP, auto-handles opt-outs/bounces, invokes `claude -p "/taggiq-email-expert"` for flagged replies |
-| `0 23 * * *` | `backup_to_gdrive.sh` | Nightly: backs up db.sqlite3 to Google Drive |
+**Key differentiator:** This is not a tool that helps you send emails. It IS the sales team. Once configured, it runs the full outbound pipeline autonomously - scraping, emailing, calling, replying, learning, and booking demos while you sleep.
 
-### Daily send pipeline (`run_campaigns.sh`):
-1. `bni-scraper/send_sequence.py` — BNI Ireland + Promo Global + Embroidery Global (seq 1–5)
-2. `google-maps-scraper/send_ireland_sequences.py` — Ireland Signs + Apparel + Print & Promo (seq 1–5)
+## Who This Serves
 
-### Logs:
-- `/tmp/campaigns_daily.log` — daily send activity
-- `/tmp/taggiq_reply_monitor.log` — reply monitoring
-- `/tmp/taggiq_claude_replies.log` — Claude reply output
+**Owner:** Prakash Inani - solo founder running three businesses through one GTM engine.
+
+| Product | What it is | Outreach goal |
+|---------|-----------|---------------|
+| **TaggIQ** | POS platform for print & promo shops | Get shop owners to try the platform |
+| **Fully Promoted Ireland** | Master franchise (300+ locations worldwide) | Recruit franchise partners across Ireland |
+| **Kritno** | Creative production platform (future) | Not active yet |
+
+**Future:** Design partners (e.g., Print RFT, Promotex.ie) will use the system as their own outreach engine via the multi-tenant architecture.
+
+## Architecture (v2 - Multi-Tenant)
+
+```
+Organization ("Skillblend Ltd", future: "Print RFT")
+    -> Product ("TaggIQ", "Fully Promoted Ireland", "Kritno")
+        -> Campaign ("TaggIQ BNI Ireland", "FP Dublin B2B Corporate Sales")
+            -> Prospect (business, contact, status, score, tier)
+            -> EmailTemplate (5 sequences x A/B variants, DB-driven)
+            -> EmailLog / CallLog / InboundEmail
+            -> MailboxConfig (per-campaign IMAP/SMTP credentials)
+        -> Suppression (product-scoped opt-outs - FP opt-out doesn't block TaggIQ)
+        -> CallScript (per-segment Vapi first messages)
+        -> PromptTemplate (AI prompts per product, versioned)
+    -> AIUsageLog (token/cost tracking per org)
+```
+
+**Stack:** Django 4.2 + SQLite (migrating to PostgreSQL) + AWS SES + Zoho/Google IMAP + Vapi.ai + Claude CLI
+
+**Key design principle:** Adding a new campaign = DB records only. Zero code changes. Templates, send windows, rate limits, call scripts - all configurable per campaign in the database.
 
 ---
 
-## The Three Products & Their Campaigns
+## How The Pipeline Works
 
-### 1. TaggIQ — `product='taggiq'`
-Next-gen POS platform for print & promo shops. Quotes, artwork approvals, orders, invoicing in one place. Prakash built it from his own frustration running Fully Promoted Dublin.
+### 1. Lead Generation
 
-**Positioning:**
-- To BNI contacts: "fellow BNI member in print and promo, spent 20 years in software"
-- To Ireland cold leads: "spent 20 years in software before moving into this industry" — NEVER mention Fully Promoted (conflict of interest with Irish shops)
-- Offer: 3 months free for BNI members, free trial for cold leads
-- Demo link: `https://calendar.app.google/fzQ5iQLGHakimfjv7`
+```
+Google Maps Scraper -> CSV with emails -> import_prospects.py -> Campaign
+BNI Connect Scraper -> CSV             -> import scripts      -> Campaign
+```
+
+- Google Maps: Places API + Playwright email extraction from websites
+- BNI Connect: Playwright scraper for member directories
+- Always dedup before import (check existing prospects by email)
+
+### 2. Email Sequences (Autonomous)
+
+**Cron:** `0 11 * * 1-5` via `run_campaigns.sh` -> `python manage.py send_sequences`
+
+The universal sender (`send_sequences`) replaces 18 legacy sender scripts:
+- Reads templates from EmailTemplate model (102 templates across 11 campaigns)
+- Checks send windows per campaign (timezone, hours, days)
+- Applies rate limits (daily cap, min gap, batch size, inter-send delay)
+- Determines A/B variant via deterministic hash
+- Renders {{FNAME}}, {{COMPANY}}, {{CITY}}, {{YEAR}}, {{SEGMENT}}, {{CHAPTER}} variables
+- Sends via AWS SES, logs to EmailLog, updates prospect status
+
+**Sequence rules (include-based, never exclude):**
+- Seq 1: `status='new'` AND `emails_sent=0`
+- Seq 2-5: `status='contacted'` AND 7-day gap from last email
+- **Never send to:** interested, engaged, demo_scheduled, design_partner (they get Claude replies only)
+
+```bash
+python manage.py send_sequences                      # All active campaigns
+python manage.py send_sequences --product taggiq     # One product
+python manage.py send_sequences --campaign "BNI"     # Name substring
+python manage.py send_sequences --dry-run --status   # Show eligible counts
+```
+
+### 3. Reply Monitoring (Autonomous)
+
+**Cron:** `*/10 * * * *` via `run_reply_monitor.sh`
+
+```
+IMAP check (Zoho + Google Workspace)
+    -> Deduplicate by Message-ID
+    -> Match to prospect (email -> In-Reply-To -> first name fallback)
+    -> Classify by keywords:
+        opt_out     -> disable sending, add to product-scoped suppression
+        bounce      -> disable sending, suppress
+        not_interested -> disable sending
+        interested  -> flag for Claude reply
+        question    -> flag for Claude reply
+        other       -> flag for manual review
+    -> Claude generates personalized reply (/taggiq-email-expert or /fp-email-expert)
+    -> Reply sent via Zoho/Google SMTP with proper threading headers
+    -> Prospect status updated in DB
+```
+
+**Multi-mailbox support:**
+| Mailbox | Campaigns | Provider |
+|---------|-----------|----------|
+| `prakash@taggiq.com` | All TaggIQ campaigns | Zoho IMAP |
+| `prakash@fullypromoted.ie` | FP Franchise, FP BNI | Google Workspace |
+| `office@fullypromoted.ie` | FP Dublin B2B Corporate | Google Workspace |
+
+### 4. AI Voice Calling (via Vapi)
+
+```
+place_calls command
+    -> Filter eligible prospects (has phone, send_enabled, not terminal status)
+    -> Look up CallScript from DB (per-segment first message)
+    -> Place call via Vapi API
+    -> Vapi AI handles conversation (STT -> LLM -> TTS)
+    -> End-of-call webhook -> update CallLog (transcript, recording, disposition)
+    -> Prospect status updated based on outcome
+
+analyze_calls command (periodic)
+    -> Claude analyzes call transcripts
+    -> Generates ScriptInsight: answer_rate, interest_rate, top_objections, working_hooks
+    -> Optionally pushes improved prompt to Vapi
+    -> Learning loop: baseline vs post-change rate tracking
+```
+
+### 5. Prospect Lifecycle
+
+```
+new -> [Seq 1] -> contacted -> [Seq 2-5] -> ...
+                                           -> interested  (Claude replies)
+                                           -> engaged     (Claude replies)
+                                           -> demo_scheduled
+                                           -> design_partner
+                                           -> not_interested (send disabled)
+                                           -> opted_out     (send disabled)
+```
+
+---
+
+## Active Campaigns
+
+### TaggIQ (10 campaigns, ~3,600 prospects)
+
+| Campaign | From | Prospects | Status |
+|----------|------|-----------|--------|
+| TaggIQ BNI Ireland | `prakash@mail.taggiq.com` | 67 | Seq 5 in progress |
+| TaggIQ BNI Promo Global | `prakash@mail.taggiq.com` | 782 | Seq 3-5, largest campaign |
+| TaggIQ BNI Embroidery Global | `prakash@mail.taggiq.com` | 100 | Mature |
+| TaggIQ Ireland - Signs | `prakash@taggiq.com` | 102 | Seq 2 active |
+| TaggIQ Ireland - Apparel | `prakash@taggiq.com` | 209 | Seq 2 active |
+| TaggIQ Ireland - Print & Promo | `prakash@taggiq.com` | 586 | Seq 1-2 in progress |
+| TaggIQ London - Signs | `prakash@mail.taggiq.com` | 239 | Seq 1 early |
+| TaggIQ London - Apparel | `prakash@mail.taggiq.com` | 571 | Seq 1 early |
+| TaggIQ London - Print & Promo | `prakash@mail.taggiq.com` | 999 | Seq 1 early |
+
+**Positioning (TaggIQ):**
+- BNI contacts: "fellow BNI member in print and promo, spent 20 years in software"
+- Ireland cold leads: "spent 20 years in software before moving into this industry" - NEVER mention Fully Promoted (conflict of interest)
+- Offer: 3 months free for BNI, free trial for cold leads
+- Demo: `https://calendar.app.google/fzQ5iQLGHakimfjv7`
 - Self-trial: `https://taggiq.com/signup`
 
-**Reply handler: `/taggiq-email-expert`**
+### Fully Promoted (3 campaigns, ~430 prospects)
 
-| Campaign | ID | From | Prospects | Seqs Sent | Status |
-|----------|----|------|-----------|-----------|--------|
-| TaggIQ BNI Ireland | `64ed1454-18fc-4783-9438-da18143f7312` | `prakash@mail.taggiq.com` | 67 | 1–5 (seq 5 in progress) | Active |
-| TaggIQ BNI Promo Global | `9cdc1870-476b-4bfe-91ff-9661bd62c662` | `prakash@mail.taggiq.com` | 781 | 1–3 done, seq 4 pending | Active |
-| TaggIQ BNI Embroidery Global | `9dc977d3-f793-4051-905c-30c82b76dcd6` | `prakash@mail.taggiq.com` | 100 | 1–5 (seq 5 in progress) | Active |
-| TaggIQ Ireland — Signs | `74de42a1-5bab-4e31-ada8-c200b18f1403` | `prakash@taggiq.com` | 102 | Seq 1 done (100 sent) | Seq 2 from 2026-04-06 |
-| TaggIQ Ireland — Apparel | `7a44100a-d848-4619-b239-d8502c74e052` | `prakash@taggiq.com` | 209 | Seq 1: 100 sent, 109 new remaining | Seq 2 from 2026-04-06 |
-| TaggIQ Ireland — Print & Promo | `0ad82b87-c55e-4458-a426-cef6baf0d088` | `prakash@taggiq.com` | 586 | Seq 1: 99 sent, 487 new remaining | Seq 2 from 2026-04-06 |
+| Campaign | From | Prospects | Status |
+|----------|------|-----------|--------|
+| FP Ireland Franchise Recruitment | `prakash@fullypromoted.ie` | 194 | Seq 3-5 active |
+| FP Dublin BNI Print & Promo | `prakash@fullypromoted.ie` | 235 | Seq 1 completing |
+| FP Dublin B2B Corporate Sales | `office@fullypromoted.ie` | 0 | Setup (Emma voice, sending disabled) |
 
-### 2. Fully Promoted Ireland — `product='fullypromoted'`
-Franchise recruitment campaign. Prakash is Master Franchisee for Ireland. Re-engaging ~191 old leads (2016–2025) who enquired about opening a store. Goal: book a discovery call.
-
-**Positioning:** World's largest promo franchise, #1 for 25 years, 300+ locations, Ireland now open. NOT a software pitch — this is a business opportunity conversation.
-
-**Reply handler: `/fp-email-expert`**
-
-| Campaign | ID | From | Prospects | Seqs Sent | Status |
-|----------|----|------|-----------|-----------|--------|
-| FP Ireland Franchise Recruitment | `50eecf8f-c4a0-4a2d-9335-26d56870101e` | `prakash@fullypromoted.ie` | 193 | Seq 1 + 2 done | Active |
-| FP Dublin BNI Print & Promo | `3c46cbea-a817-43d5-9532-caecb2e7f01d` | `prakash@fullypromoted.ie` | 235 | Seq 1: 76 sent | Active |
-| FP Dublin B2B Corporate Sales | `28a33b89-da16-4fb7-9800-9d8a017b2456` | `office@fullypromoted.ie` | 0 | New - no sequences yet | Setup (sending disabled) |
-
-### 3. Kritno — `product='kritno'`
-Creative production platform — artwork, proofing, design workflow. Different buyer (designers, agencies, print-heavy businesses). No campaigns active yet. No mailbox set up.
-
----
-
-## Autonomous Reply System
-
-**The cron runs every 10 minutes. It is fully autonomous.**
-
-```
-*/10 * * * * /Users/pinani/Documents/paperclip-outreach/run_reply_monitor.sh
-0 23 * * * /Users/pinani/Documents/paperclip-outreach/backup_to_gdrive.sh
-```
-
-### Flow for TaggIQ replies:
-```
-Zoho IMAP → check_replies → classify → auto-handle opt-outs/bounces
-                                     → flag interested/questions
-                                     → claude -p "/taggiq-email-expert"
-                                     → reply sent + prospect status updated in DB
-```
-
-### Flow for FP Ireland replies:
-```
-Zoho IMAP (fp mailbox) → check_replies --mailbox fp → classify
-                       → flag interested/questions
-                       → invoke /fp-email-expert manually or via cron
-```
-
-### What check_replies auto-handles (no Claude needed):
-| Classification | Action |
-|---------------|--------|
-| `opt_out` | `send_enabled=False`, queued emails cancelled |
-| `bounce` | `send_enabled=False` |
-| `not_interested` | `send_enabled=False` |
-| `auto_reply` | Mark seen, no action |
-
-### What Claude handles (via `/taggiq-email-expert` or `/fp-email-expert`):
-Replies classified as `interested`, `question`, `other` — generates personalised reply, sends, updates prospect `status` and `notes` in DB.
-
-### After Claude replies, prospect status is set to:
-| Reply type | Status |
-|-----------|--------|
-| Asking about features, pricing, demo | `interested` |
-| Booked or confirmed demo | `demo_scheduled` |
-| Active back-and-forth | `engaged` |
-| Reseller / channel partner interest | `design_partner` |
-| Polite no / too busy | `not_interested` |
-| No clear signal | unchanged |
-
-### Logs:
-- `/tmp/taggiq_reply_monitor.log` — cron activity
-- `/tmp/taggiq_claude_replies.log` — Claude reply output
-
-### Domain mismatch fix (added 2026-03-31):
-If someone replies from a different email than what's in DB (e.g. `@lintonmerch.co.za` vs `@lintonent.co.za`), `check_replies` now auto-matches via:
-1. **In-Reply-To** → matches SES message ID in EmailLog (primary)
-2. **First-name** → matches decision_maker_name if unique (fallback)
+**Positioning (FP):** World's largest promo franchise, #1 for 25 years, 300+ locations. NOT a software pitch - business opportunity conversation.
 
 ---
 
@@ -126,115 +190,24 @@ If someone replies from a different email than what's in DB (e.g. `@lintonmerch.
 
 | Route | SMTP | When to use |
 |-------|------|-------------|
-| Campaign outbound | AWS SES | All sequence emails — controlled by `campaign.from_email` |
-| TaggIQ replies | Zoho (`prakash@taggiq.com`) | `EmailService.send_reply()` — **always hardcode `from_email='prakash@taggiq.com'`** |
-| FP Ireland replies (Prakash) | Google Workspace (`prakash@fullypromoted.ie`) | FP email expert skill handles this |
-| FP Dublin B2B replies (Emma) | Google Workspace (`office@fullypromoted.ie`) | MailboxConfig with app password, IMAP+SMTP via imap.gmail.com / smtp.gmail.com |
+| Campaign outbound (sequences) | AWS SES | All sequence emails - controlled by `campaign.from_email` |
+| TaggIQ replies | Zoho (`prakash@taggiq.com`) | `EmailService.send_reply()` - **always use `prakash@taggiq.com`** |
+| FP Ireland replies (Prakash) | Google Workspace (`prakash@fullypromoted.ie`) | FP email expert skill |
+| FP Dublin B2B replies (Emma) | Google Workspace (`office@fullypromoted.ie`) | MailboxConfig with app password |
 
-**Critical:** BNI campaigns send FROM `prakash@mail.taggiq.com` (SES). But reply-back MUST use `prakash@taggiq.com` (Zoho). If you use `mail.taggiq.com` for replies, Zoho throws 553 relay error.
-
----
-
-## Prospect Status Lifecycle
-
-```
-new → [Seq 1 sent] → contacted → [Seq 2–5 sent] → ...
-                                                  → interested  (Claude replies)
-                                                  → engaged     (Claude replies)
-                                                  → demo_scheduled
-                                                  → design_partner
-                                                  → not_interested (send disabled)
-                                                  → opted_out     (send disabled)
-```
-
-**Sequence filtering rules — always use include-based:**
-- Seq 1: `status='new'` AND `emails_sent=0`
-- Seq 2–5: `status='contacted'` AND 7-day gap from last email
-- **Never send sequences to `interested`, `engaged`, `demo_scheduled`, `design_partner`** — they get Claude replies only
+**Critical:** BNI campaigns send FROM `prakash@mail.taggiq.com` (SES). Replies MUST use `prakash@taggiq.com` (Zoho). Using `mail.taggiq.com` for replies causes 553 relay error.
 
 ---
 
-## Send Scripts Map
+## Service Layer (campaigns/services/)
 
-**All campaigns run automatically via `run_campaigns.sh` at 11am Mon–Fri. No manual action needed.**
-Do NOT use `send_campaign` management command (placeholder only).
-
-### Automated (via run_campaigns.sh cron)
-| Script | Campaigns covered | Seqs |
-|--------|-------------------|------|
-| `bni-scraper/send_sequence.py` | BNI Ireland, Promo Global, Embroidery Global | 1–5 |
-| `google-maps-scraper/send_ireland_sequences.py` | Ireland Signs, Apparel, Print & Promo | 1–5 |
-
-### Manual one-off scripts (use if cron missed or for testing)
-| Script | Campaign | Seq |
-|--------|----------|-----|
-| `bni-scraper/send_sequence.py --campaign bni` | BNI Ireland only | 1–5 |
-| `bni-scraper/send_sequence.py --campaign promo` | Promo Global only | 1–5 |
-| `bni-scraper/send_sequence.py --campaign embroidery` | Embroidery only | 1–5 |
-| `google-maps-scraper/send_ireland_sequences.py --campaign signs` | Ireland Signs | 1–5 |
-| `google-maps-scraper/send_ireland_sequences.py --campaign apparel` | Ireland Apparel | 1–5 |
-| `google-maps-scraper/send_ireland_sequences.py --campaign print` | Ireland Print & Promo | 1–5 |
-
-### Fully Promoted (fp-ireland-master/) — manual only
-| Script | Campaign | Seq |
-|--------|----------|-----|
-| `send_campaign.py` | FP Franchise Recruitment | 1–5 |
-| `send_bni_promo.py` | FP Dublin BNI | 1 |
-
----
-
-## Lead Scraping Pipeline
-
-```
-Google Maps Scraper → CSV with emails → import_prospects.py → Campaign → Send Scripts
-BNI Connect Scraper → CSV          → import_promo_global.py → Campaign → Send Scripts
-```
-
-### Google Maps Scraper (google-maps-scraper/)
-- Uses Google Places API (New) + Playwright for email extraction from websites
-- `GOOGLE_PLACES_API_KEY` required in `.env`
-- Run: `PYTHONPATH=. ../venv/bin/python scrape_maps.py --config <config> --output <name>`
-- Configs: `config.py` (Ireland), `config_london.py`, `config_london_boroughs.py`, `config_uk.py`
-- After scraping: run `import_prospects.py --campaign-id <uuid> --csv output/<file>.csv`
-
-### UK / London scrape status (as of 2026-03-31):
-- `uk_london_20260329.csv` — 926 businesses, 12 emails (Central London)
-- `uk_london_boroughs_20260330.csv` — 3,054 businesses (33 boroughs × 10 keywords), email extraction running via `extract_emails_borough.py` — saves every 50 records
-- **Next:** merge both London files, dedupe, import to new London TaggIQ campaigns
-
-### Dedup before import — always check:
-```bash
-venv/bin/python manage.py shell -c "
-from campaigns.models import Prospect
-import csv
-with open('google-maps-scraper/output/<FILE>.csv') as f:
-    rows = list(csv.DictReader(f))
-scraped = {r['email'].lower() for r in rows if r.get('email')}
-existing = {e.lower() for e in Prospect.objects.filter(email__in=scraped).values_list('email', flat=True)}
-print(f'New: {len(scraped - existing)} | Dupes: {len(scraped & existing)}')
-"
-```
-
----
-
-## Skills / Slash Commands
-
-| Skill | Trigger | What it does |
-|-------|---------|--------------|
-| `/taggiq-email-expert` | Manual or via cron | Reads all flagged TaggIQ inbound emails, generates Prakash-voice replies, sends via Zoho SMTP, updates prospect status + notes |
-| `/fp-email-expert` | Manual | Reads flagged FP Ireland inbound emails, generates franchise-voice replies, goal is to book a discovery call |
-| `/launch-campaign` | Manual | Full GTM pipeline: scrape → clean → dedup → import → create send script → send (checkpoints before import and send) |
-| `/cto-architect` | Manual | Architecture decisions for the outreach system |
-| `/gtm-strategist` | Manual | Market entry strategy, ICP, channel planning |
-
-**When invoked manually, always run check_replies first to get latest inbound:**
-```bash
-venv/bin/python manage.py check_replies --mailbox taggiq
-# then /taggiq-email-expert
-
-venv/bin/python manage.py check_replies --mailbox fp
-# then /fp-email-expert
-```
+| Service | Purpose |
+|---------|---------|
+| `eligibility.py` | `get_eligible_prospects(campaign)` - include-based seq filtering + `is_suppressed(email, product)` |
+| `safeguards.py` | `daily_remaining()`, `check_min_gap()`, `can_send_to_prospect()` |
+| `template_resolver.py` | `get_template()` from DB, `render()` with variables, `determine_variant()` via hash |
+| `send_orchestrator.py` | `send_one()` - render, send via SES, log, update prospect. Authoritative send path. |
+| `ai_tracker.py` | `log_ai_call()` with cost calc, `get_prompt()` from PromptTemplate, `get_usage_summary()` |
 
 ---
 
@@ -242,13 +215,15 @@ venv/bin/python manage.py check_replies --mailbox fp
 
 | Command | Purpose |
 |---------|---------|
-| `check_replies` | Fetch all mailboxes, classify, auto-handle |
+| `send_sequences` | Universal sender - replaces 18 scripts. `--product`, `--campaign`, `--dry-run`, `--status` |
+| `check_replies` | Fetch IMAP mailboxes, classify, auto-handle |
 | `check_replies --mailbox taggiq` | TaggIQ only |
 | `check_replies --mailbox fp` | FP Ireland only (prakash@ + office@) |
-| `check_replies --mailbox "FP Dublin B2B"` | office@fullypromoted.ie only |
+| `place_calls` | Place outbound calls via Vapi for eligible prospects |
+| `analyze_calls` | Claude analysis of call transcripts -> ScriptInsight |
 | `process_queue` | Send queued/scheduled emails |
+| `seed_templates` | Populate EmailTemplate from hardcoded scripts (one-time) |
 | `review_replies` | Interactive CLI for manual reply review |
-| `seed_reply_templates` | Populate ReplyTemplate table |
 
 ---
 
@@ -264,22 +239,58 @@ venv/bin/python manage.py check_replies --mailbox fp
 | `/api/dashboard/` | GET | Cross-product overview (all campaigns at a glance) |
 | `/api/import/` | POST | Import prospects as JSON array |
 | `/api/calls/` | GET | List call logs with filters (campaign, product, status, disposition) |
-| `/api/calls/stats/` | GET | Call performance metrics (answer rate, interest rate, demo rate, durations) |
-| `/api/script-insights/` | GET | AI-generated call transcript analysis and script improvements |
+| `/api/calls/stats/` | GET | Call performance metrics (answer rate, interest rate, demo rate) |
+| `/api/script-insights/` | GET | AI-generated call transcript analysis |
 | `/api/webhooks/vapi/` | POST | Vapi end-of-call webhook receiver |
 
 All endpoints support `?campaign_id=` or `?product=` filtering. No auth required (local-only).
 
 ---
 
-## Active Hot Leads (update as status changes)
+## Cron Schedule (fully autonomous)
 
-| Name | Company | Email | Product | Status | Next action |
-|------|---------|-------|---------|--------|-------------|
-| Paul Rivers | Print RFT, Birmingham | hello@printrft.co.uk | TaggIQ | `design_partner` | Solopress SoloFlo + Clothes2Order API integrations in progress. Met 2026-03-31. |
-| Declan Power | Promotex.ie, Wexford | — | TaggIQ | `design_partner` | Reseller/white-label. DecoNetwork experience. Phone: +353 872884688. |
-| Sharon Bates | Keynote Marketing | — | TaggIQ | `interested` | Impression Europe API — chase Reece Downing (reece@impressioneurope.co.uk). |
-| Linda Prudden | Linton Merch, SA | linda@lintonmerch.co.za | TaggIQ | `interested` | BNI Promo Global. Demo link sent 2026-03-31. Also in DB as Linda@lintonent.co.za. |
+| Cron | Script | What it does |
+|------|--------|--------------|
+| `0 11 * * 1-5` | `run_campaigns.sh` | Daily Mon-Fri 11am: `python manage.py send_sequences` |
+| `*/10 * * * *` | `run_reply_monitor.sh` | Every 10 min: IMAP check + Claude auto-reply for flagged emails |
+| `0 23 * * *` | `backup_to_gdrive.sh` | Nightly: backs up database to Google Drive |
+
+### Logs
+- `/tmp/campaigns_daily.log` - daily send activity
+- `/tmp/taggiq_reply_monitor.log` - reply monitoring
+- `/tmp/taggiq_claude_replies.log` - Claude reply output
+
+---
+
+## Skills / Slash Commands
+
+| Skill | What it does |
+|-------|-------------|
+| `/chief-orchestrator` | Coordinates multi-role work across all products. Activates CTO, Backend, Sales, Email experts as needed. |
+| `/taggiq-email-expert` | Reads flagged TaggIQ inbound emails, generates Prakash-voice replies, sends via Zoho |
+| `/fp-email-expert` | Reads flagged FP Ireland inbound emails, generates franchise-voice replies |
+| `/launch-campaign` | Full GTM pipeline: scrape -> clean -> dedup -> import -> create templates -> send |
+| `/cto-architect` | Architecture decisions, code review, migration planning |
+| `/ai-architect` | AI system design, model selection, token cost optimization |
+| `/sales-director` | ICP definition, outbound strategy, pipeline design |
+| `/email-creator` | Cold outreach copy, follow-up sequences, re-engagement campaigns |
+
+**Before running email experts, always fetch latest replies:**
+```bash
+venv/bin/python manage.py check_replies --mailbox taggiq   # then /taggiq-email-expert
+venv/bin/python manage.py check_replies --mailbox fp       # then /fp-email-expert
+```
+
+---
+
+## Active Hot Leads
+
+| Name | Company | Product | Status | Next action |
+|------|---------|---------|--------|-------------|
+| Paul Rivers | Print RFT, Birmingham | TaggIQ | `design_partner` | Solopress SoloFlo + Clothes2Order API integrations. Met 2026-03-31. |
+| Declan Power | Promotex.ie, Wexford | TaggIQ | `design_partner` | Reseller/white-label. DecoNetwork experience. Phone: +353 872884688. |
+| Sharon Bates | Keynote Marketing | TaggIQ | `interested` | Impression Europe API - chase Reece Downing (reece@impressioneurope.co.uk). |
+| Linda Prudden | Linton Merch, SA | TaggIQ | `interested` | BNI Promo Global. Demo link sent 2026-03-31. |
 
 ---
 
@@ -289,24 +300,45 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 1. Check if email exists in any TaggIQ campaign
 2. **Existing:** `status='demo_scheduled'`, add phone + notes with date
 3. **New:** create under Promo Global, `status='demo_scheduled'`, `send_enabled=False`, note "Website inquiry"
-4. **Do NOT send email** — TaggIQ platform auto-sends the welcome email
+4. **Do NOT send email** - TaggIQ platform auto-sends the welcome email
 5. Confirm to Prakash: existing BNI or new?
+
+---
+
+## Architecture Docs
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| Architecture v2 Plan | `docs/architecture-v2-plan.md` | Multi-tenant design, all models, service layer, PostgreSQL migration |
+| Sprint Plan | `docs/sprint-plan.md` | Implementation phases, status tracking, monitoring checklist |
+| Backup & Restore | `docs/backup-and-restore.md` | Database backup and restore procedures |
+
+**v2 Status (as of 2026-04-08):**
+- Sprint 1 DONE: Multi-tenant models (Organization, Product, EmailTemplate, CallScript, PromptTemplate, AIUsageLog)
+- Sprint 2 DONE: Service layer + universal sender + 102 email templates seeded
+- Sprint 3 DONE: Product-scoped suppressions, DB call scripts, cron cutover to send_sequences
+- Sprint 4 PENDING: PostgreSQL migration (after 5-day monitoring period, earliest 2026-04-16)
 
 ---
 
 ## Backup
 
-- **Code:** GitHub `skillblendltd/paperclip-outreach` — commit + push every session
-- **Database:** `backup_to_gdrive.sh` runs nightly at 23:00 — backs up `db.sqlite3` to Google Drive
+- **Code:** GitHub `skillblendltd/paperclip-outreach` - commit + push every session
+- **Database:** `backup_to_gdrive.sh` runs nightly at 23:00
 - **Not in GitHub:** `db.sqlite3`, `.env`, `venv/`
-- See `docs/backup-and-restore.md` for restore procedure
 
 ---
 
 ## Coding Rules
 
-- Always hardcode `from_email='prakash@taggiq.com'` in `EmailService.send_reply()` — never `mail.taggiq.com`
+- Always hardcode `from_email='prakash@taggiq.com'` in `EmailService.send_reply()` - never `mail.taggiq.com`
 - Sequence filtering: include-based only (`status='contacted'`), never exclude-based
+- Use `campaign.product_ref` (FK) not `campaign.product` (legacy CharField) for product lookups
+- Use `campaign.product_ref.slug` for the product slug string
+- Suppressions are product-scoped: use `eligibility.is_suppressed(email, product)` not global check
+- No hardcoded campaign IDs or templates in Python - everything in DB
+- Email copy: conversational, not corporate - reads like a text from a colleague
+- Never use em dashes - use hyphens with spaces instead
+- Never send back-to-back correction emails - ask Prakash first
 - No abstractions until the third time you need one
 - Test with real data before shipping
-- Email copy: conversational, not corporate — reads like a text from a colleague
