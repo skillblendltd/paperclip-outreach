@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fully Promoted Dublin — BNI Excel Presentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Proxima Nova via Google Fonts closest match: Nunito Sans + fallback -->
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* FP Primary Brand - PMS 293 */
+    --blue: #0066CC;
+    --blue-light: #1A80E0;
+    --blue-dark: #004C99;
+    --blue-deep: #003A75;
+    /* Accent */
+    --gold: #F5A623;
+    --gold-light: #FFD080;
+    /* Dark backgrounds */
+    --dark: #07101F;
+    --dark2: #0B1828;
+    --dark3: #0F2035;
+    --dark4: #162840;
+    --mid: #1E3A5A;
+    --muted: #6B8BAD;
+    --light: #B8CDE0;
+    --white: #FFFFFF;
+    /* Keep red as secondary accent only */
+    --red: #D42B2B;
+    --slide-w: 1280px;
+    --slide-h: 720px;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    font-family: 'Nunito Sans', 'Proxima Nova', 'Inter', sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ---- PRESENTATION WRAPPER ---- */
+  #presentation {
+    width: 1280px;
+    height: 720px;
+    position: fixed;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  /* ---- SLIDES ---- */
+  .slide {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+    background: var(--dark);
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ---- PROGRESS BAR ---- */
+  #progress-bar {
+    position: fixed;
+    bottom: 0; left: 0;
+    height: 3px;
+    background: var(--blue);
+    transition: width 0.5s ease;
+    z-index: 100;
+  }
+
+  /* ---- NAV DOTS ---- */
+  #nav-dots {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .dot.active { background: var(--blue); transform: scale(1.4); }
+
+  /* ---- SLIDE NAV ARROWS ---- */
+  .nav-arrow {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    transition: background 0.2s;
+    color: white;
+    font-size: 18px;
+  }
+  .nav-arrow:hover { background: rgba(255,255,255,0.15); }
+  #nav-prev { left: 18px; }
+  #nav-next { right: 18px; }
+
+  /* ---- SLIDE NUMBER ---- */
+  #slide-counter {
+    position: fixed;
+    top: 18px; right: 24px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+    z-index: 100;
+    font-weight: 500;
+  }
+
+  /* ============================
+     SLIDE 1 — HOOK
+  ============================== */
+  #s1 {
+    background: linear-gradient(135deg, #0D0D0D 0%, #071828 60%, #0f2035 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #s1 .bg-pattern {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 40px,
+      rgba(255,255,255,0.5) 40px,
+      rgba(255,255,255,0.5) 41px
+    );
+  }
+  #s1 .content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 900px;
+    padding: 60px;
+  }
+  #s1 .eyebrow {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  #s1 h1 {
+    
+    font-size: 78px;
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1.0;
+    margin-bottom: 32px;
+  }
+  #s1 h1 span { color: var(--blue); }
+  #s1 .subtext {
+    font-size: 22px;
+    color: var(--light);
+    font-weight: 300;
+    line-height: 1.5;
+    max-width: 680px;
+    margin: 0 auto 48px;
+  }
+  #s1 .raise-hand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 16px 28px;
+    border-radius: 50px;
+    color: var(--light);
+    font-size: 16px;
+  }
+
+  /* product illustration strip */
+  #s1 .product-strip {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 140px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 60px;
+    padding-bottom: 0;
+    opacity: 0.18;
+  }
+
+  /* ============================
+     SLIDE 2 — STORY
+  ============================== */
+  #s2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--dark2);
+  }
+  #s2 .left {
+    padding: 70px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  #s2 .right {
+    background: var(--dark3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  #s2 .slide-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 20px;
+  }
+  #s2 h2 {
+    
+    font-size: 52px;
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1.1;
+    margin-bottom: 28px;
+  }
+  #s2 h2 em { color: var(--gold); font-style: normal; }
+  #s2 .body-text {
+    font-size: 17px;
+    color: var(--light);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  #s2 .body-text strong { color: var(--white); font-weight: 600; }
+
+  /* timeline */
+  .timeline {
+    position: relative;
+    width: 100%;
+    padding: 20px 0;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 22px; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--red), var(--gold));
+  }
+  .tl-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 22px;
+    position: relative;
+  }
+  .tl-dot {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--dark4);
+    border: 2px solid var(--red);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.5px;
+  }
+  .tl-content { padding-top: 4px; }
+  .tl-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 2px;
+  }
+  .tl-desc {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .tl-final .tl-dot {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: white;
+    font-size: 18px;
+  }
+  .tl-final .tl-title { color: var(--gold); font-size: 17px; }
+
+  /* ============================
+     SLIDE 3 — WHAT I'M BUILDING
+  ============================== */
+  #s3 {
+    background: var(--dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 80px;
+  }
+  #s3 .slide-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 16px;
+  }
+  #s3 h2 {
+    
+    font-size: 50px; font-weight: 900;
+    color: var(--white); margin-bottom: 14px; text-align: center;
+  }
+  #s3 .sub {
+    color: var(--muted); font-size: 17px; text-align: center;
+    margin-bottom: 52px; font-weight: 300;
+  }
+  .product-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: 100%;
+  }
+  .product-card {
+    background: var(--dark3);
+    border: 1px solid var(--dark4);
+    border-radius: 16px;
+    padding: 36px 32px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .product-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .product-card.taggiq::before { background: linear-gradient(90deg, #3B82F6, #06B6D4); }
+  .product-card.kritno::before { background: linear-gradient(90deg, #8B5CF6, #EC4899); }
+  .product-card.paperclip::before { background: linear-gradient(90deg, var(--gold), var(--red)); }
+  .product-card .icon { font-size: 40px; margin-bottom: 18px; }
+  .product-card .name {
+    font-size: 22px; font-weight: 800;
+    color: var(--white); margin-bottom: 8px;
+  }
+  .product-card .tagline {
+    font-size: 13px; color: var(--muted);
+    font-weight: 500; letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  .product-card .desc {
+    font-size: 15px; color: var(--light);
+    line-height: 1.6; font-weight: 300;
+  }
+
+  /* ============================
+     SLIDE 4 — WHAT IS FP
+  ============================== */
+  #s4 {
+    background: var(--dark2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 100px;
+    gap: 80px;
+  }
+  #s4 .left { flex: 1; }
+  #s4 .slide-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--blue); margin-bottom: 20px;
+  }
+  #s4 h2 {
+    
+    font-size: 54px; font-weight: 900;
+    color: var(--white); line-height: 1.1; margin-bottom: 30px;
+  }
+  #s4 h2 span { color: var(--blue); }
+  .stat-row {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 32px;
+  }
+  .stat-box {
+    background: var(--dark3);
+    border: 1px solid var(--dark4);
+    border-radius: 12px;
+    padding: 20px 24px;
+    flex: 1;
+  }
+  .stat-num {
+    font-size: 36px; font-weight: 900;
+    color: var(--gold); line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-size: 12px; color: var(--muted);
+    font-weight: 500; text-transform: uppercase; letter-spacing: 1px;
+  }
+  #s4 .body-text {
+    font-size: 17px; color: var(--light);
+    line-height: 1.7; font-weight: 300;
+  }
+  #s4 .right { flex: 0 0 360px; }
+  #s4 .globe-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ============================
+     SLIDE 5 — WHAT WE DO
+  ============================== */
+  #s5 {
+    background: var(--dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 80px;
+  }
+  #s5 .slide-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--blue); margin-bottom: 14px;
+    text-align: center;
+  }
+  #s5 h2 {
+    
+    font-size: 50px; font-weight: 900;
+    color: var(--white); margin-bottom: 10px; text-align: center;
+  }
+  #s5 .sub {
+    font-size: 17px; color: var(--muted); text-align: center;
+    margin-bottom: 48px; font-weight: 300;
+  }
+  .service-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+  }
+  .service-card {
+    background: var(--dark3);
+    border-radius: 16px;
+    padding: 32px 28px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--dark4);
+  }
+  .service-card .svc-icon {
+    width: 60px; height: 60px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+  .service-card.apparel .svc-icon { background: rgba(0,102,204,0.15); }
+  .service-card.promo .svc-icon { background: rgba(245,166,35,0.15); }
+  .service-card.print .svc-icon { background: rgba(99,102,241,0.15); }
+  .service-card .svc-title {
+    font-size: 20px; font-weight: 800;
+    color: var(--white); margin-bottom: 10px;
+  }
+  .service-card .svc-desc {
+    font-size: 14px; color: var(--muted);
+    line-height: 1.6; margin-bottom: 18px;
+  }
+  .svc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .svc-tag {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 20px;
+    background: var(--dark4); color: var(--light);
+    letter-spacing: 0.5px;
+  }
+  .service-card.apparel .svc-tag { background: rgba(0,102,204,0.2); color: #60A5FA; }
+  .service-card.promo .svc-tag { background: rgba(245,166,35,0.2); color: #FCD34D; }
+  .service-card.print .svc-tag { background: rgba(99,102,241,0.2); color: #A5B4FC; }
+
+  /* ============================
+     SLIDE 6 — WHO WE SERVE
+  ============================== */
+  #s6 {
+    background: var(--dark2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 90px;
+  }
+  #s6 .slide-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 14px;
+    text-align: center;
+  }
+  #s6 h2 {
+    
+    font-size: 50px; font-weight: 900;
+    color: var(--white); margin-bottom: 12px; text-align: center;
+  }
+  #s6 .sub {
+    font-size: 17px; color: var(--muted); text-align: center;
+    margin-bottom: 42px; font-weight: 300;
+  }
+  .customer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    width: 100%;
+  }
+  .customer-tile {
+    background: var(--dark3);
+    border: 1px solid var(--dark4);
+    border-radius: 12px;
+    padding: 22px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+  .customer-tile:hover { border-color: var(--blue); }
+  .customer-tile .tile-icon { font-size: 30px; }
+  .customer-tile .tile-name {
+    font-size: 13px; font-weight: 700;
+    color: var(--light); text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .customer-tile .tile-note {
+    font-size: 11px; color: var(--muted); line-height: 1.4;
+  }
+  #s6 .bottom-note {
+    margin-top: 28px;
+    background: linear-gradient(90deg, rgba(0,102,204,0.15), rgba(245,166,35,0.15));
+    border: 1px solid rgba(245,166,35,0.25);
+    border-radius: 10px;
+    padding: 14px 28px;
+    font-size: 15px; color: var(--light);
+    font-weight: 500;
+  }
+  #s6 .bottom-note span { color: var(--gold); font-weight: 700; }
+
+  /* ============================
+     SLIDE 7 — PERFECT REFERRAL
+  ============================== */
+  #s7 {
+    background: var(--dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 90px;
+  }
+  #s7 .slide-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--blue); margin-bottom: 20px;
+    text-align: center;
+  }
+  #s7 .big-question {
+    
+    font-size: 42px; font-weight: 900;
+    color: var(--white); text-align: center;
+    line-height: 1.2; margin-bottom: 48px;
+    max-width: 900px;
+  }
+  #s7 .big-question span { color: var(--gold); }
+  .referral-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+  }
+  .referral-card {
+    background: var(--dark3);
+    border: 1px solid var(--dark4);
+    border-radius: 16px;
+    padding: 28px 26px;
+    position: relative;
+  }
+  .referral-card .ref-num {
+    position: absolute;
+    top: -14px; left: 24px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: white;
+    font-size: 13px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .referral-card .ref-type {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 10px;
+    padding-top: 8px;
+  }
+  .referral-card .ref-title {
+    font-size: 20px; font-weight: 800;
+    color: var(--white); margin-bottom: 12px;
+  }
+  .referral-card .ref-desc {
+    font-size: 14px; color: var(--light);
+    line-height: 1.6; font-weight: 300;
+  }
+
+  /* ============================
+     SLIDE 8 — THE ASK
+  ============================== */
+  #s8 {
+    background: var(--dark2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 100px;
+  }
+  #s8 .slide-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 16px;
+    text-align: center;
+  }
+  #s8 h2 {
+    
+    font-size: 48px; font-weight: 900;
+    color: var(--white); text-align: center; margin-bottom: 46px;
+  }
+  .ask-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    max-width: 860px;
+  }
+  .ask-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    background: var(--dark3);
+    border: 1px solid var(--dark4);
+    border-radius: 14px;
+    padding: 22px 26px;
+  }
+  .ask-item.highlight {
+    border-color: var(--blue);
+    background: rgba(0,102,204,0.1);
+  }
+  .ask-badge {
+    flex-shrink: 0;
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: var(--dark4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .ask-item.highlight .ask-badge { background: var(--blue); }
+  .ask-title {
+    font-size: 17px; font-weight: 700;
+    color: var(--white); margin-bottom: 4px;
+  }
+  .ask-desc {
+    font-size: 14px; color: var(--muted);
+    line-height: 1.5; font-weight: 300;
+  }
+
+  /* ============================
+     SLIDE 9 — CLOSE
+  ============================== */
+  #s9 {
+    background: linear-gradient(135deg, #0D0D0D 0%, #071828 60%, #0f2035 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #s9 .bg-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,102,204,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  #s9 .content {
+    position: relative; z-index: 2;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  #s9 .logo-box {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 32px;
+  }
+  #s9 .logo-icon {
+    width: 64px; height: 64px;
+    background: var(--blue);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+  }
+  #s9 .logo-text { text-align: left; }
+  #s9 .logo-text .brand {
+    font-size: 28px; font-weight: 800;
+    color: var(--white); line-height: 1;
+  }
+  #s9 .logo-text .sub {
+    font-size: 13px; color: var(--blue);
+    font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  #s9 .tagline {
+    
+    font-size: 56px; font-weight: 900;
+    color: var(--white); line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  #s9 .tagline span { color: var(--blue); }
+  #s9 .sub-tagline {
+    font-size: 20px; color: var(--muted);
+    margin-bottom: 48px; font-weight: 300;
+  }
+  .contact-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 36px;
+  }
+  .contact-chip {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50px;
+    padding: 12px 22px;
+    color: var(--light); font-size: 15px;
+  }
+  .contact-chip .chip-icon { font-size: 18px; }
+  #s9 .bni-badge {
+    background: rgba(245,166,35,0.12);
+    border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 50px;
+    padding: 10px 22px;
+    font-size: 13px; font-weight: 600;
+    color: var(--gold); letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ============================
+     SHARED UTILITIES
+  ============================== */
+  .red-line {
+    width: 48px; height: 3px;
+    background: var(--blue);
+    margin-bottom: 20px;
+  }
+
+  /* ============================
+     SVG ILLUSTRATIONS
+  ============================== */
+
+  /* Branded product floating items on slide 1 */
+  .float-product { animation: floatY 4s ease-in-out infinite; }
+  .float-product:nth-child(2) { animation-delay: 1s; }
+  .float-product:nth-child(3) { animation-delay: 2s; }
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  /* Glow pulse on S4 globe */
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+  .pulse { animation: pulse 3s ease-in-out infinite; }
+
+  /* ============================
+     SLIDE IN ANIMATIONS
+  ============================== */
+  .slide.active .anim-up {
+    animation: slideUp 0.7s ease forwards;
+  }
+  .anim-up { opacity: 0; transform: translateY(30px); }
+  .anim-up:nth-child(1) { animation-delay: 0.1s; }
+  .anim-up:nth-child(2) { animation-delay: 0.2s; }
+  .anim-up:nth-child(3) { animation-delay: 0.3s; }
+  .anim-up:nth-child(4) { animation-delay: 0.4s; }
+  .anim-up:nth-child(5) { animation-delay: 0.5s; }
+
+  @keyframes slideUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+</style>
+</head>
+<body>
+
+<div id="presentation">
+
+  <!-- ====================== SLIDE 1: HOOK ====================== -->
+  <div class="slide" id="s1">
+    <div class="bg-pattern"></div>
+
+    <!-- Floating product SVG illustrations -->
+    <svg style="position:absolute;right:60px;top:80px;opacity:0.25" width="180" height="220" viewBox="0 0 180 220">
+      <!-- T-shirt illustration -->
+      <g class="float-product">
+        <path d="M60 40 L20 70 L35 85 L50 75 L50 190 L130 190 L130 75 L145 85 L160 70 L120 40 Q110 20 90 20 Q70 20 60 40Z" fill="#0066CC" opacity="0.9"/>
+        <ellipse cx="90" cy="38" rx="18" ry="10" fill="#004C99"/>
+        <rect x="70" y="120" width="40" height="5" rx="2" fill="rgba(255,255,255,0.3)"/>
+        <rect x="75" y="132" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.2)"/>
+      </g>
+    </svg>
+
+    <svg style="position:absolute;left:50px;bottom:100px;opacity:0.2" width="120" height="160" viewBox="0 0 120 160">
+      <!-- Mug illustration -->
+      <g class="float-product">
+        <rect x="20" y="40" width="70" height="90" rx="8" fill="#F5A623"/>
+        <rect x="20" y="130" width="70" height="12" rx="4" fill="#D4891A"/>
+        <path d="M90 65 Q115 65 115 85 Q115 105 90 105" stroke="#D4891A" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <text x="55" y="95" text-anchor="middle" fill="white" font-size="9" font-weight="bold">FP</text>
+        <ellipse cx="55" cy="44" rx="35" ry="8" fill="#D4891A"/>
+      </g>
+    </svg>
+
+    <svg style="position:absolute;right:200px;bottom:80px;opacity:0.2" width="80" height="200" viewBox="0 0 80 200">
+      <!-- Pen illustration -->
+      <g class="float-product">
+        <rect x="28" y="20" width="24" height="150" rx="12" fill="#3B82F6"/>
+        <rect x="28" y="20" width="24" height="40" rx="12" fill="#1E40AF"/>
+        <polygon points="28,170 52,170 40,195" fill="#D4891A"/>
+        <circle cx="40" cy="30" r="6" fill="white" opacity="0.3"/>
+      </g>
+    </svg>
+
+    <div class="content">
+      <div class="eyebrow anim-up">BNI Excel — 10-Minute Presentation</div>
+      <h1 class="anim-up">Every business<br>in this room<br><span>needs this.</span></h1>
+      <p class="subtext anim-up">Put your hand up if you've ever needed branded pens, a polo with your logo, or merchandise for an event.<br>Now keep it up if you've never had a headache getting them made.</p>
+      <div class="raise-hand anim-up">
+        <i class="mdi mdi-hand-wave" style="font-size:20px;color:var(--gold)"></i>
+        <span>That problem? I solve it. Every day.</span>
+      </div>
+    </div>
+
+    <!-- Bottom red glow line -->
+    <div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,transparent,var(--red),var(--blue-light),var(--red),transparent)"></div>
+  </div>
+
+  <!-- ====================== SLIDE 2: STORY ====================== -->
+  <div class="slide" id="s2">
+    <div class="left">
+      <div class="slide-label anim-up">My Journey</div>
+      <h2 class="anim-up">20 years in tech.<br>Then I walked into<br><em>a print shop.</em></h2>
+      <div class="red-line anim-up"></div>
+      <p class="body-text anim-up">I spent two decades selling software into the world's biggest companies. <strong>Symantec. Norton. Vodafone. VMware. Broadcom.</strong> I was good at enterprise. But I kept noticing something — every company I worked with needed branded merchandise, and every one of them was frustrated with the process.</p>
+      <p class="body-text anim-up" style="margin-top:16px">So I left tech. Built something real. And now I run <strong>Fully Promoted Dublin.</strong></p>
+    </div>
+    <div class="right">
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot">SYM</div>
+          <div class="tl-content">
+            <div class="tl-title">Symantec / Norton</div>
+            <div class="tl-desc">Enterprise security sales across EMEA</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot">VF</div>
+          <div class="tl-content">
+            <div class="tl-title">Vodafone</div>
+            <div class="tl-desc">Global telecoms — B2B enterprise</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot">GTT</div>
+          <div class="tl-content">
+            <div class="tl-title">GTT Communications</div>
+            <div class="tl-desc">Cloud networking, international markets</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot">VM</div>
+          <div class="tl-content">
+            <div class="tl-title">VMware / Broadcom</div>
+            <div class="tl-desc">Virtualisation and cloud infrastructure</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"><i class="mdi mdi-silverware-fork-knife" style="font-size:16px"></i></div>
+          <div class="tl-content">
+            <div class="tl-title">Toast Inc.</div>
+            <div class="tl-desc">Restaurant POS — the pivot that led here</div>
+          </div>
+        </div>
+        <div class="tl-item tl-final">
+          <div class="tl-dot">→</div>
+          <div class="tl-content">
+            <div class="tl-title">Fully Promoted Dublin</div>
+            <div class="tl-desc" style="color:var(--light)">Master Franchisee, Ireland. Building from the ground up.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================== SLIDE 3: WHAT I'M BUILDING ====================== -->
+  <div class="slide" id="s3">
+    <div class="slide-label anim-up">What I'm Building</div>
+    <h2 class="anim-up">I still can't stop<br>building things.</h2>
+    <p class="sub anim-up">Three ventures. One mission: make business ops less painful.</p>
+    <div class="product-cards">
+      <div class="product-card taggiq anim-up">
+        <div class="icon"><i class="mdi mdi-package-variant-closed"></i></div>
+        <div class="name">TaggIQ</div>
+        <div class="tagline">POS Platform</div>
+        <div class="desc">Point-of-sale software built specifically for print and promo shops. Quotes, artwork approvals, orders, invoicing — one place. I lived the chaos, then wrote the code to fix it.</div>
+      </div>
+      <div class="product-card kritno anim-up">
+        <div class="icon"><i class="mdi mdi-palette-outline"></i></div>
+        <div class="name">Kritno</div>
+        <div class="tagline">Creative Production</div>
+        <div class="desc">A platform bridging brands and creative studios. Streamlining how production work gets briefed, managed, and delivered at scale.</div>
+      </div>
+      <div class="product-card paperclip anim-up">
+        <div class="icon"><i class="mdi mdi-lightning-bolt"></i></div>
+        <div class="name">Paperclip Outreach</div>
+        <div class="tagline">AI Sales Engine</div>
+        <div class="desc">The autonomous B2B outreach system I built for my own pipeline. It scrapes leads, sends sequences, handles replies, and books calls — while I sleep.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================== SLIDE 4: WHAT IS FP ====================== -->
+  <div class="slide" id="s4">
+    <div class="left">
+      <div class="slide-label anim-up">The Business</div>
+      <h2 class="anim-up">The world's largest<br>promo franchise.<br><span>Now in Dublin.</span></h2>
+      <div class="stat-row anim-up">
+        <div class="stat-box">
+          <div class="stat-num">300+</div>
+          <div class="stat-label">Locations Worldwide</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">#1</div>
+          <div class="stat-label">25 Years Running</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">10+</div>
+          <div class="stat-label">Countries</div>
+        </div>
+      </div>
+      <p class="body-text anim-up">Fully Promoted is part of the United Franchise Group — the same umbrella as Signarama, with <strong>1,600+ locations in 60 countries</strong>. I hold the <strong>Master Franchise licence for all of Ireland</strong>, and I'm recruiting the first franchise partners right now.</p>
+      <p class="body-text anim-up" style="margin-top:14px">But today — <strong>I am your local Dublin contact</strong> for everything branded.</p>
+    </div>
+    <div class="right">
+      <!-- Globe SVG illustration -->
+      <div class="globe-wrap">
+        <svg width="340" height="340" viewBox="0 0 340 340">
+          <!-- Glow -->
+          <circle cx="170" cy="170" r="160" fill="rgba(0,102,204,0.04)" class="pulse"/>
+          <!-- Globe outline -->
+          <circle cx="170" cy="170" r="130" fill="rgba(26,26,26,0.8)" stroke="rgba(0,102,204,0.3)" stroke-width="1.5"/>
+          <!-- Latitude lines -->
+          <ellipse cx="170" cy="170" rx="130" ry="40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <ellipse cx="170" cy="170" rx="130" ry="80" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <ellipse cx="170" cy="130" rx="110" ry="30" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <ellipse cx="170" cy="210" rx="110" ry="30" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <!-- Longitude lines -->
+          <line x1="170" y1="40" x2="170" y2="300" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <path d="M90 170 Q120 90, 170 70 Q220 90, 250 170 Q220 250, 170 270 Q120 250, 90 170" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <!-- Location dots - represent 300+ locations -->
+          <!-- Europe cluster -->
+          <circle cx="182" cy="128" r="5" fill="var(--blue)" opacity="0.9"/>
+          <circle cx="175" cy="133" r="3.5" fill="var(--gold)" opacity="0.8"/>
+          <circle cx="190" cy="136" r="3" fill="var(--blue)" opacity="0.7"/>
+          <circle cx="170" cy="140" r="2.5" fill="var(--gold)" opacity="0.6"/>
+          <circle cx="195" cy="125" r="2.5" fill="var(--blue)" opacity="0.5"/>
+          <!-- North America cluster -->
+          <circle cx="100" cy="140" r="5" fill="var(--blue)" opacity="0.8"/>
+          <circle cx="112" cy="148" r="3.5" fill="var(--gold)" opacity="0.7"/>
+          <circle cx="95" cy="154" r="3" fill="var(--blue)" opacity="0.6"/>
+          <circle cx="120" cy="142" r="3" fill="var(--gold)" opacity="0.6"/>
+          <circle cx="105" cy="160" r="2.5" fill="var(--blue)" opacity="0.5"/>
+          <circle cx="88" cy="148" r="2.5" fill="var(--gold)" opacity="0.5"/>
+          <!-- Australia -->
+          <circle cx="242" cy="200" r="4.5" fill="var(--blue)" opacity="0.7"/>
+          <circle cx="252" cy="208" r="3" fill="var(--gold)" opacity="0.6"/>
+          <!-- South Africa -->
+          <circle cx="185" cy="210" r="4" fill="var(--blue)" opacity="0.7"/>
+          <!-- Canada/UK extras -->
+          <circle cx="115" cy="128" r="3" fill="var(--blue)" opacity="0.6"/>
+          <circle cx="178" cy="122" r="3.5" fill="var(--gold)" opacity="0.9"/>
+
+          <!-- DUBLIN star -->
+          <circle cx="168" cy="126" r="8" fill="var(--gold)" opacity="0.9"/>
+          <text x="168" y="129.5" text-anchor="middle" fill="#0D0D0D" font-size="9" font-weight="900">★</text>
+
+          <!-- Dublin label -->
+          <rect x="148" y="108" width="52" height="14" rx="7" fill="rgba(245,166,35,0.2)" stroke="rgba(245,166,35,0.5)" stroke-width="1"/>
+          <text x="174" y="118" text-anchor="middle" fill="var(--gold)" font-size="9" font-weight="700">DUBLIN</text>
+
+          <!-- Legend -->
+          <circle cx="58" cy="296" r="5" fill="var(--blue)"/>
+          <text x="68" y="300" fill="var(--muted)" font-size="11">Existing location</text>
+          <circle cx="58" cy="316" r="5" fill="var(--gold)"/>
+          <text x="68" y="320" fill="var(--muted)" font-size="11">Dublin (you are here)</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================== SLIDE 5: WHAT WE DO ====================== -->
+  <div class="slide" id="s5">
+    <div class="slide-label anim-up">What We Do</div>
+    <h2 class="anim-up">One stop. Three business lines.</h2>
+    <p class="sub anim-up">You don't need three suppliers. One call, one quality standard, one relationship.</p>
+    <div class="service-cards">
+      <div class="service-card apparel anim-up">
+        <div class="svc-icon"><i class="mdi mdi-tshirt-crew-outline" style="font-size:28px"></i></div>
+        <div class="svc-title">Custom Apparel</div>
+        <div class="svc-desc">From corporate polos to team uniforms, hi-vis to hoodies. Screen print, embroidery, DTG — we match the right method to your garment and budget.</div>
+        <div class="svc-tags">
+          <span class="svc-tag">Polo Shirts</span>
+          <span class="svc-tag">Hoodies</span>
+          <span class="svc-tag">Hi-Vis</span>
+          <span class="svc-tag">Uniforms</span>
+          <span class="svc-tag">Sports Kits</span>
+        </div>
+      </div>
+      <div class="service-card promo anim-up">
+        <div class="svc-icon"><i class="mdi mdi-gift-outline" style="font-size:28px"></i></div>
+        <div class="svc-title">Promotional Products</div>
+        <div class="svc-desc">Branded merchandise that actually gets used. From event giveaways to premium client gifts — your logo on the things people keep on their desk.</div>
+        <div class="svc-tags">
+          <span class="svc-tag">Pens & Mugs</span>
+          <span class="svc-tag">Bags</span>
+          <span class="svc-tag">Tech Gifts</span>
+          <span class="svc-tag">Event Items</span>
+          <span class="svc-tag">Eco Products</span>
+        </div>
+      </div>
+      <div class="service-card print anim-up">
+        <div class="svc-icon"><i class="mdi mdi-printer-outline" style="font-size:28px"></i></div>
+        <div class="svc-title">Print Solutions</div>
+        <div class="svc-desc">The print you need to look professional everywhere. Cards, brochures, roller banners, signage, direct mail. Fast turnaround, consistent quality.</div>
+        <div class="svc-tags">
+          <span class="svc-tag">Business Cards</span>
+          <span class="svc-tag">Brochures</span>
+          <span class="svc-tag">Banners</span>
+          <span class="svc-tag">Signage</span>
+          <span class="svc-tag">Direct Mail</span>
+        </div>
+      </div>
+    </div>
+    <!-- Differentiator bar -->
+    <div style="margin-top:22px;width:100%;background:rgba(0,102,204,0.1);border:1px solid rgba(0,102,204,0.2);border-radius:10px;padding:14px 24px;display:flex;align-items:center;gap:14px">
+      <i class="mdi mdi-store-outline" style="font-size:22px;color:var(--red)"></i>
+      <span style="font-size:14px;color:var(--light);font-weight:400"><strong style="color:white">Unlike web-only providers</strong> — you can visit us, see samples, touch the products and approve before a single unit is printed. That's the difference clients come back for.</span>
+    </div>
+  </div>
+
+  <!-- ====================== SLIDE 6: WHO WE SERVE ====================== -->
+  <div class="slide" id="s6">
+    <div class="slide-label anim-up">Our Customers</div>
+    <h2 class="anim-up">If they have a logo,<br>they're a potential customer.</h2>
+    <p class="sub anim-up">But the best referrals are businesses with <em style="color:var(--gold);font-style:normal">recurring needs.</em></p>
+    <div class="customer-grid">
+      <div class="customer-tile anim-up">
+        <div class="tile-icon"><i class="mdi mdi-office-building-outline"></i></div>
+        <div class="tile-name">Corporate</div>
+        <div class="tile-note">Annual events, gifts, team gear</div>
+      </div>
+      <div class="customer-tile anim-up">
+        <div class="tile-icon"><i class="mdi mdi-calendar-star-outline"></i></div>
+        <div class="tile-name">Event Planners</div>
+        <div class="tile-note">Merchandise, lanyards, signage</div>
+      </div>
+      <div class="customer-tile anim-up">
+        <div class="tile-icon"><i class="mdi mdi-soccer"></i></div>
+        <div class="tile-name">Sports Clubs</div>
+        <div class="tile-note">Kits, hoodies, kit bags every season</div>
+      </div>
+      <div class="customer-tile anim-up">
+        <div class="tile-icon"><i class="mdi mdi-school-outline"></i></div>
+        <div class="tile-name">Schools</div>
+        <div class="tile-note">Uniforms, spirit wear, graduation</div>
+      </div>
+      <div class="customer-tile anim-up">
+        <div class="tile-icon"><i class="mdi mdi-bed-outline"></i></div>
+        <div class="tile-name">Hospitality</div>
+        <div class="tile-note">Staff uniforms, branded amenities</div>
+      </div>
+      <div class="customer-tile anim-up">
+        <div class="tile-icon"><i class="mdi mdi-hospital-box-outline"></i></div>
+        <div class="tile-name">Healthcare</div>
+        <div class="tile-note">Scrubs, branded patient gifts</div>
+      </div>
+      <div class="customer-tile anim-up">
+        <div class="tile-icon"><i class="mdi mdi-hard-hat"></i></div>
+        <div class="tile-name">Construction</div>
+        <div class="tile-note">Hi-vis, PPE branding, site signage</div>
+      </div>
+      <div class="customer-tile anim-up">
+        <div class="tile-icon"><i class="mdi mdi-briefcase-outline"></i></div>
+        <div class="tile-name">Professional Services</div>
+        <div class="tile-note">Cards, brochures, client gifts</div>
+      </div>
+    </div>
+    <div class="bottom-note anim-up">
+      Best referral: someone planning an <span>event in the next 3 months</span> or a company <span>hiring right now</span> that wants branded gear.
+    </div>
+  </div>
+
+  <!-- ====================== SLIDE 7: PERFECT REFERRAL ====================== -->
+  <div class="slide" id="s7">
+    <div class="slide-label anim-up">The Perfect Referral</div>
+    <div class="big-question anim-up">
+      Do you know a business owner who is<br>
+      <span>launching something, running an event,</span><br>
+      or wants to put their brand on something?
+    </div>
+    <div class="referral-cards">
+      <div class="referral-card anim-up">
+        <div class="ref-num">1</div>
+        <div class="ref-type">Hot Referral</div>
+        <div class="ref-title">The Event Organiser</div>
+        <div class="ref-desc">A conference, charity run, awards night, trade show — coming up in the next 3 months. They need branded bags, lanyards, merchandise, signage. They always leave it too late. I can turn it around fast.</div>
+      </div>
+      <div class="referral-card anim-up">
+        <div class="ref-num">2</div>
+        <div class="ref-type">Best Account</div>
+        <div class="ref-title">The Growing Business</div>
+        <div class="ref-desc">Just hired their 5th employee and want the team in branded gear. Or rebranding and everything needs updating. These clients stay for years because the need never goes away.</div>
+      </div>
+      <div class="referral-card anim-up">
+        <div class="ref-num">3</div>
+        <div class="ref-type">Power Partner</div>
+        <div class="ref-title">The Corporate Buyer</div>
+        <div class="ref-desc">HR manager, marketing manager, or EA who sources gifts, merchandise and print for the whole company. Once we're their supplier, it's an annual relationship — and they refer us everywhere.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================== SLIDE 8: THE ASK ====================== -->
+  <div class="slide" id="s8">
+    <div class="slide-label anim-up">This Week's Ask</div>
+    <h2 class="anim-up">Here's exactly what<br>I'm looking for.</h2>
+    <div class="ask-list">
+      <div class="ask-item highlight anim-up">
+        <div class="ask-badge"><i class="mdi mdi-target" style="font-size:22px;color:white"></i></div>
+        <div>
+          <div class="ask-title">One introduction before June</div>
+          <div class="ask-desc">Introduce me to a business owner planning an event, a company rebrand, or a team uniform order. One name, one email intro. That's it. I'll take it from there.</div>
+        </div>
+      </div>
+      <div class="ask-item anim-up">
+        <div class="ask-badge"><i class="mdi mdi-handshake-outline" style="font-size:22px"></i></div>
+        <div>
+          <div class="ask-title">Power partner in this room</div>
+          <div class="ask-desc">I'm looking for an event planner, HR consultant, or corporate PA who regularly sources branded gear for clients. We can refer back and forth all year.</div>
+        </div>
+      </div>
+      <div class="ask-item anim-up">
+        <div class="ask-badge"><i class="mdi mdi-tag-outline" style="font-size:22px"></i></div>
+        <div>
+          <div class="ask-title">Let me do something small for you</div>
+          <div class="ask-desc">If you haven't tried us yet — let me do a sample run for your own business at cost. A set of branded pens, a polo. Once you see the quality, you'll know exactly who to refer me to.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================== SLIDE 9: CLOSE ====================== -->
+  <div class="slide" id="s9">
+    <div class="bg-glow"></div>
+    <div class="content">
+      <div class="logo-box anim-up">
+        <div class="logo-icon"><i class="mdi mdi-printer" style="font-size:32px;color:white"></i></div>
+        <div class="logo-text">
+          <div class="brand">Fully Promoted</div>
+          <div class="sub">Dublin · Ireland</div>
+        </div>
+      </div>
+      <div class="tagline anim-up">
+        Your brand.<br>On everything.<br><span>Done right.</span>
+      </div>
+      <p class="sub-tagline anim-up">The world's largest promo franchise. Now local to you.</p>
+      <div class="contact-row anim-up">
+        <div class="contact-chip">
+          <i class="mdi mdi-account-outline chip-icon"></i>
+          <span>Prakash Inani</span>
+        </div>
+        <div class="contact-chip">
+          <i class="mdi mdi-email-outline chip-icon"></i>
+          <span>prakash@fullypromoted.ie</span>
+        </div>
+        <div class="contact-chip">
+          <i class="mdi mdi-phone-outline chip-icon"></i>
+          <span>+353 89 478 1643</span>
+        </div>
+        <div class="contact-chip">
+          <i class="mdi mdi-map-marker-outline chip-icon"></i>
+          <span>Unit A20, Kingswood Business Park, Dublin</span>
+        </div>
+      </div>
+      <div class="bni-badge anim-up">BNI Excel Member · Master Franchisee, Fully Promoted Ireland</div>
+    </div>
+  </div>
+
+</div><!-- /presentation -->
+
+<!-- CONTROLS -->
+<div id="progress-bar"></div>
+<div id="nav-dots"></div>
+<div class="nav-arrow" id="nav-prev">&#8592;</div>
+<div class="nav-arrow" id="nav-next">&#8594;</div>
+<div id="slide-counter"></div>
+
+<script>
+  const TOTAL = 9;
+  let current = 0;
+
+  const slides = document.querySelectorAll('.slide');
+  const dotsContainer = document.getElementById('nav-dots');
+  const progressBar = document.getElementById('progress-bar');
+  const counter = document.getElementById('slide-counter');
+
+  // Create dots
+  for (let i = 0; i < TOTAL; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    dot.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(dot);
+  }
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(TOTAL - 1, n));
+    slides[current].classList.add('active');
+    updateUI();
+  }
+
+  function updateUI() {
+    const dots = document.querySelectorAll('.dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+    progressBar.style.width = ((current + 1) / TOTAL * 100) + '%';
+    counter.textContent = `${String(current + 1).padStart(2,'0')} / ${String(TOTAL).padStart(2,'0')}`;
+  }
+
+  // Scale to fit window
+  function scalePresentation() {
+    const W = 1280, H = 720;
+    const scaleX = window.innerWidth / W;
+    const scaleY = window.innerHeight / H;
+    const scale = Math.min(scaleX, scaleY);
+    const offsetX = Math.round((window.innerWidth - W * scale) / 2);
+    const offsetY = Math.round((window.innerHeight - H * scale) / 2);
+    document.getElementById('presentation').style.transform =
+      `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  }
+
+  window.addEventListener('resize', scalePresentation);
+  scalePresentation();
+
+  // Keyboard navigation
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault();
+      goTo(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      goTo(current - 1);
+    } else if (e.key === 'Home') {
+      goTo(0);
+    } else if (e.key === 'End') {
+      goTo(TOTAL - 1);
+    }
+  });
+
+  document.getElementById('nav-prev').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('nav-next').addEventListener('click', () => goTo(current + 1));
+
+  // Touch/swipe
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) goTo(current + (diff > 0 ? 1 : -1));
+  });
+
+  // Init
+  goTo(0);
+</script>
+</body>
+</html>
