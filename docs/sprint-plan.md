@@ -121,43 +121,95 @@ The views.py `/api/send/` endpoint is still called by old sender scripts (as fal
 
 ---
 
-## Sprint 4: PostgreSQL Migration + Cleanup - PENDING
+## Sprint 4: Docker + PostgreSQL Migration + Cleanup - PENDING
 
 **Earliest start:** 2026-04-16 (after 5 business days of cron monitoring)
 **Prerequisite:** No errors in /tmp/campaigns_daily.log for 5 consecutive business days
+
+### Port Allocation (no conflicts)
+
+```
+TaggIQ:   postgres=5432, backend=8010, frontend=5180, redis=6379
+Kritno:   postgres=5432*, backend=8000, frontend=5173, redis=6379* (*stopped)
+Outreach: postgres=5433, web=8002, cron=no port
+```
 
 ### Tasks
 
 | # | Task | Files | Size | Status |
 |---|------|-------|------|--------|
-| 4.1 | Install psycopg2-binary + dj-database-url | requirements.txt | S | PENDING |
-| 4.2 | Update settings.py for DATABASE_URL | settings.py | S | PENDING |
-| 4.3 | Update docker-compose.yml with postgres service | docker-compose.yml | S | PENDING |
-| 4.4 | Create local PostgreSQL database | - | S | PENDING |
-| 4.5 | Build migrate_to_postgres command | management/commands/ | M | PENDING |
-| 4.6 | Set DATABASE_URL + run migrate on PG | .env | S | PENDING |
-| 4.7 | Run data migration + verify row counts | - | M | PENDING |
-| 4.8 | Verify PG data integrity | - | M | PENDING |
-| 4.9 | Run one real send cycle on PG | - | S | PENDING |
-| 4.10 | Update backup_to_gdrive.sh for pg_dump | backup_to_gdrive.sh | S | PENDING |
-| 4.11 | Update CLAUDE.md with new architecture | CLAUDE.md | M | PENDING |
-| 4.12 | Add deprecation notices to old sender scripts | bni-scraper/, google-maps-scraper/ | S | PENDING |
-| 4.13 | Remove legacy Campaign.product CharField | models.py, migrations/ | M | PENDING |
-| 4.14 | Refactor views.py to use services | views.py | M | PENDING |
-| 4.15 | Refactor process_queue.py to use services | process_queue.py | M | PENDING |
-| 4.16 | Keep SQLite as 30-day safety net | - | S | PENDING |
+| **Docker Setup** | | | | |
+| 4.1 | Update Dockerfile (Python 3.13, psycopg2 deps) | Dockerfile | S | DONE |
+| 4.2 | Update docker-compose.yml (postgres:5433 + web:8002 + cron) | docker-compose.yml | S | DONE |
+| 4.3 | Install psycopg2-binary + dj-database-url | requirements.txt | S | PENDING |
+| 4.4 | Update settings.py for DATABASE_URL | settings.py | S | PENDING |
+| **PostgreSQL Migration** | | | | |
+| 4.5 | `docker compose up postgres` - start PG on port 5433 | - | S | PENDING |
+| 4.6 | Build migrate_to_postgres command | management/commands/ | M | PENDING |
+| 4.7 | Run `migrate` on PG (create schema) | - | S | PENDING |
+| 4.8 | Run data migration (SQLite -> PG) + verify row counts | - | M | PENDING |
+| 4.9 | Verify PG data integrity (admin, dry-run, check_replies) | - | M | PENDING |
+| 4.10 | Run one real send cycle on PG | - | S | PENDING |
+| **Full Docker** | | | | |
+| 4.11 | `docker compose up` - all 3 services (postgres + web + cron) | - | S | PENDING |
+| 4.12 | Verify cron container sends at 11am and monitors replies every 10min | - | M | PENDING |
+| 4.13 | Update backup_to_gdrive.sh for pg_dump | backup_to_gdrive.sh | S | PENDING |
+| **Cleanup** | | | | |
+| 4.14 | Remove legacy Campaign.product CharField | models.py, migrations/ | M | PENDING |
+| 4.15 | Refactor views.py to use services | views.py | M | PENDING |
+| 4.16 | Refactor process_queue.py to use services | process_queue.py | M | PENDING |
+| 4.17 | Update CLAUDE.md with Docker + PG architecture | CLAUDE.md | M | PENDING |
+| 4.18 | Add deprecation notices to old sender scripts | bni-scraper/, google-maps-scraper/ | S | PENDING |
+| 4.19 | Remove macOS crontab (replaced by Docker cron container) | - | S | PENDING |
+| 4.20 | Keep SQLite as 30-day safety net | - | S | PENDING |
+
+### Docker Architecture
+
+```
+docker compose up
+    |
+    +-- outreach_db (postgres:16-alpine)
+    |   Port: 5433:5432
+    |   Volume: pgdata
+    |
+    +-- outreach_web (Django)
+    |   Port: 8002:8002
+    |   DATABASE_URL -> postgres://outreach@postgres:5432/outreach
+    |   Runs: migrate + runserver
+    |
+    +-- outreach_cron (same image, runs cron)
+        No port exposed
+        DATABASE_URL -> postgres://outreach@postgres:5432/outreach
+        Runs:
+          0 11 * * 1-5  send_sequences
+          */10 * * * *   handle_replies
+```
+
+One command to start everything: `docker compose up -d`
 
 ### Sprint 4 Verification
 ```bash
-python manage.py migrate_to_postgres    # shows row count comparison
-python manage.py send_sequences --dry-run --status   # on PG
-python manage.py check_replies --dry-run             # on PG
-python manage.py send_sequences --campaign "TaggIQ BNI" --limit 1  # real send
-./backup_to_gdrive.sh                                # verify pg_dump works
+# Docker
+docker compose up -d
+docker compose ps                        # all 3 services healthy
+docker compose logs cron                 # cron jobs installed
+
+# Data migration
+docker compose exec web python manage.py migrate_to_postgres
+docker compose exec web python manage.py send_sequences --dry-run --status
+docker compose exec web python manage.py check_replies --dry-run
+
+# Real send test
+docker compose exec web python manage.py send_sequences --campaign "TaggIQ BNI" --limit 1
+
+# Backup
+./backup_to_gdrive.sh                   # verify pg_dump works
 ```
 
 ### Sprint 4 Rollback
-Remove `DATABASE_URL` from .env. System instantly falls back to SQLite. No data loss.
+- **Docker issue:** `docker compose down`, run Django locally with `venv/bin/python manage.py runserver 8002`
+- **PostgreSQL issue:** Remove `DATABASE_URL` from .env, Django falls back to SQLite instantly
+- **Both:** System reverts to pre-Sprint-4 state in 10 seconds
 
 ---
 
