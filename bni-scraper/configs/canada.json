@@ -10,6 +10,6 @@
   ],
   "status": "done",
   "last_scraped": "2026-04-08",
-  "total_members": 20,
+  "total_members": 4388,
   "notes": "Country-level scrape (no regions). Ontario, BC, Alberta, Quebec already scraped. Merged into canada_merged_20260408.csv (1897 contacts, 1013 emails). Run without --region to get all remaining members in one go."
 }

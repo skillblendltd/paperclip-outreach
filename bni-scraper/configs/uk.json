@@ -5,26 +5,11 @@
   "searches": [
     {
       "keyword": "",
-      "description": "All members (blank = everyone in region)"
+      "description": "All members"
     }
   ],
-  "regions": [
-    "London",
-    "South East",
-    "South West",
-    "East of England",
-    "East Midlands",
-    "West Midlands",
-    "North West",
-    "North East",
-    "Yorkshire and the Humber",
-    "Scotland",
-    "Wales",
-    "Northern Ireland"
-  ],
-  "regions_scraped": [],
-  "status": "done",
+  "status": "in_progress",
   "last_scraped": "2026-04-03",
   "total_members": 6060,
-  "notes": "Large country \u2014 scrape region by region. ~5000+ members total. Use --region flag."
+  "notes": "Country-level scrape (no regions). 5,982 contacts from earlier scrapes, 4,105 with email. Re-running with --existing to fill 1,877 gaps."
 }

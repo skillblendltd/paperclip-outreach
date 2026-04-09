@@ -296,56 +296,100 @@ def scroll_to_load_all(page):
     print("[*] Scrolling to load all results...")
 
     # First, find the scrollable container holding the results
-    page.evaluate("""
-        () => {
-            // Find the container: walk up from the first member link
-            // to find the nearest scrollable ancestor
-            const firstLink = document.querySelector('a[href*="networkHome?userId="]');
-            if (!firstLink) return;
+    try:
+        page.evaluate("""
+            () => {
+                const firstLink = document.querySelector('a[href*="networkHome?userId="]');
+                if (!firstLink) return;
 
-            let el = firstLink;
-            while (el && el !== document.body) {
-                el = el.parentElement;
-                if (el && el.scrollHeight > el.clientHeight + 100) {
-                    // Mark it so we can find it again
-                    el.setAttribute('data-scraper-scroll', 'true');
-                    break;
+                let el = firstLink;
+                while (el && el !== document.body) {
+                    el = el.parentElement;
+                    if (el && el.scrollHeight > el.clientHeight + 100) {
+                        el.setAttribute('data-scraper-scroll', 'true');
+                        break;
+                    }
                 }
             }
-        }
-    """)
+        """)
+    except Exception as e:
+        print(f"[!] Could not find scroll container: {e}")
 
     prev_count = 0
+    peak_count = 0
     stable_rounds = 0
     max_stable = 15  # more patience for large country searches
 
     while stable_rounds < max_stable:
-        current_count = page.evaluate("""
-            () => document.querySelectorAll('a[href*="networkHome?userId="]').length
-        """)
+        try:
+            current_count = page.evaluate("""
+                () => document.querySelectorAll('a[href*="networkHome?userId="]').length
+            """)
+        except Exception:
+            # Page navigated away (session timeout, redirect)
+            print(f"\n[!] Page context lost (session timeout?). Using last known count: {peak_count}")
+            if peak_count > 0:
+                # Try to go back and recover
+                try:
+                    page.go_back(wait_until="networkidle", timeout=15_000)
+                    time.sleep(3)
+                    current_count = page.evaluate("""
+                        () => document.querySelectorAll('a[href*="networkHome?userId="]').length
+                    """)
+                    if current_count > 0:
+                        print(f"[+] Recovered! {current_count} results still in DOM.")
+                        return current_count
+                except Exception:
+                    pass
+            print(f"[+] Proceeding with {peak_count} results loaded before crash.")
+            return peak_count
+
+        # Track peak - if count drops to 0, page likely reloaded
+        if current_count > peak_count:
+            peak_count = current_count
+
+        if current_count == 0 and peak_count > 0:
+            print(f"\n[!] Results dropped to 0 (page reloaded?). Peak was {peak_count}.")
+            print("    Trying to go back...")
+            try:
+                page.go_back(wait_until="networkidle", timeout=15_000)
+                time.sleep(3)
+                recovered = page.evaluate("""
+                    () => document.querySelectorAll('a[href*="networkHome?userId="]').length
+                """)
+                if recovered > 0:
+                    print(f"[+] Recovered {recovered} results!")
+                    return recovered
+            except Exception:
+                pass
+            print(f"[+] Could not recover. Proceeding with {peak_count} from earlier.")
+            return peak_count
 
         if current_count == prev_count:
             stable_rounds += 1
             # Every 5 stable rounds, try clicking "Load More" / "Show More" buttons
             if stable_rounds % 5 == 0:
-                clicked = page.evaluate("""
-                    () => {
-                        const btns = document.querySelectorAll('button, a, span');
-                        for (const b of btns) {
-                            const txt = (b.innerText || '').toLowerCase();
-                            if (txt.includes('load more') || txt.includes('show more') || txt.includes('view more') || txt.includes('next')) {
-                                b.click();
-                                return true;
+                try:
+                    clicked = page.evaluate("""
+                        () => {
+                            const btns = document.querySelectorAll('button, a, span');
+                            for (const b of btns) {
+                                const txt = (b.innerText || '').toLowerCase();
+                                if (txt.includes('load more') || txt.includes('show more') || txt.includes('view more') || txt.includes('next')) {
+                                    b.click();
+                                    return true;
+                                }
                             }
+                            return false;
                         }
-                        return false;
-                    }
-                """)
-                if clicked:
-                    print(f"    Clicked 'Load More' button at {current_count} results...")
-                    time.sleep(3)
-                    stable_rounds = 0
-                    continue
+                    """)
+                    if clicked:
+                        print(f"    Clicked 'Load More' button at {current_count} results...")
+                        time.sleep(3)
+                        stable_rounds = 0
+                        continue
+                except Exception:
+                    pass
         else:
             stable_rounds = 0
             print(f"    {current_count} results loaded...")
@@ -353,36 +397,41 @@ def scroll_to_load_all(page):
         prev_count = current_count
 
         # Scroll the identified results container
-        page.evaluate("""
-            () => {
-                // 1. Scroll the marked container
-                const container = document.querySelector('[data-scraper-scroll="true"]');
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
-                }
-
-                // 2. Also scroll last member link into view as backup
-                const links = document.querySelectorAll('a[href*="networkHome?userId="]');
-                if (links.length > 0) {
-                    links[links.length - 1].scrollIntoView({behavior: 'smooth', block: 'end'});
-                }
-
-                // 3. Also try scrolling all overflow-y:auto/scroll containers
-                const divs = document.querySelectorAll('div');
-                for (const d of divs) {
-                    const style = window.getComputedStyle(d);
-                    const overflowY = style.overflowY;
-                    if ((overflowY === 'auto' || overflowY === 'scroll') &&
-                        d.scrollHeight > d.clientHeight + 100 &&
-                        d.clientHeight > 200) {
-                        d.scrollTop = d.scrollHeight;
+        try:
+            page.evaluate("""
+                () => {
+                    // 1. Scroll the marked container
+                    const container = document.querySelector('[data-scraper-scroll="true"]');
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
                     }
-                }
 
-                // 4. Also scroll main window as last resort
-                window.scrollTo(0, document.body.scrollHeight);
-            }
-        """)
+                    // 2. Also scroll last member link into view as backup
+                    const links = document.querySelectorAll('a[href*="networkHome?userId="]');
+                    if (links.length > 0) {
+                        links[links.length - 1].scrollIntoView({behavior: 'smooth', block: 'end'});
+                    }
+
+                    // 3. Also try scrolling all overflow-y:auto/scroll containers
+                    const divs = document.querySelectorAll('div');
+                    for (const d of divs) {
+                        const style = window.getComputedStyle(d);
+                        const overflowY = style.overflowY;
+                        if ((overflowY === 'auto' || overflowY === 'scroll') &&
+                            d.scrollHeight > d.clientHeight + 100 &&
+                            d.clientHeight > 200) {
+                            d.scrollTop = d.scrollHeight;
+                        }
+                    }
+
+                    // 4. Also scroll main window as last resort
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+            """)
+        except Exception:
+            print(f"\n[!] Scroll failed (page navigated?). Using {peak_count} results.")
+            return peak_count
+
         time.sleep(2)
 
     print(f"[+] Total results: {prev_count}")
@@ -473,8 +522,8 @@ def extract_profile(page, url):
         if m and "bniconnect" not in m.group(0):
             data["email"] = m.group(0)
 
-    # Phone - UK numbers from body text
-    phone_matches = re.findall(r'(?:0|\+44)[\d\s\-]{9,15}', body_text)
+    # Phone - numbers starting with 0 or international prefix (+44, +61, +1, etc.)
+    phone_matches = re.findall(r'(?:0|\+\d{1,3})[\d\s\-]{8,15}', body_text)
     if phone_matches:
         seen = set()
         phones = []
@@ -655,12 +704,22 @@ def main():
                 input("\n>>> Press Enter when search results are visible... ")
 
             # Scroll to load all results (automatic)
-            scroll_to_load_all(page)
+            scroll_count = scroll_to_load_all(page)
 
             # Extract from search results
             print("[*] Reading search results...")
             results = extract_search_results(page)
             print(f"[+] Found {len(results)} contacts")
+
+            # If extraction got 0 but scroll saw results, page likely navigated
+            # Re-search and try again
+            if not results and scroll_count > 0:
+                print(f"[!] Scroll loaded {scroll_count} but extraction got 0. Re-searching...")
+                if config:
+                    _auto_search(page, config, current_region)
+                    scroll_to_load_all(page)
+                    results = extract_search_results(page)
+                    print(f"[+] Retry found {len(results)} contacts")
 
             if not results:
                 print("[-] No results found for this region.")

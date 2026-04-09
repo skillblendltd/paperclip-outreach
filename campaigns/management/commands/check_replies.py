@@ -304,10 +304,14 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'Connected to {imap_email}'))
 
         # Clear last error on successful connect
-        if mailbox_obj and not dry_run:
-            mailbox_obj.last_error = ''
-            mailbox_obj.last_checked_at = timezone.now()
-            mailbox_obj.save(update_fields=['last_error', 'last_checked_at', 'updated_at'])
+        # Update ALL MailboxConfigs sharing this email (one inbox, multiple campaigns)
+        if not dry_run:
+            now = timezone.now()
+            updated = MailboxConfig.objects.filter(
+                imap_email__iexact=imap_email, is_active=True
+            ).update(last_error='', last_checked_at=now, updated_at=now)
+            if updated:
+                self.stdout.write(f'Updated last_checked_at on {updated} mailbox config(s).')
 
         # Search for unseen messages
         try:
@@ -426,13 +430,24 @@ class Command(BaseCommand):
                     if campaign and not in_reply_to:
                         continue
 
+                    # For multi-campaign inboxes (campaign=None), try to find the
+                    # campaign via In-Reply-To -> EmailLog -> campaign
+                    no_match_campaign = campaign
+                    if not no_match_campaign and in_reply_to:
+                        ses_id = in_reply_to.strip('<>').split('@')[0]
+                        log = EmailLog.objects.filter(
+                            ses_message_id__icontains=ses_id
+                        ).select_related('campaign').first()
+                        if log and log.campaign:
+                            no_match_campaign = log.campaign
+
                     self.stdout.write(self.style.WARNING(
                         f'  NO MATCH: {from_email_addr} - {subject[:60]}'
                     ))
                     if not dry_run:
                         InboundEmail.objects.create(
                             prospect=None,
-                            campaign=campaign,
+                            campaign=no_match_campaign,
                             from_email=from_email_addr,
                             from_name=from_name,
                             subject=subject,
