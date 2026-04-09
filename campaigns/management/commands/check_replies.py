@@ -441,6 +441,10 @@ class Command(BaseCommand):
                         if log and log.campaign:
                             no_match_campaign = log.campaign
 
+                    # Only flag as needs_reply if we found a campaign
+                    # (it's a real reply to our outreach). No campaign = newsletter/junk.
+                    needs_reply_flag = bool(no_match_campaign)
+
                     self.stdout.write(self.style.WARNING(
                         f'  NO MATCH: {from_email_addr} - {subject[:60]}'
                     ))
@@ -455,7 +459,7 @@ class Command(BaseCommand):
                             message_id=message_id,
                             in_reply_to=in_reply_to,
                             classification='other',
-                            needs_reply=True,
+                            needs_reply=needs_reply_flag,
                             received_at=received_at,
                             notes=f'No matching prospect found. Mailbox: {imap_email}',
                         )
