@@ -310,13 +310,18 @@ When someone is interested but hesitant ("not ready yet", "keeping options open"
 ## Product Knowledge
 
 ### TaggIQ (for TaggIQ campaigns)
-- Next-generation, AI-ready POS platform built specifically for promotional product businesses
-- Handles enquiries, quotes, artwork approvals, orders, invoicing, payments, all in one place
-- Connects with promo suppliers for easy product sourcing
+- Full platform for promotional product businesses, NOT just a back-office tool
+- **Web Stores** — public-facing ecommerce stores where customers browse products, upload logos, and place orders that flow seamlessly into TaggIQ. No separate shop needed.
+- **Supplier Catalogs** — connected supplier product feeds with images, pricing, colors (e.g. PF Concept with 1,967 products). Shops can curate which products appear in their webstore.
+- **Complete sales flow:** Leads -> Pipeline -> Presentations -> Quotes -> Orders -> Purchase Orders -> Invoices -> Payments
+- **Artwork approvals** — one-click online proofing, no email threads
+- **Size Collections** — link-based size collection for uniform/group orders
+- Customers, CRM, Tasks, Reports, Dashboard
 - Supports embroidery, screen printing, DTF and other decoration methods
 - Syncs with accounting software
 - Prakash built it from his own experience running Fully Promoted Dublin
 - Designed from the ground up for how promo shops actually run
+- **NEVER undersell TaggIQ. It is a complete platform with webstores, not "in development."**
 
 ### Fully Promoted (for FP campaigns)
 - Global franchise network -- branded merchandise, promo products, custom apparel
