@@ -7,6 +7,7 @@
 # Cron: */10 * * * * /Users/pinani/Documents/paperclip-outreach/run_reply_monitor.sh
 # =============================================================================
 
+PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Users/pinani/.local/bin:$PATH"
 cd /Users/pinani/Documents/paperclip-outreach
 
 LOGFILE="/tmp/outreach_reply_monitor.log"
