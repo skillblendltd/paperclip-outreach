@@ -15,9 +15,12 @@
 | Sprint 2 | DONE | `d3befef` Sprint 2: Service layer + universal sender + 100 email templates seeded | 2026-04-08 |
 | Sprint 3 | DONE | `839516a` Sprint 3: Product-scoped suppressions, DB call scripts, universal sender cron | 2026-04-08 |
 | Sprint 4 | PENDING | - | Waiting for 5 business days of cron monitoring |
+| Sprint 5 | PLANNED | - | AWS deployment (after Sprint 4) |
+| Sprint 6 | PLANNED | - | TaggIQ webhook bridge (after Sprint 5) |
 
 **Monitoring period:** 2026-04-09 to 2026-04-15 (Mon-Fri cron sends via send_sequences)
 **Sprint 4 earliest start:** 2026-04-16
+**Sprint 5-6 plan:** See `docs/aws-deployment-and-taggiq-integration.md`
 
 ---
 
@@ -263,7 +266,36 @@ backup_to_gdrive.sh                    - still sqlite3 .backup
 
 ---
 
-## Future Backlog (NOT in Sprints 1-4)
+## Sprint 5: AWS Deployment - PLANNED
+
+**Prerequisite:** Sprint 4 complete + 2 business days Docker cron verified
+**Full plan:** `docs/aws-deployment-and-taggiq-integration.md`
+
+Summary:
+- Deploy Paperclip Docker stack to EC2 t3.micro (eu-west-1, same VPC as TaggIQ)
+- Nginx + Let's Encrypt SSL at `outreach.taggiq.com`
+- Data migration: local PostgreSQL dump -> AWS restore (~30 min downtime)
+- Zero impact on current campaigns (sequence logic uses DB timestamps)
+- Vapi webhook URL updated to public endpoint
+- Local Mac no longer needed for 24/7 operation
+
+---
+
+## Sprint 6: TaggIQ Webhook Bridge - PLANNED
+
+**Prerequisite:** Sprint 5 complete + 2 business days AWS cron verified
+**Full plan:** `docs/aws-deployment-and-taggiq-integration.md`
+
+Summary:
+- WebhookEvent model + HMAC-verified endpoint in Paperclip
+- Celery task + Django signals in TaggIQ fire lifecycle events
+- 6 events: trial_started, supplier_connected, first_quote_created, trial_expiring, subscription_started, trial_expired
+- 4 new lifecycle campaigns: Trial Activation, Trial Conversion, Trial Expiry, Win-Back
+- Closes the gap between TaggIQ signup and paid conversion
+
+---
+
+## Future Backlog (NOT in Sprints 1-6)
 
 | Item | When to do it | Trigger |
 |------|--------------|---------|
@@ -271,9 +303,8 @@ backup_to_gdrive.sh                    - still sqlite3 .backup
 | Tenant-scoped API auth (JWT) | Building dashboard frontend | Need remote API access |
 | Per-org AI billing | Multiple orgs using AI replies | Design partners generating AI costs |
 | Celery/Redis async jobs | Call volume exceeds cron capacity | >100 calls/day |
-| Deploy to AWS RDS | Ready for production hosting | Moving off local machine |
 | FP Dublin B2B email sequences | After corporate prospect import | Emma's campaign ready to send |
 | Seed PromptTemplate from skill files | First design partner | They need their own reply voice |
 | Wire AI tracking into analyze_calls | Calling goes active | Need cost observability |
 | Seed CallScript records | Calling campaigns activated | DB-driven call scripts |
-| Remove legacy Campaign.product CharField | After PG migration | Clean up dual-field |
+| Paperclip as SME/BNI product | After 50 TaggIQ customers | Validated pipeline + demand from BNI members |
