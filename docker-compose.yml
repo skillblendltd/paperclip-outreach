@@ -2,23 +2,25 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: outreach_db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: outreach
       POSTGRES_USER: outreach
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
     ports:
-      - "5433:5432"  # 5433 on host to avoid conflict with TaggIQ (5432)
+      - "5433:5432"  # 5433 on host (TaggIQ uses 5432)
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U outreach"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
 
   web:
     build: .
     container_name: outreach_web
+    restart: unless-stopped
     ports:
       - "8002:8002"
     volumes:
@@ -37,6 +39,7 @@ services:
   cron:
     build: .
     container_name: outreach_cron
+    restart: unless-stopped
     volumes:
       - .:/app
     env_file:
@@ -46,20 +49,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: >
-      sh -c "apt-get update -qq && apt-get install -y -qq cron > /dev/null 2>&1 &&
-             echo '0 11 * * 1-5 cd /app && python manage.py send_sequences >> /tmp/campaigns_daily.log 2>&1' > /etc/cron.d/outreach &&
-             echo '*/10 * * * * cd /app && python manage.py handle_replies >> /tmp/outreach_reply_monitor.log 2>&1' >> /etc/cron.d/outreach &&
-             echo '' >> /etc/cron.d/outreach &&
-             chmod 0644 /etc/cron.d/outreach &&
-             crontab /etc/cron.d/outreach &&
-             echo 'Cron jobs installed:' && crontab -l &&
-             cron -f"
+      web:
+        condition: service_started
+    command: ["/app/docker/cron-entrypoint.sh"]
 
 volumes:
   pgdata:
-
-# Port allocation across Prakash's projects:
-# TaggIQ:   postgres=5432, backend=8010, frontend=5180, redis=6379
-# Kritno:   postgres=5432*, backend=8000, frontend=5173, redis=6379* (*conflicts when both run)
-# Outreach: postgres=5433, web=8002, cron=no port

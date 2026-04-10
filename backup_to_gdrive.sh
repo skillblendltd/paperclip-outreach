@@ -22,16 +22,23 @@ log() {
 mkdir -p "$BACKUP_DIR/db" "$BACKUP_DIR/output"
 log "=== Daily backup started ==="
 
-# ── 1. Atomic SQLite backup ───────────────────────────────────────────────────
-DB_SRC="$PROJECT_DIR/db/outreach.sqlite3"
-DB_DEST="$BACKUP_DIR/db/outreach.sqlite3"
+# ── 1. PostgreSQL backup via pg_dump ──────────────────────────────────────────
+DB_DEST="$BACKUP_DIR/db/outreach.sql"
+DB_GZ="$BACKUP_DIR/db/outreach.sql.gz"
 
-if [ -f "$DB_SRC" ]; then
-    sqlite3 "$DB_SRC" ".backup '$DB_DEST'"
-    log "DB backed up: $(du -sh "$DB_DEST" | cut -f1)"
+# Use docker exec to run pg_dump from inside the container (no host PG client needed)
+if docker ps --format '{{.Names}}' | grep -q outreach_db; then
+    docker exec outreach_db pg_dump -U outreach -d outreach > "$DB_DEST" 2>/dev/null
+    gzip -f "$DB_DEST"
+    log "PostgreSQL backed up: $(du -sh "$DB_GZ" | cut -f1)"
 else
-    log "ERROR: DB not found at $DB_SRC"
-    exit 1
+    log "ERROR: outreach_db container not running"
+    # Fallback to SQLite if container is down
+    SQLITE_SRC="$PROJECT_DIR/db/outreach.sqlite3"
+    if [ -f "$SQLITE_SRC" ]; then
+        sqlite3 "$SQLITE_SRC" ".backup '$BACKUP_DIR/db/outreach.sqlite3'"
+        log "Fallback: SQLite backed up"
+    fi
 fi
 
 # ── 2. Copy CSV outputs ───────────────────────────────────────────────────────
@@ -47,14 +54,14 @@ if [ ! -x "$RCLONE" ]; then
 fi
 
 TODAY=$(date '+%Y-%m-%d')
-DATED_DEST="$GDRIVE_DEST/db/outreach_${TODAY}.sqlite3"
+DATED_DEST="$GDRIVE_DEST/db/outreach_${TODAY}.sql.gz"
 
 # Upload today's dated snapshot
-$RCLONE copyto "$DB_DEST" "$DATED_DEST" \
+$RCLONE copyto "$DB_GZ" "$DATED_DEST" \
     --log-file="$LOGFILE" \
     --log-level NOTICE \
     --retries 3
-log "DB uploaded → $DATED_DEST"
+log "DB uploaded -> $DATED_DEST"
 
 # Upload CSVs
 $RCLONE sync "$BACKUP_DIR/output" "$GDRIVE_DEST/output" \
@@ -67,7 +74,7 @@ log "CSVs synced → $GDRIVE_DEST/output"
 # Delete snapshots older than 7 days from Google Drive
 log "Pruning snapshots older than 7 days..."
 CUTOFF=$(date -v-7d '+%Y-%m-%d')
-$RCLONE lsf "$GDRIVE_DEST/db/" --format "n" 2>/dev/null | grep "^outreach_.*\.sqlite3$" | while read fname; do
+$RCLONE lsf "$GDRIVE_DEST/db/" --format "n" 2>/dev/null | grep -E "^outreach_.*\.(sqlite3|sql\.gz)$" | while read fname; do
     FDATE=$(echo "$fname" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
     if [ -n "$FDATE" ] && [[ "$FDATE" < "$CUTOFF" ]]; then
         $RCLONE deletefile "$GDRIVE_DEST/db/$fname" 2>/dev/null

@@ -5,9 +5,14 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install system deps for psycopg2
+# Install system deps: psycopg2 build tools + cron + curl for healthchecks
 RUN apt-get update -qq && \
-    apt-get install -y -qq --no-install-recommends libpq-dev gcc && \
+    apt-get install -y -qq --no-install-recommends \
+        libpq-dev \
+        gcc \
+        cron \
+        curl \
+        ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
