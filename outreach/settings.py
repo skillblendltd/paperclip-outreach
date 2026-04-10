@@ -86,6 +86,10 @@ VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
 # TaggIQ webhook integration
 TAGGIQ_WEBHOOK_SECRET = os.environ.get('TAGGIQ_WEBHOOK_SECRET', '')
 
+# Social media (credentials stored in SocialAccount model per product)
+LINKEDIN_ACCESS_TOKEN = os.environ.get('LINKEDIN_ACCESS_TOKEN', '')
+LINKEDIN_ORGANIZATION_ID = os.environ.get('LINKEDIN_ORGANIZATION_ID', '')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

@@ -27,6 +27,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Check replies every 10 minutes
 */10 * * * * root . /app/docker/.env.cron && cd /app && python manage.py handle_replies >> /tmp/outreach_reply_monitor.log 2>&1
 
+# Post to social media daily at 9am Mon-Fri
+0 9 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py post_to_social >> /tmp/outreach_social.log 2>&1
+
 # Nightly backup at 23:00
 0 23 * * * root . /app/docker/.env.cron && cd /app && /app/backup_to_gdrive.sh >> /tmp/outreach_backup.log 2>&1
 
