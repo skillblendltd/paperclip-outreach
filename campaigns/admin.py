@@ -14,6 +14,7 @@ from .models import (
     Organization, Product, Campaign, Prospect, EmailLog, EmailQueue,
     Suppression, InboundEmail, ReplyTemplate, MailboxConfig, CallLog,
     ScriptInsight, EmailTemplate, CallScript, PromptTemplate, AIUsageLog,
+    WebhookEvent,
 )
 from .forms import CsvUploadForm
 
@@ -858,6 +859,32 @@ class AIUsageLogAdmin(admin.ModelAdmin):
         'input_tokens', 'output_tokens', 'cost_usd', 'latency_ms', 'success',
         'error_message', 'prompt_version', 'created_at',
     ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(WebhookEvent)
+class WebhookEventAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'source', 'event_type', 'delivery_id_short', 'processed', 'error_short']
+    list_filter = ['source', 'event_type', 'processed']
+    date_hierarchy = 'created_at'
+    readonly_fields = [
+        'delivery_id', 'source', 'event_type', 'payload', 'processed',
+        'error', 'created_at',
+    ]
+    search_fields = ['delivery_id', 'event_type']
+
+    def delivery_id_short(self, obj):
+        return obj.delivery_id[:12] + '...'
+    delivery_id_short.short_description = 'Delivery ID'
+
+    def error_short(self, obj):
+        return obj.error[:80] if obj.error else ''
+    error_short.short_description = 'Error'
 
     def has_add_permission(self, request):
         return False

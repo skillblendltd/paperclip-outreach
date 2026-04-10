@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import webhook_handlers
 
 urlpatterns = [
     path('send/', views.outreach_send, name='outreach_send'),
@@ -10,6 +11,7 @@ urlpatterns = [
     path('dashboard/', views.outreach_dashboard, name='outreach_dashboard'),
     path('import/', views.outreach_import_prospects, name='outreach_import'),
     path('webhooks/vapi/', views.vapi_webhook, name='vapi_webhook'),
+    path('webhooks/taggiq/', webhook_handlers.taggiq_webhook, name='taggiq_webhook'),
     path('calls/', views.outreach_calls, name='outreach_calls'),
     path('calls/stats/', views.outreach_calls_stats, name='outreach_calls_stats'),
     path('script-insights/', views.outreach_script_insights, name='outreach_script_insights'),

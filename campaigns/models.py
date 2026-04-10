@@ -130,6 +130,7 @@ class Prospect(BaseModel):
         ('interested', 'Interested'),
         ('demo_scheduled', 'Demo Scheduled'),
         ('design_partner', 'Design Partner'),
+        ('customer', 'Customer'),
         ('not_interested', 'Not Interested'),
         ('opted_out', 'Opted Out'),
         ('follow_up_later', 'Follow Up Later'),
@@ -187,6 +188,11 @@ class Prospect(BaseModel):
 
     send_enabled = models.BooleanField(default=True, help_text='Uncheck to block outreach')
     best_practices_group = models.BooleanField(default=False, help_text='Member of BNI best practices community group')
+
+    # TaggIQ integration fields (populated by webhook)
+    taggiq_user_id = models.IntegerField(null=True, blank=True, db_index=True)
+    trial_started_at = models.DateTimeField(null=True, blank=True)
+    trial_expires_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'prospects'
@@ -627,3 +633,25 @@ class AIUsageLog(BaseModel):
 
     def __str__(self):
         return f'{self.feature} - {self.model} - ${self.cost_usd}'
+
+
+class WebhookEvent(BaseModel):
+    """Incoming webhook events for idempotent processing."""
+
+    delivery_id = models.CharField(max_length=100, unique=True, db_index=True)
+    source = models.CharField(max_length=50, default='taggiq')
+    event_type = models.CharField(max_length=50)
+    payload = models.JSONField()
+    processed = models.BooleanField(default=False)
+    error = models.TextField(blank=True, default='')
+
+    class Meta:
+        db_table = 'webhook_events'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['event_type', 'processed']),
+        ]
+
+    def __str__(self):
+        status = 'OK' if self.processed else 'PENDING'
+        return f'{self.event_type} ({self.delivery_id[:8]}) [{status}]'

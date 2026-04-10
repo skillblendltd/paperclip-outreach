@@ -83,6 +83,9 @@ VAPI_API_KEY = os.environ.get('VAPI_API_KEY', '')
 VAPI_PHONE_NUMBER_ID = os.environ.get('VAPI_PHONE_NUMBER_ID', '')
 VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
 
+# TaggIQ webhook integration
+TAGGIQ_WEBHOOK_SECRET = os.environ.get('TAGGIQ_WEBHOOK_SECRET', '')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
