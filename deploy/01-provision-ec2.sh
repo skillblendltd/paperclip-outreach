@@ -1,11 +1,11 @@
 #!/bin/bash
 # =============================================================================
 # Step 1: Provision EC2 instance for Paperclip Outreach
-# Run this from your local machine (needs AWS CLI configured)
+# Run from your local machine (needs AWS CLI configured)
 #
-# Prerequisites:
-#   - AWS CLI installed and configured (aws configure)
-#   - Your TaggIQ VPC ID (check AWS console)
+# No domain, no Nginx, no SSL. Just Docker on EC2.
+# TaggIQ talks to it via private IP (same VPC).
+# Vapi talks to it via public IP (Elastic IP).
 # =============================================================================
 
 set -e
@@ -13,13 +13,12 @@ set -e
 REGION="eu-west-1"
 INSTANCE_TYPE="t3.micro"
 KEY_NAME="outreach-key"
-AMI_ID="ami-0694d931cee176e7d"  # Amazon Linux 2023 in eu-west-1 (update if needed)
 
 echo "=== Paperclip Outreach EC2 Provisioning ==="
 echo ""
 
-# Step 1: Get the VPC ID from TaggIQ's EC2 instance
-echo "[1/6] Finding TaggIQ VPC..."
+# Step 1: Find TaggIQ's VPC and security group
+echo "[1/5] Finding TaggIQ VPC..."
 TAGGIQ_VPC=$(aws ec2 describe-instances \
     --filters "Name=ip-address,Values=3.252.51.180" \
     --query 'Reservations[0].Instances[0].VpcId' \
@@ -27,20 +26,20 @@ TAGGIQ_VPC=$(aws ec2 describe-instances \
     --region $REGION 2>/dev/null)
 
 if [ "$TAGGIQ_VPC" = "None" ] || [ -z "$TAGGIQ_VPC" ]; then
-    echo "ERROR: Could not find TaggIQ EC2. Enter VPC ID manually:"
+    echo "Could not auto-detect TaggIQ VPC. Enter manually:"
     read -p "VPC ID: " TAGGIQ_VPC
 fi
-echo "  VPC: $TAGGIQ_VPC"
 
-# Step 2: Get TaggIQ's security group
 TAGGIQ_SG=$(aws ec2 describe-instances \
     --filters "Name=ip-address,Values=3.252.51.180" \
     --query 'Reservations[0].Instances[0].SecurityGroups[0].GroupId' \
     --output text \
     --region $REGION 2>/dev/null)
+
+echo "  VPC: $TAGGIQ_VPC"
 echo "  TaggIQ SG: $TAGGIQ_SG"
 
-# Step 3: Get a public subnet in the same VPC
+# Find a public subnet
 SUBNET_ID=$(aws ec2 describe-subnets \
     --filters "Name=vpc-id,Values=$TAGGIQ_VPC" "Name=map-public-ip-on-launch,Values=true" \
     --query 'Subnets[0].SubnetId' \
@@ -48,11 +47,11 @@ SUBNET_ID=$(aws ec2 describe-subnets \
     --region $REGION)
 echo "  Subnet: $SUBNET_ID"
 
-# Step 4: Create SSH key pair (if it doesn't exist)
+# Step 2: Create SSH key pair
 echo ""
-echo "[2/6] Creating SSH key pair..."
-if aws ec2 describe-key-pairs --key-names $KEY_NAME --region $REGION 2>/dev/null; then
-    echo "  Key pair '$KEY_NAME' already exists"
+echo "[2/5] SSH key pair..."
+if aws ec2 describe-key-pairs --key-names $KEY_NAME --region $REGION &>/dev/null; then
+    echo "  Key '$KEY_NAME' already exists"
 else
     aws ec2 create-key-pair \
         --key-name $KEY_NAME \
@@ -63,12 +62,12 @@ else
     echo "  Created ~/.ssh/$KEY_NAME.pem"
 fi
 
-# Step 5: Create security group
+# Step 3: Create security group
 echo ""
-echo "[3/6] Creating security group..."
+echo "[3/5] Security group..."
 OUTREACH_SG=$(aws ec2 create-security-group \
     --group-name outreach-sg \
-    --description "Paperclip Outreach - webhook receiver + admin" \
+    --description "Paperclip Outreach" \
     --vpc-id $TAGGIQ_VPC \
     --query 'GroupId' \
     --output text \
@@ -80,43 +79,36 @@ OUTREACH_SG=$(aws ec2 create-security-group \
         --region $REGION)
 echo "  Outreach SG: $OUTREACH_SG"
 
-# Get your public IP for SSH access
 MY_IP=$(curl -s https://checkip.amazonaws.com)/32
-echo "  Your IP: $MY_IP"
 
 # SSH from your IP
 aws ec2 authorize-security-group-ingress \
-    --group-id $OUTREACH_SG \
-    --protocol tcp --port 22 \
-    --cidr $MY_IP \
-    --region $REGION 2>/dev/null || true
+    --group-id $OUTREACH_SG --protocol tcp --port 22 \
+    --cidr $MY_IP --region $REGION 2>/dev/null || true
 
-# HTTPS from TaggIQ SG (webhooks)
+# Port 8002 from TaggIQ SG (private VPC traffic - webhooks)
 aws ec2 authorize-security-group-ingress \
-    --group-id $OUTREACH_SG \
-    --protocol tcp --port 443 \
-    --source-group $TAGGIQ_SG \
-    --region $REGION 2>/dev/null || true
+    --group-id $OUTREACH_SG --protocol tcp --port 8002 \
+    --source-group $TAGGIQ_SG --region $REGION 2>/dev/null || true
 
-# HTTPS from your IP (admin access)
+# Port 8002 from Vapi IPs (call webhooks)
+# Vapi uses Twilio infrastructure - allow broadly for now, HMAC verifies authenticity
 aws ec2 authorize-security-group-ingress \
-    --group-id $OUTREACH_SG \
-    --protocol tcp --port 443 \
-    --cidr $MY_IP \
-    --region $REGION 2>/dev/null || true
+    --group-id $OUTREACH_SG --protocol tcp --port 8002 \
+    --cidr 0.0.0.0/0 --region $REGION 2>/dev/null || true
 
-# HTTP for Let's Encrypt cert validation
-aws ec2 authorize-security-group-ingress \
-    --group-id $OUTREACH_SG \
-    --protocol tcp --port 80 \
-    --cidr 0.0.0.0/0 \
-    --region $REGION 2>/dev/null || true
+echo "  Rules: SSH(your IP) + 8002(TaggIQ SG + Vapi)"
 
-echo "  Security group rules configured"
-
-# Step 6: Launch EC2 instance
+# Step 4: Get latest Amazon Linux 2023 AMI
 echo ""
-echo "[4/6] Launching EC2 instance..."
+echo "[4/5] Launching EC2..."
+AMI_ID=$(aws ec2 describe-images \
+    --owners amazon \
+    --filters "Name=name,Values=al2023-ami-2023*-x86_64" "Name=state,Values=available" \
+    --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
+    --output text \
+    --region $REGION)
+
 INSTANCE_ID=$(aws ec2 run-instances \
     --image-id $AMI_ID \
     --instance-type $INSTANCE_TYPE \
@@ -131,13 +123,12 @@ INSTANCE_ID=$(aws ec2 run-instances \
     --region $REGION)
 echo "  Instance: $INSTANCE_ID"
 
-echo ""
-echo "[5/6] Waiting for instance to be running..."
+echo "  Waiting for running state..."
 aws ec2 wait instance-running --instance-ids $INSTANCE_ID --region $REGION
 
-# Step 7: Allocate and associate Elastic IP
+# Step 5: Allocate Elastic IP (needed for Vapi webhook callback)
 echo ""
-echo "[6/6] Allocating Elastic IP..."
+echo "[5/5] Elastic IP..."
 ALLOC_ID=$(aws ec2 allocate-address \
     --domain vpc \
     --query 'AllocationId' \
@@ -151,31 +142,42 @@ ELASTIC_IP=$(aws ec2 describe-addresses \
 aws ec2 associate-address \
     --instance-id $INSTANCE_ID \
     --allocation-id $ALLOC_ID \
-    --region $REGION
+    --region $REGION >/dev/null
+
+# Get private IP for TaggIQ integration
+PRIVATE_IP=$(aws ec2 describe-instances \
+    --instance-ids $INSTANCE_ID \
+    --query 'Reservations[0].Instances[0].PrivateIpAddress' \
+    --output text \
+    --region $REGION)
 
 echo ""
 echo "============================================"
-echo "  EC2 PROVISIONED SUCCESSFULLY"
+echo "  EC2 PROVISIONED"
 echo "============================================"
 echo ""
-echo "  Instance ID: $INSTANCE_ID"
-echo "  Elastic IP:  $ELASTIC_IP"
-echo "  SSH key:     ~/.ssh/$KEY_NAME.pem"
-echo "  SG:          $OUTREACH_SG"
+echo "  Instance:   $INSTANCE_ID"
+echo "  Elastic IP: $ELASTIC_IP"
+echo "  Private IP: $PRIVATE_IP"
 echo ""
-echo "  SSH:  ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$ELASTIC_IP"
+echo "  SSH: ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$ELASTIC_IP"
 echo ""
-echo "  NEXT STEPS:"
-echo "  1. Add DNS: outreach.taggiq.com -> $ELASTIC_IP"
-echo "  2. Run: bash deploy/02-setup-server.sh $ELASTIC_IP"
+echo "  TaggIQ webhook URL (add to TaggIQ .env):"
+echo "    OUTREACH_WEBHOOK_URL=http://$PRIVATE_IP:8002/api/webhooks/taggiq/"
+echo ""
+echo "  Vapi webhook URL (update in Vapi dashboard):"
+echo "    http://$ELASTIC_IP:8002/api/webhooks/vapi/"
+echo ""
+echo "  NEXT: bash deploy/02-setup-and-launch.sh $ELASTIC_IP"
 echo ""
 
-# Save config for next script
+# Save config
 cat > deploy/.ec2-config << EOF
 ELASTIC_IP=$ELASTIC_IP
+PRIVATE_IP=$PRIVATE_IP
 INSTANCE_ID=$INSTANCE_ID
 OUTREACH_SG=$OUTREACH_SG
+TAGGIQ_SG=$TAGGIQ_SG
 KEY_NAME=$KEY_NAME
 REGION=$REGION
 EOF
-echo "  Config saved to deploy/.ec2-config"

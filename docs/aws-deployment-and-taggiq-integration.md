@@ -64,34 +64,37 @@ Two connected workstreams:
 
 ### Target state
 
+Paperclip is just another integration for TaggIQ - same as Stripe or Xero. No public domain needed. TaggIQ talks to Paperclip via private IP within the VPC. Vapi talks via Elastic IP.
+
 ```
                           AWS eu-west-1 (same VPC)
                           
  ┌──────────────────────────────────┐    ┌─────────────────────────────────────┐
  │  TaggIQ EC2 (t3.small)          │    │  Paperclip EC2 (t3.micro)          │
  │  Private IP: 172.31.48.72       │    │  Private IP: 172.31.x.x (new)     │
- │                                  │    │                                     │
- │  Django + Celery + Redis         │    │  Docker Compose:                   │
- │  api.taggiq.com                  │    │    postgres (5432)                 │
- │                                  │    │    web (8002)                      │
- │                                  │    │    cron (send_sequences,           │
- │  Fires webhooks on:              │    │          handle_replies,           │
- │    trial_started          ───────────>│          backup)                   │
- │    supplier_connected     ───────────>│                                     │
- │    first_quote_created    ───────────>│  Nginx (443) -> localhost:8002     │
- │    trial_expiring         ───────────>│  outreach.taggiq.com              │
- │    subscription_started   ───────────>│                                     │
- │    trial_expired          ───────────>│  POST /api/webhooks/taggiq/       │
- │                                  │    │    -> verify HMAC signature        │
- │  RDS PostgreSQL                  │    │    -> create/update prospect       │
- │  taggiq-db.c58g...rds...        │    │    -> trigger lifecycle sequence   │
- │                                  │    │                                     │
- │  SG: taggiq-backend-sg          │    │  SG: outreach-sg                  │
- └──────────────────────────────────┘    └─────────────────────────────────────┘
-          │                                        │
-          └────────── Private subnet ──────────────┘
-                    (no internet hop)
+ │                                  │    │  Elastic IP: x.x.x.x (for Vapi)  │
+ │  Django + Celery + Redis         │    │                                     │
+ │  api.taggiq.com                  │    │  Docker Compose:                   │
+ │                                  │    │    postgres (5432)                 │
+ │  Fires webhooks on:              │    │    web (8002)                      │
+ │    trial_started          ───────────>│    cron (send_sequences,           │
+ │    supplier_connected     ───────────>│          handle_replies,           │
+ │    first_quote_created    ───────────>│          backup)                   │
+ │    trial_expiring         ───────────>│                                     │
+ │    subscription_started   ───────────>│  POST /api/webhooks/taggiq/       │
+ │    trial_expired          ───────────>│    -> verify HMAC signature        │
+ │                                  │    │    -> create/update prospect       │
+ │  .env:                           │    │    -> trigger lifecycle sequence   │
+ │   OUTREACH_WEBHOOK_URL=          │    │                                     │
+ │    http://172.31.x.x:8002/...   │    │  SG: outreach-sg                  │
+ │                                  │    │    - 8002 from taggiq-sg          │
+ │  SG: taggiq-backend-sg          │    │    - 8002 from 0.0.0.0/0 (Vapi)  │
+ └──────────────────────────────────┘    │    - 22 from Prakash IP           │
+          │                              └─────────────────────────────────────┘
+          └────────── Private subnet (no internet hop) ────┘
 ```
+
+No Nginx, no SSL, no domain. HMAC signature verification secures the webhook endpoint.
 
 ### External services (unchanged)
 
@@ -109,10 +112,9 @@ Google Drive (rclone)        <- Nightly backups
 |---|---|
 | EC2 t3.micro (Paperclip) | ~$8.50 |
 | EBS 20GB gp3 (root volume) | ~$1.60 |
+| Elastic IP (attached to running instance) | $0 |
 | Data transfer (same VPC, private IP) | $0 |
-| Route53 A record | $0.50 |
-| SSL (Let's Encrypt) | $0 |
-| **Total** | **~$10.60/month** |
+| **Total** | **~$10.10/month** |
 
 ---
 
@@ -124,12 +126,10 @@ Google Drive (rclone)        <- Nightly backups
 
 | # | Task | Size | Notes |
 |---|---|---|---|
-| 5A.1 | Launch EC2 t3.micro in eu-west-1 | S | Same VPC as TaggIQ. Amazon Linux 2023 or Ubuntu 22.04. Key pair: `outreach-key`. |
-| 5A.2 | Create security group `outreach-sg` | S | See security group rules below. |
-| 5A.3 | Allocate Elastic IP | S | Static IP for DNS. Prevents IP change on reboot. |
-| 5A.4 | Install Docker + docker-compose on EC2 | S | `sudo yum install docker` or apt equivalent. |
-| 5A.5 | DNS: `outreach.taggiq.com` A record to Elastic IP | S | Route53 or wherever taggiq.com DNS is managed. |
-| 5A.6 | Install Nginx + certbot on EC2 host | S | Reverse proxy with Let's Encrypt SSL. |
+| 5A.1 | Launch EC2 t3.micro in eu-west-1 | S | Same VPC as TaggIQ. Amazon Linux 2023. Key pair: `outreach-key`. |
+| 5A.2 | Create security group `outreach-sg` | S | 8002 from TaggIQ SG + Vapi. 22 from Prakash IP. |
+| 5A.3 | Allocate Elastic IP | S | Stable IP for Vapi webhooks. |
+| 5A.4 | Install Docker + docker-compose on EC2 | S | `sudo dnf install docker` |
 
 **Security group rules (`outreach-sg`):**
 
@@ -178,8 +178,9 @@ Timeline:
 | 5C.7 | `docker compose up -d` (all services) | S | Start web + cron containers |
 | 5C.8 | Verify with dry-run | S | `docker exec outreach_web python manage.py send_sequences --dry-run --status` |
 | 5C.9 | Verify reply monitoring | S | `docker exec outreach_web python manage.py handle_replies --dry-run` |
-| 5C.10 | Check Nginx + SSL | S | `curl https://outreach.taggiq.com/api/status/` |
-| 5C.11 | Update Vapi webhook URL | S | Vapi dashboard: change webhook to `https://outreach.taggiq.com/api/webhooks/vapi/` |
+| 5C.10 | Check API reachable | S | `curl http://<ELASTIC_IP>:8002/api/status/` |
+| 5C.11 | Update Vapi webhook URL | S | Vapi dashboard: `http://<ELASTIC_IP>:8002/api/webhooks/vapi/` |
+| 5C.12 | Add webhook URL to TaggIQ .env | S | `OUTREACH_WEBHOOK_URL=http://<PRIVATE_IP>:8002/api/webhooks/taggiq/` |
 
 **Data verification script (run on AWS after restore):**
 
@@ -630,71 +631,6 @@ Create 4 new campaigns with email templates. These are triggered by webhook even
 
 ---
 
-## Nginx Configuration
-
-Install on EC2 host (outside Docker). Reverse proxy HTTPS to Docker port 8002.
-
-```nginx
-# /etc/nginx/conf.d/outreach.conf
-
-server {
-    listen 443 ssl;
-    server_name outreach.taggiq.com;
-
-    ssl_certificate /etc/letsencrypt/live/outreach.taggiq.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/outreach.taggiq.com/privkey.pem;
-
-    # Security headers
-    add_header X-Frame-Options DENY;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-
-    # Webhook endpoint - allow larger payloads
-    location /api/webhooks/ {
-        proxy_pass http://127.0.0.1:8002;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        client_max_body_size 1m;
-    }
-
-    # All other API endpoints
-    location /api/ {
-        proxy_pass http://127.0.0.1:8002;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        client_max_body_size 1m;
-    }
-
-    # Django admin (restrict to Prakash's IP)
-    location /admin/ {
-        allow <PRAKASH_IP>;
-        deny all;
-        proxy_pass http://127.0.0.1:8002;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Block everything else
-    location / {
-        return 404;
-    }
-}
-
-server {
-    listen 80;
-    server_name outreach.taggiq.com;
-    return 301 https://$host$request_uri;
-}
-```
-
----
-
 ## Backup Changes for AWS
 
 The existing `backup_to_gdrive.sh` already supports Docker PostgreSQL (pg_dump via `docker exec`). Two changes needed:
@@ -900,21 +836,17 @@ X-TaggIQ-Delivery: <uuid>
 | Before (local Mac) | After (AWS) |
 |---|---|
 | Mac must be open and awake for cron | Runs 24/7 on EC2, Mac irrelevant |
-| Vapi webhooks can't reach localhost | Vapi webhooks hit `outreach.taggiq.com` |
-| Check logs: `cat /tmp/campaigns_daily.log` | Check logs: `ssh outreach && docker logs outreach_cron` |
-| Django admin: `localhost:8002/admin/` | Django admin: `https://outreach.taggiq.com/admin/` |
-| API: `localhost:8002/api/dashboard/` | API: `https://outreach.taggiq.com/api/dashboard/` |
-| Claude skills run locally via `venv/bin/python` | Claude skills need SSH or remote API call |
+| Vapi webhooks can't reach localhost | Vapi webhooks hit `http://<ELASTIC_IP>:8002/api/webhooks/vapi/` |
+| Check logs: `cat /tmp/campaigns_daily.log` | `ssh outreach` then `docker logs outreach_cron` |
+| Django admin: `localhost:8002/admin/` | `http://<ELASTIC_IP>:8002/admin/` |
+| API: `localhost:8002/api/dashboard/` | `http://<ELASTIC_IP>:8002/api/dashboard/` |
+| Claude skills run locally via `venv/bin/python` | Skills SSH into EC2 and run commands remotely |
 | Reply monitor uses macOS notifications | No desktop notifications (check logs or build Slack alert) |
+| TaggIQ has no connection to Paperclip | TaggIQ fires webhooks to `http://<PRIVATE_IP>:8002` (same VPC, like Stripe) |
 
 ### Claude skill adaptation
 
-After AWS migration, the email expert skills (`/taggiq-email-expert`, `/fp-email-expert`) that currently run `venv/bin/python manage.py check_replies` locally will need updating. Two options:
-
-1. **SSH execution:** Skills SSH into EC2 and run commands remotely
-2. **Keep a local read-only copy:** Local Django points to AWS PostgreSQL (read-only) for the skills that need DB access
-
-Recommendation: Option 1 (SSH) is simpler and avoids split-brain. Add an SSH alias:
+After AWS migration, add an SSH alias:
 
 ```bash
 # ~/.ssh/config
