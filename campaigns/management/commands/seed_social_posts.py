@@ -13,7 +13,8 @@ from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
 
-from campaigns.models import Product, SocialPost
+from campaigns.models import Product
+from social_studio.models import SocialPost
 
 
 POSTS_FILE = '/Users/pinani/Documents/taggiqpos/marketing/social/LINKEDIN_POSTS.md'

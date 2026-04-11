@@ -14,7 +14,7 @@ from .models import (
     Organization, Product, Campaign, Prospect, EmailLog, EmailQueue,
     Suppression, InboundEmail, ReplyTemplate, MailboxConfig, CallLog,
     ScriptInsight, EmailTemplate, CallScript, PromptTemplate, AIUsageLog,
-    WebhookEvent, SocialAccount, SocialPost, SocialPostDelivery,
+    WebhookEvent,
 )
 from .forms import CsvUploadForm
 
@@ -867,42 +867,8 @@ class AIUsageLogAdmin(admin.ModelAdmin):
         return False
 
 
-class SocialPostDeliveryInline(admin.TabularInline):
-    model = SocialPostDelivery
-    extra = 0
-    readonly_fields = ['account', 'status', 'platform_post_id', 'published_at', 'error']
-
-
-@admin.register(SocialAccount)
-class SocialAccountAdmin(admin.ModelAdmin):
-    list_display = ['account_name', 'product', 'platform', 'is_active']
-    list_filter = ['platform', 'is_active', 'product__slug']
-
-
-@admin.register(SocialPost)
-class SocialPostAdmin(admin.ModelAdmin):
-    list_display = ['post_number', 'product', 'pillar', 'scheduled_date', 'content_short', 'delivery_status']
-    list_filter = ['product__slug', 'pillar']
-    ordering = ['scheduled_date', 'post_number']
-    inlines = [SocialPostDeliveryInline]
-
-    def content_short(self, obj):
-        return obj.content[:80] + '...' if len(obj.content) > 80 else obj.content
-    content_short.short_description = 'Content'
-
-    def delivery_status(self, obj):
-        deliveries = obj.deliveries.all()
-        if not deliveries:
-            return 'No deliveries'
-        return ', '.join(f'{d.account.platform}: {d.status}' for d in deliveries)
-    delivery_status.short_description = 'Delivery'
-
-
-@admin.register(SocialPostDelivery)
-class SocialPostDeliveryAdmin(admin.ModelAdmin):
-    list_display = ['created_at', 'post', 'account', 'status', 'platform_post_id']
-    list_filter = ['status', 'account__platform']
-    readonly_fields = ['post', 'account', 'status', 'platform_post_id', 'published_at', 'error']
+# SocialAccount / SocialPost / SocialPostDelivery admins moved to
+# social_studio/admin.py in social-studio-v1 (2026-04-11).
 
 
 @admin.register(WebhookEvent)

@@ -61,6 +61,28 @@ Each session appends a dated entry describing what was done, decisions made, and
 - Committed plan doc and this progress doc
 - Next session: `/chief-orchestrator` picks up Task #1 (symlinks) and drives Phase 1
 
+### 2026-04-11 — `/chief-orchestrator` (claimed, Phase 0-3 execution)
+
+**Open questions resolved:**
+- Q2 (commit policy): commit HTML files, gitignore rendered PNG output
+- Q3 (static serving): `file://` with absolute paths for v1, revisit if Playwright complains
+- Q4 (post_to_social): confirmed exists at `campaigns/management/commands/post_to_social.py` — Task #10 is a MOVE
+
+**Open questions still blocking:**
+- Q1 (TaggIQ test credentials): needed for Task #9 (capture_screenshots). Flagging to Prakash.
+- Q5 (LinkedIn CMA app approval status): blocks live publishing (Task #17+ only). Flagging to Prakash.
+
+**DB state baseline before migration:**
+- SocialPost: 30 rows (all TaggIQ, must preserve)
+- SocialAccount: 0 rows (no OAuth yet)
+- SocialPostDelivery: 0 rows
+- SocialPost current fields: `product, post_number, content, hashtags, link_url, media_url, media_description, pillar, scheduled_date`
+
+**Migration strategy for Task #3:**
+Use `class Meta: db_table = 'campaigns_socialpost'` (and equivalents) on the new `social_studio` models. DB table names stay put; only Django ORM ownership moves. Zero data risk. Django migration uses `SeparateDatabaseAndState` pattern.
+
+**Execution plan for this session:** Drive Phase 0 → Phase 3 inclusive (Tasks 1-14 excluding #9 which is blocked on credentials). Stop at Task 15 (E2E render test) for Prakash visual approval before Phase 4 cutover.
+
 ---
 
 ## Decisions log

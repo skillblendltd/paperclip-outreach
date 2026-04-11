@@ -22,7 +22,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.management.base import BaseCommand
 
-from campaigns.models import SocialAccount, SocialPost, SocialPostDelivery
+from social_studio.models import SocialAccount, SocialPost, SocialPostDelivery
 
 logger = logging.getLogger(__name__)
 
