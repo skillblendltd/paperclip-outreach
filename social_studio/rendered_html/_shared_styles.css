@@ -1,0 +1,5 @@
+/*
+ * Shared CSS tokens used by the batch designer to generate consistent
+ * bespoke HTML posts. Loaded inline via Python string substitution.
+ * Not served statically - not imported anywhere at runtime.
+ */

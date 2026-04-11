@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Post 9 - Margin check</title>
+<style>
+@font-face { font-family: 'Poppins'; font-weight: 700; src: url('file:///app/social_studio/static/social/taggiq/Poppins-Bold.ttf') format('truetype'); font-display: block; }
+@font-face { font-family: 'Poppins'; font-weight: 600; src: url('file:///app/social_studio/static/social/taggiq/Poppins-SemiBold.ttf') format('truetype'); font-display: block; }
+@font-face { font-family: 'Inter'; font-weight: 400; src: url('file:///app/social_studio/static/social/taggiq/Inter-Regular.ttf') format('truetype'); font-display: block; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1200px; height: 1200px; overflow: hidden; font-family: 'Inter', sans-serif; color: #1E2030; background: #FAF8F5; -webkit-font-smoothing: antialiased; }
+.canvas { width: 1200px; height: 1200px; display: flex; flex-direction: column; position: relative; background: #FAF8F5; }
+.header-band { position: relative; background: linear-gradient(135deg, #1E2030 0%, #4C1D95 55%, #7C3AED 100%); padding: 70px 80px 56px; overflow: hidden; }
+.header-band::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1.5px, transparent 1.5px); background-size: 28px 28px; pointer-events: none; }
+.header-band::after { content: ''; position: absolute; top: -120px; right: -120px; width: 480px; height: 480px; border-radius: 999px; background: radial-gradient(circle, rgba(244, 114, 182, 0.25) 0%, transparent 60%); pointer-events: none; }
+.header-top { position: relative; display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; z-index: 2; }
+.logo { height: 52px; filter: brightness(0) invert(1); }
+.tag { background: rgba(255, 255, 255, 0.12); color: #FFFFFF; padding: 10px 22px; border-radius: 999px; font-weight: 500; font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.18); }
+.kicker { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 10px; font-family: 'Inter', sans-serif; font-weight: 500; font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: #F472B6; margin-bottom: 14px; }
+.kicker::before { content: ''; width: 32px; height: 2px; background: #F472B6; display: inline-block; }
+.headline { position: relative; z-index: 2; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 60px; line-height: 1.04; color: #FFFFFF; letter-spacing: -0.025em; max-width: 960px; }
+.headline .accent-text { background: linear-gradient(120deg, #F472B6 0%, #FBBF24 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.body-section { flex: 1; padding: 50px 80px 30px; display: flex; flex-direction: column; gap: 18px; position: relative; }
+.body-section::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: linear-gradient(rgba(30, 32, 48, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 32, 48, 0.03) 1px, transparent 1px); background-size: 48px 48px; pointer-events: none; }
+.item { position: relative; display: flex; align-items: flex-start; gap: 24px; padding: 18px 24px; background: #FFFFFF; border-radius: 14px; border: 1px solid #E2E8F0; box-shadow: 0 2px 10px rgba(30, 32, 48, 0.035); z-index: 1; }
+.item:nth-child(1) { --sev: #F44336; }
+.item:nth-child(2) { --sev: #F59E0B; }
+.item:nth-child(3) { --sev: #1E88FF; }
+.item:nth-child(4) { --sev: #12B488; }
+.item:nth-child(5) { --sev: #A78BFA; }
+.item-num { flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px; background: color-mix(in srgb, var(--sev) 14%, transparent); color: var(--sev); display: flex; align-items: center; justify-content: center; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; }
+.item-body { flex: 1; }
+.item-title { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 22px; color: #1E2030; line-height: 1.2; margin-bottom: 4px; letter-spacing: -0.005em; }
+.item-desc { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 16px; color: #64748B; line-height: 1.4; }
+.footer { display: flex; align-items: center; justify-content: space-between; padding: 20px 80px 28px; border-top: 1px solid #E2E8F0; background: #FAF8F5; position: relative; z-index: 2; }
+.footer .hashtags { font-weight: 500; font-size: 14px; color: #64748B; }
+.footer .url { font-weight: 600; font-size: 14px; color: #7C3AED; }
+</style>
+</head>
+<body>
+<div class="canvas">
+    <div class="header-band">
+        <div class="header-top">
+            <img class="logo" src="file:///app/social_studio/static/social/taggiq/logo.png" alt="TaggIQ">
+            <div class="tag">Margin check</div>
+        </div>
+        <div class="kicker">Hidden cost</div>
+        <div class="headline">The real price of <span class="accent-text">free tools.</span></div>
+    </div>
+    <div class="body-section">
+        <div class="item"><div class="item-num">1</div><div class="item-body"><div class="item-title">10+ hours weekly on manual entry</div><div class="item-desc">Quoting, invoicing, tracking - all by hand.</div></div></div>
+        <div class="item"><div class="item-num">2</div><div class="item-body"><div class="item-title">Lost deals from slow quotes</div><div class="item-desc">Every hour is a sale you did not close.</div></div></div>
+        <div class="item"><div class="item-num">3</div><div class="item-body"><div class="item-title">Billing errors from manual math</div><div class="item-desc">Over or undercharge - both cost you.</div></div></div>
+        <div class="item"><div class="item-num">4</div><div class="item-body"><div class="item-title">Month-end reconciliation marathons</div><div class="item-desc">Your Sunday afternoon is not actually free.</div></div></div>
+        <div class="item"><div class="item-num">5</div><div class="item-body"><div class="item-title">Zero visibility into pipeline</div><div class="item-desc">Where is your cash today? Really?</div></div></div>
+    </div>
+    <div class="footer">
+        <div class="hashtags">#PromoProducts  ·  #TrueCost  ·  #TaggIQ</div>
+        <div class="url">taggiq.com</div>
+    </div>
+</div>
+</body>
+</html>

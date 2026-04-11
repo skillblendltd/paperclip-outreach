@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Post 13 - Founder Note</title>
+<style>
+@font-face { font-family: 'Poppins'; font-weight: 700; src: url('file:///app/social_studio/static/social/taggiq/Poppins-Bold.ttf') format('truetype'); font-display: block; }
+@font-face { font-family: 'Poppins'; font-weight: 600; src: url('file:///app/social_studio/static/social/taggiq/Poppins-SemiBold.ttf') format('truetype'); font-display: block; }
+@font-face { font-family: 'Inter'; font-weight: 400; src: url('file:///app/social_studio/static/social/taggiq/Inter-Regular.ttf') format('truetype'); font-display: block; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1200px; height: 1200px; overflow: hidden; font-family: 'Inter', sans-serif; color: #1E2030; background: #FAF8F5; -webkit-font-smoothing: antialiased; }
+.canvas { width: 1200px; height: 1200px; padding: 80px; display: flex; flex-direction: column; position: relative; background: radial-gradient(circle at 90% 8%, rgba(244, 114, 182, 0.22) 0%, rgba(244, 114, 182, 0) 35%), radial-gradient(circle at 12% 75%, rgba(124, 58, 237, 0.18) 0%, rgba(124, 58, 237, 0) 40%), #FAF8F5; }
+.deco-dots { position: absolute; bottom: 80px; right: 80px; width: 200px; height: 200px; pointer-events: none; opacity: 0.4; }
+.header { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; margin-bottom: 100px; }
+.logo { height: 56px; }
+.tag { background: linear-gradient(135deg, #F3F0FF 0%, #FCE7F3 100%); color: #7C3AED; padding: 10px 22px; border-radius: 999px; font-weight: 500; font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; border: 1px solid #DDCAFF; }
+.content { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.quote-mark { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 220px; line-height: 0.5; background: linear-gradient(135deg, #7C3AED 0%, #F472B6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 28px; }
+.quote { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 60px; line-height: 1.12; color: #1E2030; letter-spacing: -0.022em; margin-bottom: 64px; max-width: 1000px; }
+.quote .accent-text { background: linear-gradient(120deg, #7C3AED 0%, #F472B6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.attribution { display: flex; align-items: center; gap: 22px; margin-bottom: 48px; }
+.avatar { width: 96px; height: 96px; border-radius: 999px; background: #FAF8F5; display: block; box-shadow: 0 6px 20px rgba(124, 58, 237, 0.28); border: 3px solid #FFFFFF; outline: 3px solid #7C3AED; outline-offset: -6px; flex-shrink: 0; object-fit: cover; }
+.attribution-text .name { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 26px; color: #1E2030; line-height: 1.1; }
+.attribution-text .role { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 18px; color: #64748B; margin-top: 4px; }
+.status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: #12B488; margin-right: 8px; box-shadow: 0 0 0 4px rgba(18, 180, 136, 0.2); vertical-align: middle; }
+.closer { background: #FFFFFF; border: 1px solid #EDE9FE; border-left: 4px solid #7C3AED; border-radius: 16px; padding: 22px 28px; font-family: 'Inter', sans-serif; font-weight: 400; font-size: 21px; line-height: 1.4; color: #334155; max-width: 980px; box-shadow: 0 8px 28px rgba(30, 32, 48, 0.05); }
+.closer strong { color: #1E2030; font-weight: 600; }
+.footer { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding-top: 20px; margin-top: auto; border-top: 1px solid #E2E8F0; }
+.footer .hashtags { font-weight: 500; font-size: 14px; color: #64748B; }
+.footer .url { font-weight: 600; font-size: 14px; color: #7C3AED; }
+</style>
+</head>
+<body>
+<div class="canvas">
+    <svg class="deco-dots" viewBox="0 0 200 200" fill="none">
+        <circle cx="50" cy="50" r="8" fill="#7C3AED" fill-opacity="0.3"/>
+        <circle cx="100" cy="50" r="8" fill="#F472B6" fill-opacity="0.3"/>
+        <circle cx="150" cy="50" r="8" fill="#12B488" fill-opacity="0.3"/>
+        <circle cx="50" cy="100" r="8" fill="#F472B6" fill-opacity="0.3"/>
+        <circle cx="100" cy="100" r="8" fill="#12B488" fill-opacity="0.3"/>
+        <circle cx="150" cy="100" r="8" fill="#7C3AED" fill-opacity="0.3"/>
+        <circle cx="50" cy="150" r="8" fill="#12B488" fill-opacity="0.3"/>
+        <circle cx="100" cy="150" r="8" fill="#7C3AED" fill-opacity="0.3"/>
+        <circle cx="150" cy="150" r="8" fill="#F472B6" fill-opacity="0.3"/>
+    </svg>
+    <div class="header">
+        <img class="logo" src="file:///app/social_studio/static/social/taggiq/logo.png" alt="TaggIQ">
+        <div class="tag">Lessons learned</div>
+    </div>
+    <div class="content">
+        <div class="quote-mark">&ldquo;</div>
+        <div class="quote">We almost built <span class="accent-text">the wrong product.</span></div>
+        <div class="attribution">
+            <img class="avatar" src="file:///app/social_studio/static/social/taggiq/prakash.jpg" alt="Prakash Inani">
+            <div class="attribution-text">
+                <div class="name">Prakash Inani</div>
+                <div class="role"><span class="status-dot"></span>Founder, TaggIQ  ·  Listening to real shops</div>
+            </div>
+        </div>
+        <div class="closer"><strong>First instinct: generic promo CRM.</strong> Then we talked to 30 real shops and realised CRM was already solved. The bleeding was in quote-to-invoice, not lead capture. We pivoted hard. That conversation saved us 12 months.</div>
+    </div>
+    <div class="footer">
+        <div class="hashtags">#FounderStory  ·  #BuildInPublic  ·  #TaggIQ</div>
+        <div class="url">taggiq.com</div>
+    </div>
+</div>
+</body>
+</html>
