@@ -39,13 +39,13 @@ class SocialPostAdmin(admin.ModelAdmin):
     )
 
     def media_path_short(self, obj):
-        return (obj.media_path or obj.media_url or '—')[:40]
+        return (obj.media_path or obj.media_url or ' - ')[:40]
     media_path_short.short_description = 'Media'
 
     def delivery_status(self, obj):
         deliveries = obj.deliveries.all()
         if not deliveries:
-            return '—'
+            return ' - '
         return ', '.join(f'{d.account.platform}:{d.status}' for d in deliveries)
     delivery_status.short_description = 'Deliveries'
 

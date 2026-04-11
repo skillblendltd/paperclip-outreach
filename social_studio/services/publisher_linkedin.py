@@ -1,5 +1,5 @@
 """
-LinkedIn publisher — UGC post creation with optional image asset upload.
+LinkedIn publisher - UGC post creation with optional image asset upload.
 
 The 3-step image upload flow:
     1. POST /v2/assets?action=registerUpload  → returns asset URN + upload URL

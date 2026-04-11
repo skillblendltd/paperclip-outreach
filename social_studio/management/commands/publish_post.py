@@ -59,7 +59,7 @@ class Command(BaseCommand):
         if post.media_path:
             self.stdout.write(f'media: {post.media_path}')
         else:
-            self.stdout.write(self.style.WARNING('media: (none — will post text-only)'))
+            self.stdout.write(self.style.WARNING('media: (none - will post text-only)'))
 
         accounts = SocialAccount.objects.filter(
             product=post.product,

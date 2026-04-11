@@ -6,7 +6,7 @@ Each post starts with `### Post N` followed by metadata lines and a body.
 
 KISS: just parse and upsert. No content-source registry, no sync history
 model, no webhooks. When a second source shows up (google doc, notion),
-we'll factor out a ContentSource model — not before.
+we'll factor out a ContentSource model - not before.
 """
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# Social Studio v1 — QA Release-Readiness Report
+# Social Studio v1 - QA Release-Readiness Report
 
 **Date:** 2026-04-11
 **Tenant:** TaggIQ
@@ -16,7 +16,7 @@
 | # | Criterion | Result | Evidence |
 |---|-----------|--------|----------|
 | F1 | `sync_content` parses markdown and upserts `SocialPost` rows | ✅ PASS | `python manage.py sync_content --brand taggiq --dry-run` → "Parsed 30 post(s). Created 0, updated 0." Source file `/taggiq-marketing/LINKEDIN_POSTS.md` bind-mounted from `/Users/pinani/Documents/taggiqpos/marketing/social/` |
-| F2 | Migration preserves the 30 existing TaggIQ SocialPosts | ✅ PASS | `SocialPost.objects.count() == 30` post-migration. Sample verified: Post #1 starts "The promotional products industry is worth $26 billion." Post #30 starts "6 weeks of content. Time for a real ask." — both match pre-migration state. |
+| F2 | Migration preserves the 30 existing TaggIQ SocialPosts | ✅ PASS | `SocialPost.objects.count() == 30` post-migration. Sample verified: Post #1 starts "The promotional products industry is worth $26 billion." Post #30 starts "6 weeks of content. Time for a real ask." - both match pre-migration state. |
 | F3 | `render_post` produces a 1200×1200 PNG from bespoke HTML | ✅ PASS | Post 1 rendered via `python manage.py render_post --post-number 1 --html rendered_html/post_01.html`. Output: `/app/social_studio/rendered_images/post_01.png`. `media_path` updated on the `SocialPost` row. |
 | F4 | Rendered PNG passes visual inspection (brand fidelity, typography, layout) | ⏳ PENDING PRAKASH | First bespoke render uses TaggIQ violet `#7C3AED`, Poppins Bold 260px display, proper brand container (logo + pillar tag + footer + accent stripe). Awaiting Prakash's visual sign-off before scaling to 30 posts. |
 | F5 | `capture_screenshots` can run against TaggIQ frontend | ⚠️ BLOCKED | Service + command implemented. Running against `http://host.docker.internal:5180` requires test credentials for authenticated routes. Prakash has not yet provided demo account. Public routes capturable but not validated in this session. |
@@ -55,7 +55,7 @@
 | # | Criterion | Result | Evidence |
 |---|-----------|--------|----------|
 | N1 | No hardcoded laptop paths in `social_studio/` Python code | ✅ PASS-WITH-NOTE | One fallback string at `services/content_sync.py:25` preserves the absolute path as a last-resort default when `TAGGIQ_MARKDOWN_PATH` env var is unset. Env var is set in `docker-compose.yml`. Acceptable. |
-| N2 | No secrets committed | ✅ PASS | `grep` for `access_token` / `secret` / `password` across committed `social_studio/` files returned only field definitions (`access_token = models.TextField(...)`) and variable names in publisher — zero actual credentials. |
+| N2 | No secrets committed | ✅ PASS | `grep` for `access_token` / `secret` / `password` across committed `social_studio/` files returned only field definitions (`access_token = models.TextField(...)`) and variable names in publisher - zero actual credentials. |
 | N3 | Progress doc is up-to-date | ✅ PASS | `docs/social-studio-progress.md` reflects current task status and all session decisions. |
 | N4 | Rollback path exists for each phase | ✅ PASS | Plan §14 documents phase-by-phase rollback. Phase 1 rollback verified viable: `migrate social_studio zero` + restore `campaigns/0013`, DB tables survive. |
 
@@ -63,9 +63,9 @@
 
 ## Blockers to full launch
 
-1. **LinkedIn Community Management API approval** — separate track. Blocks live publishing test (Task F6 live verification). Render + payload construction are complete and correct per LinkedIn's docs.
-2. **TaggIQ test account credentials** — blocks `capture_screenshots` against authenticated product routes. Service implementation is complete and waits only on a session cookie.
-3. **Prakash visual approval of first rendered post** — gates Phase 4 cron cutover. Render proven functional; aesthetic iteration happens in-session via `/taggiq-ui-designer`.
+1. **LinkedIn Community Management API approval** - separate track. Blocks live publishing test (Task F6 live verification). Render + payload construction are complete and correct per LinkedIn's docs.
+2. **TaggIQ test account credentials** - blocks `capture_screenshots` against authenticated product routes. Service implementation is complete and waits only on a session cookie.
+3. **Prakash visual approval of first rendered post** - gates Phase 4 cron cutover. Render proven functional; aesthetic iteration happens in-session via `/taggiq-ui-designer`.
 
 None of these are code bugs. All are external or human-in-the-loop gates.
 
@@ -81,7 +81,7 @@ None of these are code bugs. All are external or human-in-the-loop gates.
 - Non-disruptive (existing campaigns cron unaffected, old `post_to_social` still live until cutover)
 
 **Hold Phase 4-5 pending three items:**
-1. Prakash's visual sign-off on `social_studio/rendered_images/post_01.png` (see commit `ab12cd34` — preview PNG is gitignored per plan policy but exists locally)
+1. Prakash's visual sign-off on `social_studio/rendered_images/post_01.png` (see commit `ab12cd34` - preview PNG is gitignored per plan policy but exists locally)
 2. LinkedIn CMA API approval (for live publish test)
 3. TaggIQ test credentials (for screenshot capture)
 

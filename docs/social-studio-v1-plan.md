@@ -1,4 +1,4 @@
-# Social Studio v1 — Architectural Plan
+# Social Studio v1 - Architectural Plan
 
 **Date:** 2026-04-11
 **Status:** Approved, ready for implementation
@@ -14,9 +14,9 @@ Paperclip is a sales automation platform with three independently shippable modu
 
 ```
 paperclip-outreach/
-├── campaigns/         Module 1: Email outreach   (existing — universal sender, IMAP reply engine)
+├── campaigns/         Module 1: Email outreach   (existing - universal sender, IMAP reply engine)
 ├── calling/           Module 2: Voice calling     (currently inside campaigns, extract later)
-└── social_studio/     Module 3: Social posting    (NEW — this plan)
+└── social_studio/     Module 3: Social posting    (NEW - this plan)
 ```
 
 Each module is tenant-scoped via the existing `Organization → Product → Campaign` hierarchy. Each module can be sold standalone or bundled. Every architectural decision must preserve this separation.
@@ -29,13 +29,13 @@ Each module is tenant-scoped via the existing `Organization → Product → Camp
 
 Explicitly deferred. Each has a clean hook in v1 architecture:
 
-- Canva Connect API integration (v2 feature — customers bring their own Canva brand kit)
+- Canva Connect API integration (v2 feature - customers bring their own Canva brand kit)
 - AI image generation (Gemini / DALL-E / gpt-image)
-- Multi-channel publishing (Facebook, Instagram, Twitter, Google Business) — stubs only
+- Multi-channel publishing (Facebook, Instagram, Twitter, Google Business) - stubs only
 - Engagement metrics loop
 - Admin UI / dashboard
 - Billing / plans / customer onboarding flows
-- Brand, Template, Publication, VisualAsset models — v1 uses flat fields on `SocialPost`
+- Brand, Template, Publication, VisualAsset models - v1 uses flat fields on `SocialPost`
 - White-label / agency tier
 - Webhook receivers for Canva or LinkedIn
 - Fully Promoted Ireland tenant setup (architecture supports it; setup happens when FP needs it)
@@ -103,9 +103,9 @@ Adding FP = copy one folder, edit tokens. Zero Python changes.
 
 ### Models to migrate (from `campaigns/models.py` → `social_studio/models.py`)
 
-- `SocialAccount` — OAuth credentials per product per platform
-- `SocialPost` — content + scheduling
-- `SocialPostDelivery` — per-channel publish record
+- `SocialAccount` - OAuth credentials per product per platform
+- `SocialPost` - content + scheduling
+- `SocialPostDelivery` - per-channel publish record
 
 Migration is data-preserving: the 30 seeded TaggIQ posts must survive intact.
 
@@ -192,7 +192,7 @@ Cron has zero AI, zero design, zero creative dependencies. It's dumb distributio
 | **HTML + Playwright** | **$0** | **Nothing** | **Uses real TaggIQ design tokens** | **Fully autonomous** |
 | Canva Connect API | Enterprise license | Canva approval + subscription | Template-locked | In-session only (MCP) or autonomous (paid Connect API) |
 | Gemini / DALL-E | Free tier (limited) | Nothing | Inconsistent, AI-look | Autonomous |
-| Pillow text overlay | $0 | Nothing | Weak — no real UI possible | Autonomous |
+| Pillow text overlay | $0 | Nothing | Weak - no real UI possible | Autonomous |
 
 HTML + Playwright is the only option that is simultaneously free, unblocked, brand-faithful, and autonomous.
 
@@ -295,24 +295,24 @@ All tasks tracked in `docs/social-studio-progress.md`. Implementer must update t
 
 | # | Task | Phase | Owner | Size | Depends on |
 |---|------|-------|-------|------|-----------|
-| 1 | Symlink TaggIQ `ui-designer` + `gtm-strategist` skills into `paperclip-outreach/.claude/skills/` | 0 | DevOps | XS | — |
-| 2 | Create `social_studio` Django app, register in settings, empty migrations | 1 | Backend | S | — |
+| 1 | Symlink TaggIQ `ui-designer` + `gtm-strategist` skills into `paperclip-outreach/.claude/skills/` | 0 | DevOps | XS | - |
+| 2 | Create `social_studio` Django app, register in settings, empty migrations | 1 | Backend | S | - |
 | 3 | Data-preserving migration: move `SocialPost`, `SocialAccount`, `SocialPostDelivery` from `campaigns` → `social_studio` | 1 | Backend | M | 2 |
 | 4 | Add `headline`, `visual_intent`, `bespoke_html_path`, `media_path` fields to `SocialPost` | 1 | Backend | S | 3 |
-| 5 | Add Playwright + Chromium to Dockerfile, rebuild web container | 1 | DevOps | S | — |
-| 6 | `services/renderer.py` — HTML file → PNG via Playwright | 2 | Backend | M | 5 |
-| 7 | Copy TaggIQ `design-tokens.css` → `static/social/taggiq/tokens.css` + `_base.html` brand container + 5 starter HTML templates | 2 | UI Designer | M | — |
-| 8 | `services/content_sync.py` — parse `LINKEDIN_POSTS.md` → `SocialPost` rows (upsert by `post_number`) | 2 | Backend | S | 4 |
-| 9 | `services/screenshots.py` — capture 6 TaggIQ routes from localhost:5180 → `static/taggiq-ui/` | 2 | Backend | M | 5 |
-| 10 | `services/publisher_linkedin.py` — LinkedIn UGC + 3-step image asset upload, moved from `campaigns/` | 2 | Backend | L | 3 |
+| 5 | Add Playwright + Chromium to Dockerfile, rebuild web container | 1 | DevOps | S | - |
+| 6 | `services/renderer.py` - HTML file → PNG via Playwright | 2 | Backend | M | 5 |
+| 7 | Copy TaggIQ `design-tokens.css` → `static/social/taggiq/tokens.css` + `_base.html` brand container + 5 starter HTML templates | 2 | UI Designer | M | - |
+| 8 | `services/content_sync.py` - parse `LINKEDIN_POSTS.md` → `SocialPost` rows (upsert by `post_number`) | 2 | Backend | S | 4 |
+| 9 | `services/screenshots.py` - capture 6 TaggIQ routes from localhost:5180 → `static/taggiq-ui/` | 2 | Backend | M | 5 |
+| 10 | `services/publisher_linkedin.py` - LinkedIn UGC + 3-step image asset upload, moved from `campaigns/` | 2 | Backend | L | 3 |
 | 11 | `manage.py sync_content` command | 3 | Backend | S | 8 |
 | 12 | `manage.py render_post --post N` command | 3 | Backend | S | 6, 7 |
 | 13 | `manage.py publish_post --next-scheduled` command | 3 | Backend | S | 10 |
 | 14 | `manage.py capture_screenshots` command | 3 | Backend | S | 9 |
 | 15 | End-to-end render test: author 1 post via `/taggiq-ui-designer`, render, visually approve | 4 | UI Designer | M | 11, 12 |
-| 16 | Update `docker/cron-entrypoint.sh` — replace `post_to_social` with `publish_post --next-scheduled` | 4 | DevOps | XS | 13 |
+| 16 | Update `docker/cron-entrypoint.sh` - replace `post_to_social` with `publish_post --next-scheduled` | 4 | DevOps | XS | 13 |
 | 17 | Rebuild `outreach_cron` container with Playwright | 4 | DevOps | S | 16 |
-| 18 | QA automation suite — render regression (golden-file PNGs), publisher unit tests with mocked LinkedIn, data migration test | 5 | QA | M | 15 |
+| 18 | QA automation suite - render regression (golden-file PNGs), publisher unit tests with mocked LinkedIn, data migration test | 5 | QA | M | 15 |
 | 19 | QA release-readiness report for TaggIQ validation | 5 | QA | S | 18 |
 
 **Not in this list (blocked by LinkedIn CMA approval, separate track):**
@@ -363,10 +363,10 @@ Implementers MUST keep `docs/social-studio-progress.md` up to date. The orchestr
 
 ## 13. Open questions (answer before implementation starts)
 
-1. **LINKEDIN_POSTS.md location** — is the canonical source `/Users/pinani/Documents/taggiqpos/marketing/social/LINKEDIN_POSTS.md` or should it be mirrored into `paperclip-outreach/social_studio/content/taggiq/LINKEDIN_POSTS.md`? Recommended: keep source of truth in `taggiqpos`, `sync_content` reads it via configured absolute path stored in settings/env.
-2. **TaggIQ frontend credentials** — `screenshots.py` needs a way to auth into the running TaggIQ app. Does Prakash have a demo account, or do we need to seed one?
-3. **Rendered HTML + PNG commit policy** — commit the bespoke HTML and rendered PNGs to git for reproducibility, or gitignore and rebuild on demand? Recommended: commit HTML (small, auditable), gitignore PNGs (large, regeneratable).
-4. **Static asset delivery for Playwright rendering** — when Playwright opens `file://rendered_html/post_01.html`, the HTML must be able to `<link>` to `static/social/taggiq/tokens.css` and `<img>` from `static/taggiq-ui/*.png`. Implementer must pick a path resolution strategy (absolute paths, symlinks, or a local HTTP server). Recommended: use a local `python -m http.server` on an unused port during render, navigate to `http://localhost:<port>/rendered_html/post_01.html`.
+1. **LINKEDIN_POSTS.md location** - is the canonical source `/Users/pinani/Documents/taggiqpos/marketing/social/LINKEDIN_POSTS.md` or should it be mirrored into `paperclip-outreach/social_studio/content/taggiq/LINKEDIN_POSTS.md`? Recommended: keep source of truth in `taggiqpos`, `sync_content` reads it via configured absolute path stored in settings/env.
+2. **TaggIQ frontend credentials** - `screenshots.py` needs a way to auth into the running TaggIQ app. Does Prakash have a demo account, or do we need to seed one?
+3. **Rendered HTML + PNG commit policy** - commit the bespoke HTML and rendered PNGs to git for reproducibility, or gitignore and rebuild on demand? Recommended: commit HTML (small, auditable), gitignore PNGs (large, regeneratable).
+4. **Static asset delivery for Playwright rendering** - when Playwright opens `file://rendered_html/post_01.html`, the HTML must be able to `<link>` to `static/social/taggiq/tokens.css` and `<img>` from `static/taggiq-ui/*.png`. Implementer must pick a path resolution strategy (absolute paths, symlinks, or a local HTTP server). Recommended: use a local `python -m http.server` on an unused port during render, navigate to `http://localhost:<port>/rendered_html/post_01.html`.
 
 ---
 
