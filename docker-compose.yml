@@ -25,10 +25,14 @@ services:
       - "8002:8002"
     volumes:
       - .:/app
+      # social_studio content source — read-only view of the TaggIQ marketing folder
+      - /Users/pinani/Documents/taggiqpos/marketing/social:/taggiq-marketing:ro
     env_file:
       - .env
     environment:
       - DATABASE_URL=postgres://outreach:${POSTGRES_PASSWORD:-localdev}@postgres:5432/outreach
+      - TAGGIQ_MARKDOWN_PATH=/taggiq-marketing/LINKEDIN_POSTS.md
+      - TAGGIQ_FRONTEND_URL=http://host.docker.internal:5180
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,0 +1,36 @@
+{% extends "social/taggiq/_base.html" %}
+
+{% comment %}
+Workflow template — numbered steps showing a process.
+Best for: product-in-action, how-it-works, step-by-step posts.
+Slots:
+  - post.headline or heading
+  - steps : list of {title, description} dicts (pass in context)
+  - closer : optional payoff line in violet at bottom
+{% endcomment %}
+
+{% block tag %}
+<div class="brand-header__tag">{{ pillar|default:"Product" }}</div>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; flex-direction:column; flex:1; padding-top: 40px;">
+    <div class="h2" style="margin-bottom: 56px; max-width: 980px;">{{ heading|default:"Build a quote in under 3 minutes." }}</div>
+
+    <div style="display:flex; flex-direction:column; gap: 40px;">
+        {% for step in steps %}
+        <div style="display:flex; align-items:flex-start; gap: 32px;">
+            <div style="width: 64px; height: 64px; border-radius: 999px; background: var(--color-primary); color: white; display:flex; align-items:center; justify-content:center; font-family: var(--font-heading); font-weight: 700; font-size: 32px; flex-shrink: 0;">{{ forloop.counter }}</div>
+            <div>
+                <div class="h3" style="margin-bottom: 6px;">{{ step.title }}</div>
+                <div class="body text-muted">{{ step.description }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div style="margin-top: auto; padding-top: 32px;">
+        <div class="body-lg text-primary" style="font-weight: 500;">▶  {{ closer|default:"Under 3 minutes, start to send." }}</div>
+    </div>
+</div>
+{% endblock %}

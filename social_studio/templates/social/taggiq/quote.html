@@ -1,0 +1,27 @@
+{% extends "social/taggiq/_base.html" %}
+
+{% comment %}
+Pull-quote / testimonial template.
+Best for: customer wins, testimonials, social proof.
+Slots: quote, attribution_name, attribution_role, attribution_company
+{% endcomment %}
+
+{% block tag %}
+<div class="brand-header__tag">Customer</div>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; flex-direction:column; justify-content:center; flex:1; padding-top: 40px;">
+    <div style="font-family: var(--font-heading); font-weight: 700; font-size: 220px; color: var(--color-primary); line-height: 0.6; margin-bottom: 20px;">&ldquo;</div>
+
+    <div class="h2" style="max-width: 1040px; margin-bottom: 64px;">
+        {{ quote|default:"We cut our quoting time by 85% in the first two weeks." }}
+    </div>
+
+    <div>
+        <div class="h3" style="margin-bottom: 4px;">{{ attribution_name|default:"Sarah Chen" }}</div>
+        <div class="body text-muted">{{ attribution_role|default:"Operations Director" }}</div>
+        {% if attribution_company %}<div class="body text-muted">{{ attribution_company }}</div>{% endif %}
+    </div>
+</div>
+{% endblock %}

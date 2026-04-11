@@ -1,0 +1,27 @@
+{% extends "social/taggiq/_base.html" %}
+
+{% comment %}
+Stat Hero template — one massive number/phrase dominates the canvas.
+Best for: industry stats, data hooks, punchy claims.
+Slots expected on `post`:
+  - post.headline       : short kicker above the stat (auto from first sentence)
+  - stat_value          : the big number ({context variable or hard-coded in bespoke HTML})
+  - stat_unit           : optional currency/percent symbol in accent color
+  - subhead             : amplification below the stat
+{% endcomment %}
+
+{% block tag %}
+<div class="brand-header__tag">{{ pillar|default:"Industry" }}</div>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; flex:1; padding: 0 40px;">
+    <div class="kicker">{{ kicker|default:"THE PROMO INDUSTRY" }}</div>
+    <div class="display" style="margin: 24px 0;">
+        <span class="accent">{{ stat_unit|default:"$" }}</span>{{ stat_value|default:"26" }}<span class="accent" style="font-size: 120px;"> {{ stat_suffix|default:"B" }}</span>
+    </div>
+    <div class="h3 text-muted" style="max-width: 900px; margin-top: 48px;">
+        {{ subhead|default:"Still running on spreadsheets, email threads, and sticky notes." }}
+    </div>
+</div>
+{% endblock %}

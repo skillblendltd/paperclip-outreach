@@ -1,0 +1,240 @@
+/*
+ * TaggIQ brand tokens for social post rendering.
+ * Mirrors /Users/pinani/Documents/taggiqpos/frontend/src/styles/design-tokens.css
+ * but scoped to what the social canvas needs.
+ */
+
+@font-face {
+    font-family: 'Poppins';
+    font-weight: 700;
+    font-style: normal;
+    src: url('Poppins-Bold.ttf') format('truetype');
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'Poppins';
+    font-weight: 600;
+    font-style: normal;
+    src: url('Poppins-SemiBold.ttf') format('truetype');
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 400;
+    font-style: normal;
+    src: url('Inter-Regular.ttf') format('truetype');
+    font-display: block;
+}
+
+:root {
+    /* TaggIQ brand palette */
+    --color-primary: #7C3AED;
+    --color-primary-50: #F3F0FF;
+    --color-primary-200: #DDCAFF;
+    --color-primary-700: #6D28D9;
+
+    --color-charcoal: #1E2030;
+    --color-charcoal-800: #334155;
+    --color-muted: #64748B;
+
+    --color-cream: #FAF8F5;
+    --color-cream-alt: #F7F5F0;
+    --color-white: #FFFFFF;
+    --color-border: #E2E8F0;
+
+    --color-success: #12B488;
+    --color-success-bg: #ECFDF5;
+    --color-error: #F44336;
+    --color-error-bg: #FEF2F2;
+
+    /* Type scale for 1200x1200 canvas */
+    --size-display: 200px;
+    --size-h1: 88px;
+    --size-h2: 56px;
+    --size-h3: 36px;
+    --size-body-lg: 28px;
+    --size-body: 22px;
+    --size-label: 18px;
+    --size-meta: 16px;
+
+    --lh-tight: 1.05;
+    --lh-snug: 1.2;
+    --lh-normal: 1.45;
+
+    --font-heading: 'Poppins', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+
+    /* Spacing on 8px grid */
+    --gap-xs: 8px;
+    --gap-sm: 16px;
+    --gap-md: 24px;
+    --gap-lg: 40px;
+    --gap-xl: 80px;
+
+    /* Canvas */
+    --canvas-padding: 80px;
+    --radius-card: 24px;
+    --shadow-card: 0 8px 24px rgba(30, 32, 48, 0.06);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 1200px;
+    height: 1200px;
+    overflow: hidden;
+    font-family: var(--font-body);
+    color: var(--color-charcoal);
+    background: var(--color-cream);
+    -webkit-font-smoothing: antialiased;
+}
+
+.canvas {
+    width: 1200px;
+    height: 1200px;
+    padding: var(--canvas-padding);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: var(--color-cream);
+}
+
+.brand-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--gap-lg);
+    flex-shrink: 0;
+}
+
+.brand-header__logo {
+    height: 64px;
+    width: auto;
+}
+
+.brand-header__tag {
+    background: var(--color-primary-50);
+    color: var(--color-primary-700);
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--size-label);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: var(--gap-md);
+    border-top: 1px solid var(--color-border);
+    flex-shrink: 0;
+    margin-top: var(--gap-md);
+}
+
+.footer__hashtags {
+    font-family: var(--font-body);
+    font-size: var(--size-meta);
+    font-weight: 500;
+    color: var(--color-muted);
+}
+
+.footer__url {
+    font-family: var(--font-body);
+    font-size: var(--size-meta);
+    font-weight: 500;
+    color: var(--color-muted);
+}
+
+.kicker {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--size-label);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-bottom: var(--gap-sm);
+}
+
+.display {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--size-display);
+    line-height: 0.95;
+    color: var(--color-charcoal);
+    letter-spacing: -0.03em;
+}
+
+.display .accent {
+    color: var(--color-primary);
+}
+
+.h1 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--size-h1);
+    line-height: var(--lh-tight);
+    color: var(--color-charcoal);
+    letter-spacing: -0.02em;
+}
+
+.h2 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--size-h2);
+    line-height: var(--lh-tight);
+    color: var(--color-charcoal);
+    letter-spacing: -0.01em;
+}
+
+.h3 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--size-h3);
+    line-height: var(--lh-snug);
+    color: var(--color-charcoal);
+}
+
+.body-lg {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: var(--size-body-lg);
+    line-height: var(--lh-normal);
+    color: var(--color-muted);
+}
+
+.body {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: var(--size-body);
+    line-height: var(--lh-normal);
+    color: var(--color-charcoal);
+}
+
+.text-muted { color: var(--color-muted); }
+.text-primary { color: var(--color-primary); }
+.text-success { color: var(--color-success); }
+.text-error { color: var(--color-error); }
+
+.accent-bar-left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 8px;
+    height: 1200px;
+    background: var(--color-primary);
+}

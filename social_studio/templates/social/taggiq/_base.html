@@ -1,0 +1,41 @@
+{% comment %}
+Base brand container for TaggIQ social posts.
+
+All starter templates and bespoke HTML should extend or copy this structure.
+Renders to 1200x1200 at 2x for LinkedIn feed square.
+
+Blocks:
+  - head_extra  : extra CSS, fonts, meta
+  - accent      : optional accent elements (stripe, corner, etc)
+  - content     : main canvas content
+  - tag         : optional right-side pillar tag (INDUSTRY / PRODUCT / FOUNDER NOTE / etc.)
+  - hashtags    : footer hashtag strip
+  - footer_url  : footer right-side URL (defaults to taggiq.com)
+{% endcomment %}<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ post.headline|default:post.content|truncatechars:80 }}</title>
+    <link rel="stylesheet" href="{{ STATIC_ABS }}/tokens.css">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+<div class="canvas">
+    {% block accent %}{% endblock %}
+
+    <div class="brand-header">
+        <img class="brand-header__logo" src="{{ STATIC_ABS }}/logo.png" alt="TaggIQ">
+        {% block tag %}{% endblock %}
+    </div>
+
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="footer">
+        <div class="footer__hashtags">{% block hashtags %}{{ post.hashtags|default:"#TaggIQ  #POS  #PromoIndustry" }}{% endblock %}</div>
+        <div class="footer__url">{% block footer_url %}taggiq.com{% endblock %}</div>
+    </div>
+</div>
+</body>
+</html>

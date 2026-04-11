@@ -6,3 +6,6 @@ db/*.sqlite3
 venv/
 campaigns/migrations/
 backups/
+
+# social_studio
+social_studio/rendered_images/

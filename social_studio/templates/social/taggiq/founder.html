@@ -1,0 +1,36 @@
+{% extends "social/taggiq/_base.html" %}
+
+{% comment %}
+Founder / personal voice template.
+Best for: behind-the-scenes, founder notes, origin stories.
+Slots:
+  - quote : pull-quote text (h2, Poppins Bold)
+  - attribution_name
+  - attribution_role
+  - closer : optional supporting line
+{% endcomment %}
+
+{% block tag %}
+<div class="brand-header__tag">Founder Note</div>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; flex-direction:column; flex:1; padding-top: 60px;">
+    <div style="font-family: var(--font-heading); font-weight: 700; font-size: 160px; color: var(--color-primary); line-height: 0.6; margin-bottom: 24px;">&ldquo;</div>
+
+    <div class="h2" style="max-width: 1000px; margin-bottom: 48px;">
+        {{ quote|default:"Building TaggIQ has been harder than running the promo shop that inspired it." }}
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap: 4px; margin-bottom: 40px;">
+        <div class="h3">{{ attribution_name|default:"Prakash Inani" }}</div>
+        <div class="body text-muted">{{ attribution_role|default:"Founder, TaggIQ" }}</div>
+    </div>
+
+    <div style="margin-top: auto;">
+        <div class="body-lg" style="max-width: 900px;">
+            {{ closer|default:"Every feature comes from real conversations with real shop owners." }}
+        </div>
+    </div>
+</div>
+{% endblock %}
