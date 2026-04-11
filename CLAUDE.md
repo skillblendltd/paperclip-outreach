@@ -249,16 +249,38 @@ All endpoints support `?campaign_id=` or `?product=` filtering. No auth required
 
 ## Cron Schedule (fully autonomous)
 
-| Cron | Script | What it does |
-|------|--------|--------------|
-| `0 11 * * 1-5` | `run_campaigns.sh` | Daily Mon-Fri 11am: `python manage.py send_sequences` |
-| `*/10 * * * *` | `run_reply_monitor.sh` | Every 10 min: IMAP check + Claude auto-reply for flagged emails |
-| `0 23 * * *` | `backup_to_gdrive.sh` | Nightly: backs up database to Google Drive |
+**Runs inside the `outreach_cron` Docker container on Prakash's laptop.** The old macOS launchd agents (`com.paperclip.*`) are unloaded and the EC2 instance `paperclip-outreach-server` is stopped. Docker cron is the single source of truth.
 
-### Logs
+Cron jobs are installed by `docker/cron-entrypoint.sh` on container start:
+
+| Cron | Command | What it does |
+|------|---------|--------------|
+| `0 11 * * 1-5` | `python manage.py send_sequences` | Daily Mon-Fri 11am: universal sender |
+| `*/10 * * * *` | `python manage.py handle_replies` | Every 10 min: IMAP check + Claude auto-reply for flagged emails |
+| `0 9 * * 1-5` | `python manage.py post_to_social` | Daily Mon-Fri 9am: LinkedIn posts |
+| `0 23 * * *` | `/app/backup_to_gdrive.sh` | Nightly: database backup to Google Drive |
+
+### Bring the stack up / down
+```bash
+docker compose up -d         # start all containers
+docker compose ps            # check status
+docker compose logs -f cron  # tail cron container
+docker compose down          # stop everything
+```
+
+### Logs (inside the cron container, not host /tmp)
 - `/tmp/campaigns_daily.log` - daily send activity
-- `/tmp/taggiq_reply_monitor.log` - reply monitoring
-- `/tmp/taggiq_claude_replies.log` - Claude reply output
+- `/tmp/outreach_reply_monitor.log` - reply monitoring
+- `/tmp/outreach_social.log` - LinkedIn posts
+- `/tmp/outreach_backup.log` - backup activity
+
+Access via `docker exec outreach_cron tail -f /tmp/<logfile>`.
+
+### Laptop uptime requirement
+Docker cron only runs while the Mac is awake and Docker Desktop is running. Close the lid or stop Docker and the pipeline pauses. For always-on autonomy, the path is an SDK rewrite of `handle_replies` (removes Claude Code CLI dependency) followed by redeployment to EC2.
+
+### Why not EC2 right now
+`handle_replies` subprocess-spawns the Claude Code CLI (`/Users/pinani/.local/bin/claude`) to generate personalized replies. The CLI isn't installed or authenticated on EC2, and migrating to the Anthropic Python SDK is deferred. Until that rewrite, EC2 stays parked.
 
 ---
 
@@ -312,6 +334,8 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 | Architecture v2 Plan | `docs/architecture-v2-plan.md` | Multi-tenant design, all models, service layer, PostgreSQL migration |
 | Sprint Plan | `docs/sprint-plan.md` | Implementation phases, status tracking, monitoring checklist |
 | Backup & Restore | `docs/backup-and-restore.md` | Database backup and restore procedures |
+| Social Studio v1 Plan | `docs/social-studio-v1-plan.md` | New `social_studio` Django app — TaggIQ LinkedIn pilot, HTML+Playwright renderer, zero-cost v1, platform-ready multi-tenant |
+| Social Studio Progress | `docs/social-studio-progress.md` | Living state for social_studio implementation — read at session start, update at session end |
 
 **v2 Status (as of 2026-04-08):**
 - Sprint 1 DONE: Multi-tenant models (Organization, Product, EmailTemplate, CallScript, PromptTemplate, AIUsageLog)
