@@ -1,6 +1,6 @@
 # Sprint 7 Execution State
 
-**Last updated:** 2026-04-13 (planning complete, execution not started)
+**Last updated:** 2026-04-13 (planning complete + open questions resolved, execution cleared to start)
 **Purpose:** Live execution tracker for Sprint 7. If the session dies mid-build, the next Claude reads this file + `docs/sprint-7-implementation-plan.md` and resumes from the last unchecked task.
 
 ## How to resume if session is terminated
@@ -70,20 +70,33 @@
 
 ## Current step
 
-**Planning phase complete.** Doc committed at planning state. Execution blocked on Prakash approval to start Phase 7.0 (golden set capture, ~90 min of Prakash time) and answers to Section 9 open questions in the implementation plan.
+**Planning phase complete. All 5 open questions resolved by Prakash on 2026-04-13.** Execution cleared to start at Phase 7.0.1 (Claude-drafted golden set). The overarching goal locked by Prakash: **make the pipeline autonomous end to end.** No human in the loop for normal flow. Humans only appear on escalation rules firing.
 
-**Blocked on:**
-- Phase 7.0.1 — Prakash availability for golden set review session
-- Phase 7.3.1 — Loom URL for TaggIQ Warm Re-engagement (also blocks Sprint 6 Phase 1B, independent)
+**Not blocked on anything.** Remaining dependencies on Prakash (Loom URL, Ifrah test call, EC2 rollout timing) are decoupled from the Sprint 7 critical path — see "Decisions locked" below.
+
+**Next actionable task:** 7.0.1 — Claude pulls candidate inbound emails from both hosts (local Postgres for TaggIQ + EC2 Postgres for print-promo via Lisa), drafts the 30 golden-set pairs (inbound + ideal reply), commits to `tests/golden_sets/{product}.json`. Prakash reviews asynchronously.
 
 ## Decisions locked (do not re-litigate)
 
+### Architecture (from CTO + AI architect review)
 - **Brain contract:** `ProductBrain` (per-product) + `CampaignBrainOverride` (sparse per-campaign). No new columns on `Campaign` or `Prospect`.
 - **Feature flag:** reuse existing `Campaign.use_context_assembler` from Sprint 6 (migration 0016). No new flag.
-- **Model floor:** Sonnet 4.6 on all AI jobs, configurable per-brain via `jobs` JSON. Haiku explicitly rejected per Prakash 2026-04-13.
+- **Model floor:** Sonnet 4.6 on all AI jobs, configurable per-brain via `jobs` JSON. Haiku explicitly rejected by Prakash 2026-04-13.
 - **Decisioning:** rules engine only, no LLM on next-action. LLM reserved for content generation (reply, call opener, transcript analysis).
 - **Judge model:** Opus 4.6 for golden set eval. ~$5/week cost.
 - **Deployment surfaces:** Local Docker (TaggIQ + FP Franchise + FP BNI) and EC2 (`print-promo` via Lisa). Postgres 16 on both. No cross-host replication.
-- **Rollout order:** Local first (Warm Re-engagement), 3-day observation, EC2 only after local proves out.
 - **No impact on existing campaigns:** flag=False path is byte-sacred for the duration of Sprint 7. Any PR that changes it is a rejected merge.
 - **Out of scope:** Kritno brain, UI for editing brains, attribution tokens, TCPA rules, public API, usage-based billing. All Phase 3.
+
+### Prakash decisions 2026-04-13 (answering Section 9 open questions)
+- **Overarching goal:** autonomous pipeline. No human approval step on normal flow. Humans surface only when `escalation_rules` fire. Sprint 7 is graded on "can Prakash close his laptop and the pipeline still runs for all products on the new brain path." Any design choice that reintroduces a routine human-in-the-loop step is wrong.
+- **Golden set authoring (Q1):** Claude drafts all 30 pairs (15 TaggIQ + 15 print-promo) by pulling real inbound emails from both Postgres instances and writing ideal replies in the established voice. Prakash reviews asynchronously — no 90-minute live session required. Claude proceeds on the drafted set if review is pending.
+- **Ifrah US test call (Q2):** not a Sprint 7 blocker. Skipped from the critical path. If Prakash wants to run it, he runs it himself or asks separately. Sprint 7 does not wait.
+- **Brain authoring split (Q3):** Claude drafts both TaggIQ and FP Franchise brain JSON from `CLAUDE.md`, warm re-engagement plan, FP sales manual memory, and the voice rules in existing `PromptTemplate` rows. Prakash reviews. No human blocker on the draft.
+- **Loom URL coupling (Q4):** decoupled. Phase 7.3.1 flips `use_context_assembler=True` on TaggIQ Warm Re-engagement when Phase 7.2 is green, independent of `sending_enabled`. Brain path is validated via shadow mode + dry runs until Loom lands. Real traffic starts when Loom lands — separate event.
+- **EC2 rollout timing (Q5):** not a blocker. Default 3-day local observation window holds. Phase 7.4 proceeds to EC2 on schedule once local is stable, without waiting for TaggIQ Warm Re-engagement real traffic.
+
+### Operating mode for Sprint 7 execution
+- Claude works autonomously through phases. No mid-sprint approval checkpoints unless a task is genuinely blocked (external service, credentials, destructive action).
+- Progress committed after every merged task. Prakash reviews commits, not pre-merge drafts.
+- If Claude hits ambiguity, default choice: the one that reduces human intervention in the live pipeline.
