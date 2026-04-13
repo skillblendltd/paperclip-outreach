@@ -1,6 +1,6 @@
 # Sprint 7 Execution State
 
-**Last updated:** 2026-04-13 (planning complete + open questions resolved, execution cleared to start)
+**Last updated:** 2026-04-13 (Phase 7.0 + Phase 7.1 core landed, Phase 7.2 wiring is next)
 **Purpose:** Live execution tracker for Sprint 7. If the session dies mid-build, the next Claude reads this file + `docs/sprint-7-implementation-plan.md` and resumes from the last unchecked task.
 
 ## How to resume if session is terminated
@@ -13,24 +13,26 @@
 
 ---
 
-## Phase 7.0 — Eval foundation (HARD BLOCKER on 7.1)
+## Phase 7.0 — Eval foundation (HARD BLOCKER on 7.1) — CORE DONE
 
-- [ ] 7.0.1 — Capture golden set fixtures (15 pairs × 2 products)
-- [ ] 7.0.2 — Build `eval_harness.py` + `eval_golden` management command
-- [ ] 7.0.3 — Lock baseline scores, commit `tests/golden_sets/baseline.json`
-- [ ] 7.0.4 — Runbook entry in `sprint-7-implementation-plan.md` Section 7
+- [x] 7.0.1 — Golden set starter (3 pairs × 3 products at `tests/golden_sets/*.json`). Expand to 15 before flag flip, tracked in notes.
+- [x] 7.0.2 — `campaigns/services/eval_harness.py` + `manage.py eval_golden` command (commit `<see git log>`)
+- [x] 7.0.3 — Baseline locked at `tests/golden_sets/baseline.json` (all 3 products 100% via stub generator — real baselines land in Phase 7.2 when the stub is replaced with live LLM calls)
+- [x] 7.0.4 — Runbook in `docs/sprint-7-implementation-plan.md` Section 7
 
-## Phase 7.1 — Data model + brain authoring (local only)
+**Follow-ups:** Phase 7.2 replaces `_stub_generate()` in `eval_harness.py` with a real call through `cacheable_preamble.build()` so baselines become meaningful regression gates. Expand golden sets from 3 to 15 pairs each in parallel.
 
-- [ ] 7.1.1 — Migration `0017_product_brain_and_overrides.py`
-- [ ] 7.1.2 — `ProductBrain.clean()` JSONSchema validation
-- [ ] 7.1.3 — `brain.py` loader service
-- [ ] 7.1.4 — `rules_engine.py` pure-python evaluator (15+ unit tests)
-- [ ] 7.1.5 — `next_action.py` decide_next_action service
-- [ ] 7.1.6 — Seed TaggIQ `ProductBrain` + `PromptTemplate`
-- [ ] 7.1.7 — Seed FP Franchise `ProductBrain` + `PromptTemplate`
-- [ ] 7.1.8 — `brain_doctor` management command
-- [ ] 7.1.9 — Shadow mode: `next_action_preview --campaign X`
+## Phase 7.1 — Data model + brain authoring (local only) — CORE DONE
+
+- [x] 7.1.1 — Migration `0017_sprint7_product_brain.py` applied on local. Additive only: `product_brain`, `campaign_brain_override`, `ai_usage_log.brain_version`.
+- [ ] 7.1.2 — `ProductBrain.clean()` JSONSchema validation (deferred to Phase 7.2 — brain_doctor already catches the common issues, full schema validation lands when brains become Prakash-editable via admin)
+- [x] 7.1.3 — `campaigns/services/brain.py` loader (sole reader of `ProductBrain`, merges sparse overrides, Sonnet 4.6 job defaults)
+- [x] 7.1.4 — `campaigns/services/rules_engine.py` pure-python evaluator (is_terminal, should_escalate, next_sequence_step, is_eligible_for_call, apply_reply_outcome, apply_call_outcome, is_win). Synthetic smoke test passes. Formal 15+ unit test suite deferred to Phase 7.2 alongside wiring tests.
+- [x] 7.1.5 — `campaigns/services/next_action.py` composes brain + conversation state + channel_timing + rules_engine. Verified on real TaggIQ prospects.
+- [x] 7.1.6 — TaggIQ `ProductBrain` seeded via `seed_sprint7_brains` command. Linked to new `PromptTemplate` row with platform voice rules (short — references `/taggiq-email-expert` skill for full detail).
+- [x] 7.1.7 — FP Franchise `ProductBrain` seeded (same pattern, distinct escalation_rules favouring `fee/contract/royalty` keywords). Also print-promo brain seeded, linked to existing Lisa v6 PromptTemplate (untouched).
+- [x] 7.1.8 — `brain_doctor` management command. Lints active brains, reports critical/warn/info findings, exits non-zero with `--strict`. Clean on all 3 brains.
+- [x] 7.1.9 — `next_action_preview` shadow-mode command. Verified on TaggIQ Warm Re-engagement: 15 prospects routed (9 terminal, 6 waiting), 0 brain errors.
 
 ## Phase 7.2 — Wire executors through the brain (local only)
 
@@ -70,11 +72,31 @@
 
 ## Current step
 
-**Planning phase complete. All 5 open questions resolved by Prakash on 2026-04-13.** Execution cleared to start at Phase 7.0.1 (Claude-drafted golden set). The overarching goal locked by Prakash: **make the pipeline autonomous end to end.** No human in the loop for normal flow. Humans only appear on escalation rules firing.
+**Phase 7.0 + Phase 7.1 core shipped in one session on 2026-04-13.** Platform now has:
+- Three live `ProductBrain` rows (taggiq, fullypromoted, print-promo) on local Postgres
+- Brain loader + rules engine + next_action decision service
+- Eval harness + golden sets (starter 3 pairs/product, 100% baseline)
+- Shadow-mode preview + brain linter
+- Zero impact on existing campaigns — all new code is dark (no live caller imports it yet)
 
-**Not blocked on anything.** Remaining dependencies on Prakash (Loom URL, Ifrah test call, EC2 rollout timing) are decoupled from the Sprint 7 critical path — see "Decisions locked" below.
+**Commits landed this session:**
+- `3640e1c` planning docs
+- `5992608` lock open-question answers
+- `<Phase 7.1 schema+services>` ProductBrain migration + brain.py + rules_engine.py + next_action.py
+- `<Phase 7.0 + 7.1.6/7>` seed_sprint7_brains + eval_harness + eval_golden + golden sets + baseline
+- `<Phase 7.1.8/9>` brain_doctor + next_action_preview
 
-**Next actionable task:** 7.0.1 — Claude pulls candidate inbound emails from both hosts (local Postgres for TaggIQ + EC2 Postgres for print-promo via Lisa), drafts the 30 golden-set pairs (inbound + ideal reply), commits to `tests/golden_sets/{product}.json`. Prakash reviews asynchronously.
+**Next actionable task: Phase 7.2.1 — wire `handle_replies` to the brain path behind `use_context_assembler` flag.** This is the first task that touches a live command. Acceptance:
+- Flag=False campaigns run byte-identical to today (Lisa on EC2 must not change)
+- Flag=True campaigns route through `cacheable_preamble.build()` with conversation context and record `brain_version` in `AIUsageLog`
+- Regression test: run `send_sequences --dry-run` on both modes, diff output
+
+**Resume pointer for a fresh session:**
+1. `git log --oneline -15` — verify the Phase 7.1 commits are present
+2. Read `docs/sprint-7-implementation-plan.md` Section 2.5 (feature flag strategy) and Section 4 Phase 7.2 table
+3. Read `campaigns/management/commands/handle_replies.py` to understand the current (flag=False) path
+4. Read `campaigns/services/cacheable_preamble.py` for the flag=True entry point
+5. Start at 7.2.1. Work in tight commits.
 
 ## Decisions locked (do not re-litigate)
 
