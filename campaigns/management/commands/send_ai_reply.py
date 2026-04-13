@@ -269,6 +269,40 @@ class Command(BaseCommand):
             latency_ms=latency_ms, word_count=word_count,
         )
 
+        # Sprint 7 Phase 7.2.6 — escalation handoff on flag=True campaigns.
+        # After a successful AI reply, consult the brain's escalation_rules
+        # against the inbound we just answered. If they fire, stamp an
+        # ESCALATION: note and emit a structured warning log. Non-fatal on
+        # any error — never let escalation bookkeeping fail the SMTP send.
+        if getattr(campaign, 'use_context_assembler', False) and prospect:
+            try:
+                from campaigns.services.brain import load_brain, BrainNotFound
+                from campaigns.services import rules_engine
+                brain = load_brain(prospect)
+                trigger = {
+                    'type': 'reply',
+                    'body': inbound.body_text or '',
+                    'status': prospect.status,
+                    'reply_count': getattr(prospect, 'reply_count', 0) or 0,
+                }
+                escalate, reason = rules_engine.should_escalate(brain, prospect, trigger)
+                if escalate:
+                    timestamp = timezone.now().isoformat()
+                    line = f'ESCALATION: {reason} - {timestamp}'
+                    prospect.notes = (prospect.notes + '\n' if prospect.notes else '') + line
+                    prospect.save(update_fields=['notes', 'updated_at'])
+                    import logging as _logging
+                    _logging.getLogger(__name__).warning(
+                        'escalation prospect=%s campaign=%s reason=%s',
+                        prospect.id, campaign.id, reason,
+                    )
+            except BrainNotFound:
+                pass
+            except Exception as exc:
+                self.stderr.write(self.style.WARNING(
+                    f'  [sprint7] escalation check failed: {exc}'
+                ))
+
         self.stdout.write(self.style.SUCCESS(
             f'EXIT 0: sent reply to {inbound.from_email} '
             f'({word_count} words, {latency_ms}ms SMTP, attempt #{inbound.ai_attempt_count})'
