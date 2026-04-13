@@ -51,6 +51,8 @@ from campaigns.services.reply_audit import (
     detect_bounce_reply,
     detect_length_violation,
 )
+# Sprint 7 Phase 7.2.2 — budget gate + brain_version attribution
+from campaigns.services import ai_budget
 
 
 # Exit codes - keep stable, prompts depend on these
@@ -165,6 +167,21 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 f'  LENGTH-WARN: body is {word_count} words (target <{warn_words})'
             ))
+
+        # Sprint 7 Phase 7.2.2 — per-org AI budget gate. Only consulted when
+        # the campaign is on the new contextual path; flag=False campaigns
+        # keep the pre-Sprint-7 behavior byte-identical. On budget-exceeded we
+        # log a degrade event but DO NOT abort the send — the LLM call that
+        # produced this body already happened upstream (in the Claude
+        # orchestrator), so refusing the SMTP send here just wastes tokens.
+        budget_degraded = False
+        if getattr(campaign, 'use_context_assembler', False):
+            allowed, reason = ai_budget.check_budget_before_call(product.organization)
+            if not allowed:
+                budget_degraded = True
+                self.stderr.write(self.style.WARNING(
+                    f'  [budget] degrade: {reason} — proceeding with flat send'
+                ))
 
         # 4. Resolve SMTP config with fallback to sibling campaigns in same product
         smtp_config = self._resolve_smtp_config(campaign, product)
@@ -283,6 +300,31 @@ class Command(BaseCommand):
             return mb.get_smtp_config()
         return None
 
+    def _resolve_brain_version(self, campaign, product):
+        """Sprint 7 Phase 7.2.2 — look up the active brain_version for this
+        product when the campaign is on the contextual path. Returns None on
+        flag=False or when no ProductBrain row exists yet (avoids coupling
+        the send path to brain seeding order).
+
+        Also honors the PAPERCLIP_BRAIN_VERSION env var set by
+        handle_replies._invoke_with_contextual_prompt so multi-hop subprocess
+        invocations stay consistent even if DB read ordering differs.
+        """
+        if not getattr(campaign, 'use_context_assembler', False):
+            return None
+        import os as _os
+        env_val = _os.environ.get('PAPERCLIP_BRAIN_VERSION')
+        if env_val:
+            try:
+                return int(env_val)
+            except ValueError:
+                pass
+        try:
+            from campaigns.services.brain import load_brain_by_product
+            return load_brain_by_product(product.slug).brain_version
+        except Exception:
+            return None
+
     def _log_ai_usage(self, campaign, prospect, product, *, success, latency_ms,
                       word_count=0, error_message=''):
         """Record this send attempt to AIUsageLog for cost/observability tracking.
@@ -301,6 +343,7 @@ class Command(BaseCommand):
         # did Lisa cost today" queries.
         estimated_input_tokens = 1500 + (word_count * 2)  # ctx + roughly-quoted inbound
         estimated_output_tokens = max(int(word_count * 1.3), 50)
+        brain_version = self._resolve_brain_version(campaign, product)
         try:
             AIUsageLog.objects.create(
                 organization=product.organization,
@@ -315,7 +358,17 @@ class Command(BaseCommand):
                 latency_ms=latency_ms,
                 success=success,
                 error_message=error_message,
+                brain_version=brain_version,
             )
+            # Sprint 7 Phase 7.2.2 — feed the atomic org counter used by
+            # ai_budget.check_budget_before_call(). Only charge on successful
+            # sends; failures are not billable.
+            if success and getattr(campaign, 'use_context_assembler', False):
+                cost_cents = int(
+                    self._estimate_cost(estimated_input_tokens, estimated_output_tokens) * 100
+                )
+                if cost_cents > 0:
+                    ai_budget.record_cost(product.organization, cents=cost_cents)
         except Exception as e:
             # Never let usage logging fail the actual send
             self.stderr.write(self.style.WARNING(f'AIUsageLog write failed: {e}'))
