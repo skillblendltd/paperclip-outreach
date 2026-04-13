@@ -271,6 +271,99 @@ class ProspectAdmin(admin.ModelAdmin):
         'upload_csv',
     ]
 
+    # Sprint 7 Phase 7.3.3 — read-only journey timeline debug view.
+    # Product-agnostic, flag-agnostic. Always shows conversation timeline +
+    # current next_action verdict + AIUsageLog rows. Reachable at
+    # /admin/campaigns/prospect/<id>/journey/.
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom = [
+            path(
+                '<uuid:object_id>/journey/',
+                self.admin_site.admin_view(self.journey_view),
+                name='campaigns_prospect_journey',
+            ),
+        ]
+        return custom + urls
+
+    def journey_view(self, request, object_id):
+        from django.http import HttpResponse
+        from django.utils.html import escape
+        from campaigns.models import Prospect, AIUsageLog
+        from campaigns.services.conversation import get_prospect_timeline
+        try:
+            prospect = Prospect.objects.select_related('campaign__product_ref').get(pk=object_id)
+        except Prospect.DoesNotExist:
+            return HttpResponse('prospect not found', status=404)
+
+        try:
+            events = get_prospect_timeline(prospect, days=90)
+        except Exception as exc:
+            events = []
+            events_err = str(exc)
+        else:
+            events_err = ''
+
+        next_action_line = ''
+        try:
+            from campaigns.services.next_action import decide_next_action
+            na = decide_next_action(prospect)
+            next_action_line = (
+                f'channel={na.channel} | reason={na.reason} | '
+                f'handoff={na.handoff} | brain_v={na.brain_version}'
+            )
+        except Exception as exc:
+            next_action_line = f'next_action unavailable: {exc}'
+
+        usage = AIUsageLog.objects.filter(prospect=prospect).order_by('-created_at')[:50]
+
+        rows = []
+        rows.append(f'<h1>Journey — {escape(prospect.business_name or "?")}</h1>')
+        rows.append(f'<p><b>Email:</b> {escape(prospect.email or "-")} '
+                    f'| <b>Status:</b> {escape(prospect.status or "-")} '
+                    f'| <b>Campaign:</b> {escape(prospect.campaign.name if prospect.campaign else "-")}</p>')
+        rows.append(f'<h2>Next action</h2><p><code>{escape(next_action_line)}</code></p>')
+
+        rows.append('<h2>Conversation timeline (90d)</h2>')
+        if events_err:
+            rows.append(f'<p style="color:red">error: {escape(events_err)}</p>')
+        if not events:
+            rows.append('<p><i>no events</i></p>')
+        else:
+            rows.append('<table border="1" cellpadding="4" cellspacing="0">')
+            rows.append('<tr><th>when</th><th>kind</th><th>dir</th><th>summary</th></tr>')
+            for e in events:
+                rows.append(
+                    f'<tr><td>{escape(str(e.at))}</td>'
+                    f'<td>{escape(e.kind)}</td>'
+                    f'<td>{escape(e.direction)}</td>'
+                    f'<td>{escape(e.summary or "")}</td></tr>'
+                )
+            rows.append('</table>')
+
+        rows.append('<h2>AI usage (last 50)</h2>')
+        if not usage.exists():
+            rows.append('<p><i>no AI usage rows</i></p>')
+        else:
+            rows.append('<table border="1" cellpadding="4" cellspacing="0">')
+            rows.append('<tr><th>when</th><th>feature</th><th>model</th><th>brain_v</th>'
+                        '<th>prompt_v</th><th>cost_usd</th><th>ok</th></tr>')
+            for row in usage:
+                rows.append(
+                    f'<tr><td>{escape(str(row.created_at))}</td>'
+                    f'<td>{escape(row.feature)}</td>'
+                    f'<td>{escape(row.model)}</td>'
+                    f'<td>{row.brain_version or ""}</td>'
+                    f'<td>{row.prompt_version or ""}</td>'
+                    f'<td>{row.cost_usd}</td>'
+                    f'<td>{"yes" if row.success else "NO"}</td></tr>'
+                )
+            rows.append('</table>')
+
+        rows.append('<hr><p><small>Sprint 7 Phase 7.3.3 read-only journey view</small></p>')
+        return HttpResponse('<br>'.join(rows))
+
     @admin.display(description='Tier')
     def tier_badge(self, obj):
         colours = {'A': '#e74c3c', 'B': '#f39c12', 'C': '#3498db', 'D': '#95a5a6'}
