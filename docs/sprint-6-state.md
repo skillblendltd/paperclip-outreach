@@ -25,17 +25,17 @@
 
 ## Phase 2A — Greenfield services (dark code, no live impact)
 
-- [ ] 2A.1 — `campaigns/services/conversation.py`
-- [ ] 2A.2 — `campaigns/services/context_assembler.py` (rule-based, injection-hardened)
-- [ ] 2A.3 — `campaigns/services/channel_timing.py`
-- [ ] 2A.4 — `campaigns/services/ai_budget.py`
-- [ ] 2A.5 — `campaigns/services/cacheable_preamble.py`
-- [ ] 2A.6 — `manage.py eval_replies` shadow eval command
-- [ ] 2A.7 — Unit tests for services against real prospects
-- [ ] 2A.8 — Regression check: Lisa v5 reply flow unchanged
-- [ ] 2A.9 — Regression check: laptop sequences unchanged
-- [ ] 2A.10 — Doc update: service contracts in contextual-autonomous-marketing.md
-- [ ] 2A.11 — Commits Phase 2A (split per CTO commit structure)
+- [x] 2A.1 — `campaigns/services/conversation.py` ✓ (38 real-data tests pass)
+- [x] 2A.2 — `campaigns/services/context_assembler.py` ✓ (injection-hardened, rule-based, budget-enforced)
+- [x] 2A.3 — `campaigns/services/channel_timing.py` ✓ (Julie correctly blocked from call, Ifrah allowed)
+- [x] 2A.4 — `campaigns/services/ai_budget.py` ✓ (F() atomic increment, month anchor reset)
+- [x] 2A.5 — `campaigns/services/cacheable_preamble.py` ✓ (3 blocks: cached prefix + context + kicker)
+- [x] 2A.6 — `manage.py eval_replies` ✓ (tested against ACEI, shows flat vs assembled diff)
+- [x] 2A.7 — 38/38 tests pass via `manage.py sprint6_tests`
+- [x] 2A.8 — Lisa v5 reply flow unchanged (handle_replies --product print-promo output identical)
+- [x] 2A.9 — Laptop sequences unchanged (18 campaigns, same state as pre-Sprint-6)
+- [x] 2A.10 — Doc update: service contracts in contextual-autonomous-marketing.md
+- [ ] 2A.11 — Commit Phase 2A (next)
 
 ## Gated — do NOT execute in this run
 
@@ -45,7 +45,11 @@
 
 ## Current step
 
-**In progress:** Phase 1A.3 (seed Campaign row). Phase 1A.1 + 1A.2 committed.
+**Phase 1A + 2A COMPLETE.** All greenfield services + campaign build shipped as dark code. 38 tests pass. Zero regression on existing campaigns verified.
+
+**Blocked on:**
+- Phase 1B (launch): waiting on Loom URL from Prakash
+- Phase 2B (wire services into live code): waiting on 7+ days of Phase 1 real traffic data
 
 ## Decisions locked (do not re-litigate)
 

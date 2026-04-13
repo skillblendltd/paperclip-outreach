@@ -192,7 +192,166 @@ From Sprints 1–5, we've accidentally built ~70% of the foundation:
 - **2026-04-13** Framing emerged mid-session while building TaggIQ Warm Re-engagement campaign. Prakash reframed the work as "contextual autonomous marketing system test case" rather than one-off campaign.
 - **2026-04-13** CTO architect review: validated vision, identified 8 gaps (4 critical), proposed 3-phase plan. Approved with the Conversation service layer firewall as non-negotiable before Phase 2.
 - **2026-04-13** Phase 1 scope locked: 15 TaggIQ prospects, 4 emails, 1 Vapi call (Ifrah US only). Success criterion: 3+ replies, 1+ demo booked in 14 days.
-- **2026-04-13** Phase 2 deferred until Phase 1 has 7+ days of real traffic.
+- **2026-04-13** Phase 2 parallelized: CTO + AI architect reviewed and approved parallel build of Phase 2A (greenfield services) while Phase 1 waits on Loom recording. AI architect added 6 critical additions: prompt caching, per-org budget ceiling, rule-based-only assembler, Vapi pre-compute, injection hardening, shadow eval harness.
+- **2026-04-13** Phase 1A (campaign build) + Phase 2A (greenfield services) shipped as dark code. Zero impact on existing campaigns verified via regression tests. Awaiting Loom URL for Phase 1B launch. Phase 2B wiring gated on 7+ days Phase 1 real traffic.
+
+## Phase 2A service contracts (shipped)
+
+All four services are pure-read and LLM-free. They live in `campaigns/services/`
+and are documented here so Phase 2B integration + future features have a stable
+reference.
+
+### `conversation.py`
+
+```python
+get_prospect_timeline(prospect, days=30) -> List[TimelineEvent]
+    # Returns chronological list of outbound emails, inbound replies,
+    # and calls for this prospect. Oldest-first.
+
+get_last_topic(prospect) -> str
+    # Returns one-line summary of the most recent outbound touch.
+    # Used by Vapi dynamic first_message generation (Phase 2B).
+
+get_conversation_state(prospect) -> ConversationState
+    # Returns structured dict: last_outbound_at, last_inbound_at,
+    # last_call_at, last_outbound_channel, total_* counts, has_any_reply.
+```
+
+**TimelineEvent** has: `at, kind, direction, summary, body, source_id`.
+`kind` is one of `outbound_email | inbound_email | outbound_call | note`.
+
+### `context_assembler.py`
+
+```python
+build_context_window(
+    prospect,
+    max_tokens=2000,
+    signature_name='',
+    days=30,
+    max_events=10,
+) -> str
+    # Returns a formatted context string ready for prompt injection.
+    # - Strips HTML and signatures from bodies
+    # - Caps each event body at 800 chars
+    # - Wraps ALL inbound content in <untrusted> tags with an injection-guard
+    #   instruction at the top
+    # - Enforces token budget via hard truncation (no LLM calls)
+```
+
+Output structure:
+```
+## Conversation context
+
+<injection guard instruction>
+
+**State:** last_outbound=..., last_inbound=..., outbound_touches=..., ...
+
+<prospect_history>
+[MM-DD HH:MM] outbound_email (out): subject
+<untrusted>
+body text
+</untrusted>
+
+[MM-DD HH:MM] inbound_email (in): reply: subject
+<untrusted>
+reply body
+</untrusted>
+</prospect_history>
+```
+
+### `channel_timing.py`
+
+```python
+can_send_email(prospect, min_hours_since_inbound=24, min_hours_since_call=48)
+    -> (bool, str)
+    # Returns (allowed, reason). Blocks email if:
+    # - Prospect replied within min_hours_since_inbound
+    # - We called them within min_hours_since_call
+
+can_place_call(prospect, min_hours_since_email=48,
+    min_hours_since_inbound=24, min_hours_since_last_call=48) -> (bool, str)
+    # Returns (allowed, reason). Blocks call if:
+    # - Prospect replied within min_hours_since_inbound
+    # - We emailed them within min_hours_since_email
+    # - We already called them within min_hours_since_last_call
+```
+
+### `ai_budget.py`
+
+```python
+check_budget_before_call(organization) -> (bool, str)
+    # Returns (allowed, reason). Auto-resets the monthly counter on month
+    # boundaries. Warns at 80% of budget. Blocks at 100%.
+
+record_cost(organization, cents)
+    # Atomically increments ai_usage_current_month_cents via F() expression.
+    # Safe under concurrent writes.
+
+get_usage_summary(organization) -> dict
+    # Returns budget_usd, used_usd, remaining_usd, pct_used, month_anchor,
+    # over_budget. Used by dashboards and alerting.
+```
+
+### `cacheable_preamble.py`
+
+```python
+build(
+    product,
+    prompt_template,
+    prospect=None,
+    flagged_count=1,
+    include_conversation=True,
+    max_context_tokens=2000,
+) -> AssembledPrompt
+    # Returns AssembledPrompt with .system_blocks (list of PromptBlock) and
+    # .user_message. First block is the large stable prefix with cache=True
+    # for Anthropic prompt caching. Subsequent blocks are per-prospect context
+    # and per-call kicker, cache=False.
+```
+
+This is the Phase 2B entry point. Live code (`handle_replies`) does NOT import
+it yet — Phase 2B will add a feature flag branch that switches between the
+existing `_build_execution_preamble` and this new cacheable builder.
+
+### Test runner
+
+```bash
+python manage.py sprint6_tests      # 38 assertions against real prospects
+python manage.py eval_replies --product X --sample N  # shadow A/B eval
+python manage.py eval_replies --email <addr> --product X  # single prospect
+```
+
+## Phase 2B integration points (NOT DONE, documented for next session)
+
+When ready to wire Phase 2A services into live code:
+
+1. **`handle_replies._invoke_with_db_prompt`** — add a feature flag branch:
+   ```python
+   if product.campaigns.filter(use_context_assembler=True).exists():
+       # Use the new cacheable preamble path
+       from campaigns.services.cacheable_preamble import build
+       assembled = build(product, prompt_template, prospect, flagged_count)
+       # Pass assembled.system_blocks to Claude with cache_control markers
+   else:
+       # Existing flat path (unchanged)
+       full_prompt = self._build_execution_preamble(...) + prompt_template.system_prompt + kicker
+   ```
+
+2. **`place_calls`** — pre-compute Vapi `first_message` at queue time using
+   `conversation.get_last_topic(prospect)` instead of the static CallScript
+   row. This eliminates the latency problem (LLM in the request path of a
+   live call) that the AI architect flagged.
+
+3. **`send_sequences`** — optionally consult `channel_timing.can_send_email`
+   before each send, so a prospect who replied 3 hours ago doesn't get the
+   next sequence email on top of the reply.
+
+4. **`send_ai_reply`** — call `ai_budget.check_budget_before_call(product.organization)`
+   before invoking Claude. If blocked, log warning and degrade to a flat template.
+   After the call, `ai_budget.record_cost(org, cents)` with the actual cost.
+
+Each integration is 5-15 lines of live code diff, gated by the feature flag
+where applicable, and must pass regression tests before merging.
 
 ## Resume instructions for next session
 
