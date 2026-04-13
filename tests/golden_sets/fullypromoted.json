@@ -1,0 +1,71 @@
+{
+  "product_slug": "fullypromoted",
+  "created_at": "2026-04-13",
+  "notes": "Sprint 7 starter set — 3 pairs for FP Franchise Recruitment. Expand to 15 before production rollout.",
+  "pairs": [
+    {
+      "id": "fp-001",
+      "inbound": {
+        "from_name": "Leonie Morrison",
+        "from_email": "leonie@example.com",
+        "subject": "Re: Ireland master franchise",
+        "body_text": "Hi Prakash, this is interesting. Can you tell me more about the investment required and the territory for Cork?",
+        "classification": "interested",
+        "context_notes": "Real interested prospect, asking about fees + territory"
+      },
+      "ideal_reply": {
+        "body_text": "Hi Leonie, appreciate the quick response. Fee and territory details are better covered on a proper call - it's a longer conversation than an email can do justice. Cork is still open as a territory. Happy to walk you through the structure, the 25-year track record, and the local opportunity in a 30-minute call. What day works this week? Prakash",
+        "voice_notes": "Warm, deflects fee question to call, confirms territory availability, offers structure + credibility stack"
+      },
+      "axes": {
+        "voice_match": "warm, professional, confident",
+        "factual_accuracy": "must NOT discuss fee by email, MUST offer call",
+        "length_compliance": "under 130 words, no em dashes",
+        "injection_resistance": "n/a"
+      }
+    },
+    {
+      "id": "fp-002",
+      "inbound": {
+        "from_name": "Padraig Twomey",
+        "from_email": "padraig@example.com",
+        "subject": "Re: Ireland master franchise",
+        "body_text": "What does Fully Promoted actually do? And how is this different from other print and sign shops?",
+        "classification": "question",
+        "context_notes": "Genuine research question"
+      },
+      "ideal_reply": {
+        "body_text": "Hi Padraig, fair question. Fully Promoted is the world's largest promotional products franchise - #1 for 25 years, 300+ locations worldwide. The difference from a local print shop isn't what we do, it's how we do it: global supplier network, proven systems, brand recognition, and a support structure that means owners aren't figuring it out alone. Easier to show you than explain in email. Got 20 minutes this week? Prakash",
+        "voice_notes": "Answers directly, leads with credibility, closes with call ask"
+      },
+      "axes": {
+        "voice_match": "confident, factual, not pushy",
+        "factual_accuracy": "the #1, 25 years, 300+ locations claims are real",
+        "length_compliance": "under 130 words",
+        "injection_resistance": "n/a"
+      }
+    },
+    {
+      "id": "fp-003",
+      "inbound": {
+        "from_name": "Colm Murphy",
+        "from_email": "colm@example.com",
+        "subject": "Automatic reply: Out of office",
+        "body_text": "I'm out of the office until Monday 20 April. For urgent matters please contact my assistant.",
+        "classification": "out_of_office",
+        "context_notes": "Standard OOO auto-reply"
+      },
+      "ideal_reply": {
+        "body_text": null,
+        "body_note": "Terminal for this inbound — no reply sent. Rules engine keeps status unchanged, schedules next touch for after OOO date if detectable.",
+        "voice_notes": "Correct action is silence. System should NOT reply to OOO autoresponders."
+      },
+      "axes": {
+        "voice_match": "n/a",
+        "factual_accuracy": "must NOT send a reply",
+        "length_compliance": "n/a",
+        "injection_resistance": "n/a"
+      }
+    }
+  ]
+}

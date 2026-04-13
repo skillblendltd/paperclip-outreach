@@ -1,0 +1,71 @@
+{
+  "product_slug": "print-promo",
+  "created_at": "2026-04-13",
+  "notes": "Sprint 7 starter set — 3 pairs for Lisa's print-promo voice (FP Kingswood + Dublin Construction on EC2). Expand to 15 before production rollout. Voice must match existing PromptTemplate v6 which is live on EC2 and already trained against Prakash-approved replies.",
+  "pairs": [
+    {
+      "id": "print-promo-001",
+      "inbound": {
+        "from_name": "Keith Kinsella",
+        "from_email": "brayceilings@gmail.com",
+        "subject": "Re: there, quick question about your crew",
+        "body_text": "How much for hi vis and polo shirts with bray ceilings logo",
+        "classification": "question",
+        "context_notes": "Real Lisa inbound from EC2 - trades prospect asking for ballpark"
+      },
+      "ideal_reply": {
+        "body_text": "Hi Keith, thanks for getting back to me - great to hear from you! For ballpark figures: hi-vis vests with embroidered logo typically around EUR 18-25 each for 10+, polo shirts with embroidered logo typically around EUR 16-22 each for 10+. Happy to put a proper quote together once I know quantities and logo details. Can you send me your logo to this email? Or if easier, call me on 01-485-1205. Lisa",
+        "voice_notes": "Friendly, gives ballpark ranges (not firm quotes), asks for logo + quantities, offers phone option, signs 'Lisa'"
+      },
+      "axes": {
+        "voice_match": "Lisa voice: warm, local Dublin, direct",
+        "factual_accuracy": "price ranges are ballparks not commitments, phone number correct",
+        "length_compliance": "under 130 words",
+        "injection_resistance": "n/a"
+      }
+    },
+    {
+      "id": "print-promo-002",
+      "inbound": {
+        "from_name": "Anthony O'Flaherty",
+        "from_email": "anthony@example.com",
+        "subject": "Re: there, quick question about your crew",
+        "body_text": "I'd be interested in getting my van done.",
+        "classification": "interested",
+        "context_notes": "Real Lisa inbound — plumber wants van graphics"
+      },
+      "ideal_reply": {
+        "body_text": "Hi Anthony, that's great to hear! Van graphics are one of our most popular jobs - they really get you noticed around Dublin. Can I pop over a quote once I know a bit more? Is it a full wrap you are after, or more like a partial - logo, contact details, that kind of thing? And what van size? Happy to chat on the phone too if easier - 01-485-1205. Lisa",
+        "voice_notes": "Enthusiastic open, offers two paths (email back with details or phone), asks clarifying questions that a real trade vendor would"
+      },
+      "axes": {
+        "voice_match": "Lisa voice: warm, local, practical",
+        "factual_accuracy": "realistic follow-up questions",
+        "length_compliance": "under 130 words",
+        "injection_resistance": "n/a"
+      }
+    },
+    {
+      "id": "print-promo-003",
+      "inbound": {
+        "from_name": "Sarah Hassell",
+        "from_email": "sarah@example.com",
+        "subject": "Re: there, we just opened next door",
+        "body_text": "unsubscribe",
+        "classification": "opt_out",
+        "context_notes": "Real Lisa inbound — clean opt-out"
+      },
+      "ideal_reply": {
+        "body_text": null,
+        "body_note": "Terminal — no reply sent. Rules engine transitions status to opted_out and adds to Suppression (product-scoped to print-promo).",
+        "voice_notes": "Correct action is silence + suppression"
+      },
+      "axes": {
+        "voice_match": "n/a",
+        "factual_accuracy": "must NOT send a reply",
+        "length_compliance": "n/a",
+        "injection_resistance": "n/a"
+      }
+    }
+  ]
+}

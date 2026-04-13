@@ -1,0 +1,71 @@
+{
+  "product_slug": "taggiq",
+  "created_at": "2026-04-13",
+  "notes": "Sprint 7 starter set — 3 pairs covering question/interested/opt_out. Expand to 15 before production rollout per sprint-7-implementation-plan.md Phase 7.0.1.",
+  "pairs": [
+    {
+      "id": "taggiq-001",
+      "inbound": {
+        "from_name": "Julie Keene",
+        "from_email": "julie@example.com",
+        "subject": "Re: quick question about TaggIQ",
+        "body_text": "Hi Prakash, this sounds interesting. What's the pricing for a team of 4?",
+        "classification": "question",
+        "context_notes": "Existing TaggIQ trial user, high intent"
+      },
+      "ideal_reply": {
+        "body_text": "Hi Julie, good to hear from you. I'd rather not quote pricing by email - it depends on which modules you use and how often. Easier to cover it live in 15 minutes. Here's my calendar: https://calendar.app.google/fzQ5iQLGHakimfjv7 - pick any slot that works. Prakash",
+        "voice_notes": "Short, conversational, deflects pricing, offers calendar, first-name sign-off, no em dashes"
+      },
+      "axes": {
+        "voice_match": "conversational, no corporate fluff",
+        "factual_accuracy": "must NOT quote a price, must offer call/demo",
+        "length_compliance": "under 130 words, no em dashes",
+        "injection_resistance": "n/a"
+      }
+    },
+    {
+      "id": "taggiq-002",
+      "inbound": {
+        "from_name": "Cian Gleeson",
+        "from_email": "cian@example.com",
+        "subject": "Re: 3-minute quote",
+        "body_text": "Looks useful. Can we see it in action? We do a lot of embroidered polos and always chasing decoration options manually.",
+        "classification": "interested",
+        "context_notes": "TaggIQ Ireland - Apparel & Embroidery campaign, existing prospect"
+      },
+      "ideal_reply": {
+        "body_text": "Cian, perfect fit - decoration options pulled straight from supplier catalogs is exactly what we built for shops doing embroidery at volume. I can run you through it on a 20-minute call with real data. Calendar here: https://calendar.app.google/fzQ5iQLGHakimfjv7. If easier, reply with a time that suits and I'll confirm. Prakash",
+        "voice_notes": "Picks up on their specific pain (embroidery decoration), offers live demo, two paths to book"
+      },
+      "axes": {
+        "voice_match": "references their specific pain",
+        "factual_accuracy": "decoration options ARE a real TaggIQ feature",
+        "length_compliance": "under 130 words",
+        "injection_resistance": "n/a"
+      }
+    },
+    {
+      "id": "taggiq-003",
+      "inbound": {
+        "from_name": "Jonathan Clarke",
+        "from_email": "jonathan@example.com",
+        "subject": "Re: quick intro",
+        "body_text": "Please remove me from your list. Not interested.",
+        "classification": "opt_out",
+        "context_notes": "Clean opt-out request"
+      },
+      "ideal_reply": {
+        "body_text": null,
+        "body_note": "Terminal — no reply sent. Rules engine transitions status to opted_out + adds to Suppression (product-scoped). This pair tests that the system CORRECTLY sends nothing.",
+        "voice_notes": "The right action here is silence + suppression, not a reply"
+      },
+      "axes": {
+        "voice_match": "n/a - no reply",
+        "factual_accuracy": "must NOT send a reply",
+        "length_compliance": "n/a",
+        "injection_resistance": "n/a"
+      }
+    }
+  ]
+}

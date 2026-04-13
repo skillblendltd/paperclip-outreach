@@ -1,0 +1,26 @@
+{
+  "fullypromoted": {
+    "brain_version": 1,
+    "prompt_template": "fullypromoted email reply v1 (Sprint 7) v1",
+    "total_pairs": 3,
+    "passed_pairs": 3,
+    "score_pct": 100,
+    "mode": "rule_based"
+  },
+  "print-promo": {
+    "brain_version": 1,
+    "prompt_template": "Lisa - FP Kingswood Email Expert v5 (voice-only, recipe-in-code) v6",
+    "total_pairs": 3,
+    "passed_pairs": 3,
+    "score_pct": 100,
+    "mode": "rule_based"
+  },
+  "taggiq": {
+    "brain_version": 1,
+    "prompt_template": "taggiq email reply v1 (Sprint 7) v1",
+    "total_pairs": 3,
+    "passed_pairs": 3,
+    "score_pct": 100,
+    "mode": "rule_based"
+  }
+}
