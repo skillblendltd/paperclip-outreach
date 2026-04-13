@@ -406,6 +406,14 @@ class InboundEmail(BaseModel):
     status_updated = models.BooleanField(default=False)
     notes = models.TextField(blank=True, default='')
 
+    # Cross-cron AI retry budget. Incremented by send_ai_reply on every attempt.
+    # When ai_attempt_count >= 5 we stop trying to auto-reply to this inbound and
+    # leave it for manual review (handle_replies skips it, dashboard surfaces it).
+    ai_attempt_count = models.IntegerField(
+        default=0,
+        help_text='How many times the AI reply pipeline has tried to handle this inbound (success or fail).',
+    )
+
     received_at = models.DateTimeField()
 
     class Meta:
@@ -589,6 +597,23 @@ class PromptTemplate(BaseModel):
     temperature = models.FloatField(default=0.7)
     is_active = models.BooleanField(default=True)
     version = models.IntegerField(default=1, help_text='Increment on each update for tracking')
+    # --- persona / reply-engine metadata (used by send_ai_reply + audit detectors) ---
+    from_name = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text='Display name for outbound replies, e.g. "Lisa - Fully Promoted Dublin"',
+    )
+    signature_name = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='First-name anchor for signature stripping in detectors, e.g. "Lisa"',
+    )
+    max_reply_words = models.IntegerField(
+        default=130,
+        help_text='Hard ceiling on reply body word count (signature excluded). Pre-send block fires above this.',
+    )
+    warn_reply_words = models.IntegerField(
+        default=100,
+        help_text='Soft warn threshold for reply length. Logged but not blocked.',
+    )
 
     class Meta:
         db_table = 'prompt_templates'

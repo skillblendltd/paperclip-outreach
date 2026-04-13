@@ -11,7 +11,6 @@ Usage:
     python manage.py handle_replies --dry-run      # Check but don't invoke Claude
 """
 import os
-import re
 import subprocess
 import logging
 from datetime import timedelta
@@ -21,6 +20,11 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from campaigns.models import InboundEmail, Product, PromptTemplate, EmailLog
+from campaigns.services.reply_audit import (
+    detect_price_violation,
+    detect_bounce_reply,
+    detect_length_violation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,85 +38,11 @@ SKILL_FALLBACKS = {
 # or user-local install on developer machines)
 CLAUDE_CLI = 'claude'
 
-# Deterministic violation detectors run after every AI reply batch.
-# These catch rule violations the prompt is supposed to prevent but Claude
-# might emit anyway. Cheap regex - no LLM call, runs on every tick.
-
-# Match a price quote in any currency or phrasing that anchors the prospect.
-# Designed to fire on real quotes ("EUR 18", "around 25 each", "from €15-20")
-# and skip false positives (signature address "A20", phone "01-485-1205",
-# qty markers "10+", "20+ items").
-_PRICE_PATTERNS = [
-    # Currency followed by a number (EUR 18, € 25, euros 30, $40, £15)
-    re.compile(r'\b(?:eur|euros?|€|gbp|£|usd|\$)\s*\d{1,4}(?:[.,]\d{1,2})?\b', re.IGNORECASE),
-    # A number followed by currency (18 EUR, 25€, 30 GBP)
-    re.compile(r'\b\d{1,4}(?:[.,]\d{1,2})?\s*(?:eur|euros?|€|gbp|£)\b', re.IGNORECASE),
-    # "X each / per item / per piece / per unit" - direct unit pricing
-    re.compile(r'\b\d{1,4}(?:[.,]\d{1,2})?\s*(?:each|per\s*(?:item|piece|unit)|/\s*(?:item|piece|unit))\b', re.IGNORECASE),
-    # Numeric range explicitly tied to "each" or currency (15-20 EUR, 18 - 25 each)
-    re.compile(r'\b\d{1,4}\s*[-–to]+\s*\d{1,4}\s*(?:eur|euros?|€|gbp|£|each)\b', re.IGNORECASE),
-]
-
-# Bounce / autoresponder addresses. Replying to these causes loops and bad reputation.
-_BOUNCE_LOCAL_PARTS = re.compile(
-    r'^(mailer-daemon|postmaster|no-?reply|bounce|bounces|delivery|notifications?|do-?not-?reply|abuse)@',
-    re.IGNORECASE,
-)
-
-
-def _strip_html(s):
-    return re.sub(r'<[^>]+>', ' ', s or '')
-
-
-def _detect_price_violation(body_html):
-    """Return the first matching price pattern's match text, or None."""
-    text = _strip_html(body_html)
-    # Strip the signature block (everything from "Cheers,\nLisa" or signature contact line) -
-    # we explicitly allow the address "A20" and phone "01-485-1205" in the signature.
-    sig_split = re.split(r'(?i)\b(?:cheers|thanks|regards|kind regards),?\s*\n+\s*lisa\b', text, maxsplit=1)
-    body_only = sig_split[0] if sig_split else text
-    for pat in _PRICE_PATTERNS:
-        m = pat.search(body_only)
-        if m:
-            return m.group(0)
-    return None
-
-
-def _detect_bounce_reply(to_email):
-    if not to_email:
-        return False
-    return bool(_BOUNCE_LOCAL_PARTS.match(to_email))
-
-
-# Length thresholds (words, excluding signature). Lisa target is <100.
-# Warn at 130, fail at 180. Anything over the warn threshold gets logged.
-_LENGTH_WARN_WORDS = 130
-_LENGTH_FAIL_WORDS = 180
-
-
-def _detect_length_violation(body_html):
-    """Count words in the body excluding the signature block.
-
-    Returns (word_count, severity) where severity is one of:
-      None  - within budget
-      'warn' - over warn threshold but under fail threshold
-      'fail' - over fail threshold
-    """
-    text = _strip_html(body_html)
-    # Strip the signature block (same heuristic as price detector)
-    sig_split = re.split(
-        r'(?i)\b(?:cheers|thanks|regards|kind regards|best),?\s*\n+\s*lisa\b',
-        text, maxsplit=1,
-    )
-    body_only = sig_split[0] if sig_split else text
-    # Collapse whitespace and count
-    words = [w for w in re.split(r'\s+', body_only.strip()) if w]
-    n = len(words)
-    if n >= _LENGTH_FAIL_WORDS:
-        return n, 'fail'
-    if n >= _LENGTH_WARN_WORDS:
-        return n, 'warn'
-    return n, None
+# Default length thresholds for the post-run audit. Per-persona prompts can
+# carry stricter limits via PromptTemplate metadata, but these are the
+# conservative ceiling for "this is way too long" applied to all personas.
+_DEFAULT_WARN_WORDS = 130
+_DEFAULT_FAIL_WORDS = 180
 
 
 class Command(BaseCommand):
@@ -239,38 +169,44 @@ class Command(BaseCommand):
         violations = 0
         for log in qs:
             who = f'{log.to_email} ({log.prospect.business_name if log.prospect else "-"})'
-            price_match = _detect_price_violation(log.body_html)
+            # Derive persona name from the active prompt template for this product
+            # so signature stripping works for any persona, not just Lisa.
+            persona = self._get_persona_for_product(log.campaign.product_ref) if log.campaign and log.campaign.product_ref else ''
+            price_match = detect_price_violation(log.body_html, signature_name=persona)
             if price_match:
                 violations += 1
                 self.stderr.write(self.style.ERROR(
                     f'  PRICE-QUOTE VIOLATION → {who}: matched "{price_match}" in subject "{log.subject[:60]}"'
                 ))
                 logger.error(
-                    'lisa_violation price_quote inbound_to=%s match=%s subject=%s',
+                    'reply_violation price_quote inbound_to=%s match=%s subject=%s',
                     log.to_email, price_match, log.subject,
                 )
-            if _detect_bounce_reply(log.to_email):
+            if detect_bounce_reply(log.to_email):
                 violations += 1
                 self.stderr.write(self.style.ERROR(
                     f'  BOUNCE-REPLY VIOLATION → {who}: replied to bounce/autoresponder address'
                 ))
                 logger.error(
-                    'lisa_violation bounce_reply inbound_to=%s subject=%s',
+                    'reply_violation bounce_reply inbound_to=%s subject=%s',
                     log.to_email, log.subject,
                 )
-            word_count, length_severity = _detect_length_violation(log.body_html)
+            word_count, length_severity = detect_length_violation(
+                log.body_html, signature_name=persona,
+                warn_words=_DEFAULT_WARN_WORDS, fail_words=_DEFAULT_FAIL_WORDS,
+            )
             if length_severity == 'fail':
                 violations += 1
                 self.stderr.write(self.style.ERROR(
-                    f'  LENGTH-FAIL VIOLATION → {who}: {word_count} words (limit {_LENGTH_FAIL_WORDS}) in subject "{log.subject[:60]}"'
+                    f'  LENGTH-FAIL VIOLATION → {who}: {word_count} words (limit {_DEFAULT_FAIL_WORDS}) in subject "{log.subject[:60]}"'
                 ))
                 logger.error(
-                    'lisa_violation length_fail words=%d inbound_to=%s subject=%s',
+                    'reply_violation length_fail words=%d inbound_to=%s subject=%s',
                     word_count, log.to_email, log.subject,
                 )
             elif length_severity == 'warn':
                 self.stderr.write(self.style.WARNING(
-                    f'  LENGTH-WARN → {who}: {word_count} words (warn at {_LENGTH_WARN_WORDS}, target <100)'
+                    f'  LENGTH-WARN → {who}: {word_count} words (warn at {_DEFAULT_WARN_WORDS}, target <100)'
                 ))
                 logger.warning(
                     'lisa_audit length_warn words=%d inbound_to=%s subject=%s',
@@ -281,20 +217,123 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.WARNING(f'  audit found {violations} violation(s) across {total} reply(s)'))
 
+    def _get_persona_for_product(self, product):
+        """Return the signature_name of the active email_reply prompt for this
+        product, or empty string if none. Used by the audit to strip signatures
+        before running word-count and price checks.
+        """
+        if not product:
+            return ''
+        pt = PromptTemplate.objects.filter(
+            product=product, feature='email_reply', is_active=True,
+        ).order_by('-version').first()
+        return pt.signature_name if pt else ''
+
+    def _build_execution_preamble(self, product, prompt_template):
+        """Generic, persona-parameterized execution recipe prepended to every
+        DB prompt. Lives in code so it stays consistent across all personas
+        (Lisa, TaggIQ, FP) and the per-product PromptTemplate only needs to
+        carry voice/intent/rules.
+
+        Substitutes the persona-specific values from the PromptTemplate row:
+          - product slug (for list_pending_replies filter)
+          - from_name (display name for the From header)
+          - signature_name (for detector signature stripping)
+          - max_reply_words / warn_reply_words (length thresholds)
+        """
+        slug = product.slug
+        from_name = prompt_template.from_name or 'Unknown Persona'
+        sig = prompt_template.signature_name or 'Unknown'
+        max_w = prompt_template.max_reply_words or 130
+        warn_w = prompt_template.warn_reply_words or 100
+
+        return (
+            f'You are an autonomous email reply agent for the "{product.name}" product. '
+            f'You read flagged inbound emails, generate personalized replies in the voice '
+            f'described below, send them via the send_ai_reply command, and verify all '
+            f'inbounds are handled. Do all of this without asking for confirmation.\n'
+            f'\n'
+            f'==============================================================\n'
+            f'EXECUTION RECIPE - INFRASTRUCTURE (do not deviate)\n'
+            f'==============================================================\n'
+            f'\n'
+            f'The repo is at /app inside the container. Use the Bash tool. Run python directly.\n'
+            f'\n'
+            f'STEP 1 - Fetch all flagged inbounds for this product:\n'
+            f'\n'
+            f'    cd /app && python manage.py list_pending_replies --product-slug {slug}\n'
+            f'\n'
+            f'This prints one block per inbound with ID, From, prospect details, subject, '
+            f'classification, body, and the current attempt count. Read all of them.\n'
+            f'\n'
+            f'STEP 2 - For each inbound, write a reply using the VOICE AND INTENT RULES below '
+            f'(those rules are the persona-specific section that follows this preamble). The voice '
+            f'rules tell you HOW to write. The execution recipe (this section) tells you HOW to send.\n'
+            f'\n'
+            f'STEP 3 - Send each reply via send_ai_reply. This command runs deterministic '
+            f'pre-send checks (price quote, bounce reply, length) BEFORE the SMTP send. If the '
+            f'check fails it returns a non-zero exit code and you MUST rewrite and try again.\n'
+            f'\n'
+            f'    cd /app && python manage.py send_ai_reply \\\n'
+            f'      --inbound-id <UUID_FROM_STEP_1> \\\n'
+            f'      --subject "Re: <ORIGINAL_SUBJECT>" \\\n'
+            f'      --body-html "<HTML_BODY_INCLUDING_SIGNATURE>" \\\n'
+            f'      --from-name "{from_name}" \\\n'
+            f'      --signature-name "{sig}" \\\n'
+            f'      --max-words {max_w} \\\n'
+            f'      --warn-words {warn_w}\n'
+            f'\n'
+            f'Exit codes from send_ai_reply:\n'
+            f'  0 = success, the reply was sent and the DB was updated. Move to the next inbound.\n'
+            f'  2 = PRICE-QUOTE blocked. Read the error message. Rewrite the body WITHOUT any '
+            f'currency-anchored number, range, or "X each / per item" phrasing. Call send_ai_reply again.\n'
+            f'  3 = BOUNCE blocked. The from_email is a bounce/autoresponder. Skip this inbound entirely - '
+            f'it has already been marked needs_reply=False. Move on to the next inbound.\n'
+            f'  4 = LENGTH-FAIL blocked. The body is too long. Rewrite shorter (target <{warn_w} words). '
+            f'If you cannot fit the answer in {max_w} words, that is a signal the conversation needs '
+            f'a phone call instead of a long email - shorten the body and offer the phone CTA. Call again.\n'
+            f'  5 = RETRY EXHAUSTED. The inbound has hit the max attempt count. Do NOT retry. '
+            f'Move on to the next inbound.\n'
+            f'  1 = generic error (inbound not found, SMTP failure). Read the error and move on.\n'
+            f'\n'
+            f'CRITICAL: After 3 rewrite attempts on the same inbound, give up on it and move on. '
+            f'send_ai_reply tracks attempts across cron runs - if you exhaust the budget the system '
+            f'will surface the inbound for manual review automatically.\n'
+            f'\n'
+            f'STEP 4 - Verify all inbounds were handled:\n'
+            f'\n'
+            f'    cd /app && python manage.py list_pending_replies --product-slug {slug}\n'
+            f'\n'
+            f'If the output says "No pending inbounds" you are done. If any inbounds remain, '
+            f'either continue handling them (Step 3) or accept that the remaining ones hit '
+            f'their retry budget and will be reviewed manually.\n'
+            f'\n'
+        )
+
     def _invoke_with_db_prompt(self, product, prompt_template, count):
-        """Invoke Claude CLI with a prompt from the database."""
+        """Invoke Claude CLI with a prompt from the database.
+
+        The prompt sent to Claude is assembled in three layers:
+          1. Generic execution preamble (from code, parameterized per persona)
+          2. Voice rules (from PromptTemplate.system_prompt - DB editable)
+          3. Per-call kicker telling Claude how many inbounds to handle
+        """
         self.stdout.write(f'  Using DB prompt: {prompt_template.name} (v{prompt_template.version})')
         self.stdout.write(f'  Model: {prompt_template.model}')
 
-        # Build the prompt: system prompt + instruction to handle flagged replies
-        full_prompt = (
-            f'{prompt_template.system_prompt}\n\n'
-            f'There are {count} flagged inbound email(s) for product "{product.name}" '
-            f'that need replies. Check InboundEmail records where needs_reply=True and '
-            f'replied=False and campaign__product_ref__slug="{product.slug}". '
-            f'Read each email, generate a personalized reply in the voice described above, '
-            f'send it via EmailService.send_reply(), and update the InboundEmail and Prospect records.'
+        preamble = self._build_execution_preamble(product, prompt_template)
+        voice_rules = prompt_template.system_prompt
+        kicker = (
+            f'\n\n==============================================================\n'
+            f'YOUR JOB RIGHT NOW\n'
+            f'==============================================================\n'
+            f'There are {count} flagged inbound email(s) for product "{product.name}".\n'
+            f'Use Step 1 to fetch them, then for each one apply Step 2 (voice rules above), '
+            f'Step 3 to send via send_ai_reply, and Step 4 to verify all are handled.\n'
+            f'Do NOT ask for confirmation. Run the commands directly using the Bash tool.\n'
         )
+
+        full_prompt = preamble + '\n\n' + voice_rules + kicker
 
         # Map model names to Claude CLI model flags
         model_map = {
