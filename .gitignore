@@ -4,7 +4,6 @@ db/*.sqlite3
 .env
 *.egg-info/
 venv/
-campaigns/migrations/
 backups/
 
 # social_studio
