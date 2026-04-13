@@ -43,6 +43,11 @@ def render(template, prospect, campaign):
         'YEAR': year or 'a while back',
         'CHAPTER': prospect.region or 'BNI',
         'CALENDAR_LINK': 'https://calendar.app.google/yFLeFoyP3XscHsBs8',
+        # Sprint 6 — per-prospect hook and campaign-level Loom URL.
+        # PERSONAL_HOOK is pre-populated on the Prospect row at campaign seed time.
+        # LOOM_URL is a campaign-level asset URL referenced by warm re-engagement templates.
+        'PERSONAL_HOOK': (prospect.personal_hook or '').strip(),
+        'LOOM_URL': (campaign.loom_url or '').strip() if campaign else '',
     }
 
     subject = _substitute(template.subject_template, variables)

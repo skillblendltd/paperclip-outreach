@@ -18,6 +18,21 @@ class Organization(BaseModel):
     slug = models.SlugField(max_length=100, unique=True)
     owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='organizations')
     is_active = models.BooleanField(default=True)
+    # Sprint 6: per-org AI budget ceiling with degrade-to-flat fallback.
+    # When ai_usage_current_month_cents >= ai_budget_usd_monthly * 100, new AI
+    # calls degrade to flat templates and emit a warning. Prevents runaway loops.
+    ai_budget_usd_monthly = models.DecimalField(
+        max_digits=10, decimal_places=2, default=500,
+        help_text='Monthly AI spend ceiling in USD. Enforced by ai_budget service.',
+    )
+    ai_usage_current_month_cents = models.IntegerField(
+        default=0,
+        help_text='Running AI spend for the current month in cents. Reset monthly.',
+    )
+    ai_usage_month_anchor = models.DateField(
+        null=True, blank=True,
+        help_text='First day of the current accounting month. When today > anchor+30d, reset counter.',
+    )
 
     class Meta:
         db_table = 'organizations'
@@ -112,6 +127,16 @@ class Campaign(BaseModel):
     inter_send_delay_max = models.IntegerField(default=60, help_text='Max seconds between sends')
     priority_cities = models.CharField(max_length=500, blank=True, default='', help_text='Comma-separated cities to send first')
 
+    # Sprint 6: contextual autonomous marketing fields
+    loom_url = models.TextField(
+        blank=True, default='',
+        help_text='Campaign-level Loom/video URL. Referenced by EmailTemplates via {{LOOM_URL}}.',
+    )
+    use_context_assembler = models.BooleanField(
+        default=False,
+        help_text='Sprint 6 feature flag. When True, replies/sends inject per-prospect conversation context from Phase 2 services. Defaults False (dark). Flipped manually after shadow eval wins.',
+    )
+
     class Meta:
         db_table = 'campaigns'
         ordering = ['name']
@@ -183,6 +208,15 @@ class Prospect(BaseModel):
     current_tools = models.CharField(max_length=500, blank=True, default='')
     pain_signals = models.TextField(blank=True, default='')
     notes = models.TextField(blank=True, default='')
+    # Sprint 6: per-prospect first-line personalization hook used by templates
+    # via the {{PERSONAL_HOOK}} variable. Pre-populated at campaign seed time,
+    # not generated dynamically. For flat-template campaigns (Phase 1). The
+    # Phase 2 context assembler supersedes this for campaigns with
+    # Campaign.use_context_assembler=True.
+    personal_hook = models.TextField(
+        blank=True, default='',
+        help_text='Pre-written first-line hook for this prospect. Rendered into templates via {{PERSONAL_HOOK}}.',
+    )
 
     follow_up_after = models.DateField(null=True, blank=True, help_text='Date to follow up with this prospect')
 

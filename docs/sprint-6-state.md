@@ -13,8 +13,8 @@
 
 ## Phase 1A — Campaign build (dark code, no live impact)
 
-- [ ] 1A.1 — Migration 0016 (loom_url + personal_hook + flag + budget fields)
-- [ ] 1A.2 — template_resolver LOOM_URL + PERSONAL_HOOK vars
+- [x] 1A.1 — Migration 0016 (loom_url + personal_hook + flag + budget fields) ✓ applied laptop
+- [x] 1A.2 — template_resolver LOOM_URL + PERSONAL_HOOK vars ✓
 - [ ] 1A.3 — Create Campaign row `TaggIQ Warm Re-engagement Apr 2026`
 - [ ] 1A.4 — 4 EmailTemplate rows (Seq 1-4 with placeholders)
 - [ ] 1A.5 — CallScript row (US-only Ifrah)
@@ -45,7 +45,7 @@
 
 ## Current step
 
-**In progress:** Committing the plan doc + state file. Phase 1A.1 is next.
+**In progress:** Phase 1A.3 (seed Campaign row). Phase 1A.1 + 1A.2 committed.
 
 ## Decisions locked (do not re-litigate)
 
