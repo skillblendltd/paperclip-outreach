@@ -15,13 +15,13 @@
 
 - [x] 1A.1 — Migration 0016 (loom_url + personal_hook + flag + budget fields) ✓ applied laptop
 - [x] 1A.2 — template_resolver LOOM_URL + PERSONAL_HOOK vars ✓
-- [ ] 1A.3 — Create Campaign row `TaggIQ Warm Re-engagement Apr 2026`
-- [ ] 1A.4 — 4 EmailTemplate rows (Seq 1-4 with placeholders)
-- [ ] 1A.5 — CallScript row (US-only Ifrah)
-- [ ] 1A.6 — Migrate 15 prospects + personal_hook + origin preserved in notes
-- [ ] 1A.7 — Nick Militello status → not_interested
-- [ ] 1A.8 — Dry-run verification
-- [ ] 1A.9 — Commit Phase 1A
+- [x] 1A.3 — Created Campaign `TaggIQ Warm Re-engagement Apr 2026` (id=0004101d-ec67-437c-a419-0c60e9352497), sending_enabled=False
+- [x] 1A.4 — 4 EmailTemplate rows seeded (Seq 1-4 with {{PERSONAL_HOOK}}, {{LOOM_URL}} placeholders)
+- [x] 1A.5 — CallScript row seeded, segment=us_ghost, is_active=True
+- [x] 1A.6 — 15 prospects migrated, all personal_hook rendered, origin preserved in notes
+- [x] 1A.7 — Nick Militello → not_interested, send_enabled=False
+- [x] 1A.8 — Rendered all 15 Seq 1 emails via template_resolver, all hooks rendered correctly. Existing 18 campaigns still render same state.
+- [ ] 1A.9 — Commit Phase 1A seeding (next)
 
 ## Phase 2A — Greenfield services (dark code, no live impact)
 
