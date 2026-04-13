@@ -84,6 +84,37 @@ def _detect_bounce_reply(to_email):
     return bool(_BOUNCE_LOCAL_PARTS.match(to_email))
 
 
+# Length thresholds (words, excluding signature). Lisa target is <100.
+# Warn at 130, fail at 180. Anything over the warn threshold gets logged.
+_LENGTH_WARN_WORDS = 130
+_LENGTH_FAIL_WORDS = 180
+
+
+def _detect_length_violation(body_html):
+    """Count words in the body excluding the signature block.
+
+    Returns (word_count, severity) where severity is one of:
+      None  - within budget
+      'warn' - over warn threshold but under fail threshold
+      'fail' - over fail threshold
+    """
+    text = _strip_html(body_html)
+    # Strip the signature block (same heuristic as price detector)
+    sig_split = re.split(
+        r'(?i)\b(?:cheers|thanks|regards|kind regards|best),?\s*\n+\s*lisa\b',
+        text, maxsplit=1,
+    )
+    body_only = sig_split[0] if sig_split else text
+    # Collapse whitespace and count
+    words = [w for w in re.split(r'\s+', body_only.strip()) if w]
+    n = len(words)
+    if n >= _LENGTH_FAIL_WORDS:
+        return n, 'fail'
+    if n >= _LENGTH_WARN_WORDS:
+        return n, 'warn'
+    return n, None
+
+
 class Command(BaseCommand):
     help = 'Check all mailboxes for replies, then invoke AI reply per product using DB prompts'
 
@@ -226,6 +257,24 @@ class Command(BaseCommand):
                 logger.error(
                     'lisa_violation bounce_reply inbound_to=%s subject=%s',
                     log.to_email, log.subject,
+                )
+            word_count, length_severity = _detect_length_violation(log.body_html)
+            if length_severity == 'fail':
+                violations += 1
+                self.stderr.write(self.style.ERROR(
+                    f'  LENGTH-FAIL VIOLATION → {who}: {word_count} words (limit {_LENGTH_FAIL_WORDS}) in subject "{log.subject[:60]}"'
+                ))
+                logger.error(
+                    'lisa_violation length_fail words=%d inbound_to=%s subject=%s',
+                    word_count, log.to_email, log.subject,
+                )
+            elif length_severity == 'warn':
+                self.stderr.write(self.style.WARNING(
+                    f'  LENGTH-WARN → {who}: {word_count} words (warn at {_LENGTH_WARN_WORDS}, target <100)'
+                ))
+                logger.warning(
+                    'lisa_audit length_warn words=%d inbound_to=%s subject=%s',
+                    word_count, log.to_email, log.subject,
                 )
         if violations == 0:
             self.stdout.write(self.style.SUCCESS(f'  audit clean: {total} reply(s), 0 violations'))
