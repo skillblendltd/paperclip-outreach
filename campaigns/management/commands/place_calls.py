@@ -88,12 +88,51 @@ class Command(BaseCommand):
 
             self.stdout.write(f'  Eligible prospects: {eligible.count()} (placing up to {remaining})')
 
+            # Sprint 7 Phase 7.2.3 — flag=True path runs next_action eligibility
+            # + channel_timing locks + vapi_opener.build_first_message. On
+            # flag=False, the static eligibility query above is authoritative
+            # and nothing below changes behavior.
+            flag_on = getattr(campaign, 'use_context_assembler', False)
+            brain = None
+            if flag_on:
+                try:
+                    from campaigns.services.brain import load_brain_by_product, BrainNotFound
+                    brain = load_brain_by_product(campaign.product_ref.slug)
+                except Exception as exc:
+                    self.stdout.write(self.style.WARNING(
+                        f'  [contextual] brain load failed: {exc} — falling back to static path for this campaign'
+                    ))
+                    flag_on = False
+
             for prospect in eligible:
+                dynamic_first_message = None
+                if flag_on:
+                    from campaigns.services import next_action, channel_timing, vapi_opener
+                    action = next_action.decide_next_action(prospect)
+                    if action.channel != 'call':
+                        self.stdout.write(
+                            f'  skip (next_action): {prospect.phone} — {action.reason}'
+                        )
+                        continue
+                    can, why = channel_timing.can_place_call(prospect)
+                    if not can:
+                        self.stdout.write(
+                            f'  skip (timing): {prospect.phone} — {why}'
+                        )
+                        continue
+                    dynamic_first_message = vapi_opener.build_first_message(prospect, brain)
+                    self.stdout.write(
+                        f'  [contextual] opener: {dynamic_first_message[:80]}'
+                    )
+
                 if dry_run:
                     self.stdout.write(f'  [DRY RUN] Would call: {prospect.phone} ({prospect.business_name})')
                     total_placed += 1
                     continue
 
+                call_metadata = {'prospect_id': str(prospect.id), 'campaign_id': str(campaign.id)}
+                if dynamic_first_message:
+                    call_metadata['dynamic_first_message'] = dynamic_first_message
                 # Place call
                 result = CallService.place_call(
                     phone_number=prospect.phone,
@@ -102,7 +141,7 @@ class Command(BaseCommand):
                     prospect_name=prospect.decision_maker_name or '',
                     company_name=prospect.business_name,
                     segment=prospect.segment,
-                    metadata={'prospect_id': str(prospect.id), 'campaign_id': str(campaign.id)},
+                    metadata=call_metadata,
                 )
 
                 # Log the call
