@@ -120,8 +120,29 @@ def _stub_generate(pair: dict, prompt_template: PromptTemplate) -> Optional[str]
     """Placeholder generator — returns the ideal reply verbatim.
 
     Phase 7.0 uses this to validate the harness end-to-end against the
-    golden set baselines. Phase 7.2 will replace this with a real call
-    through `cacheable_preamble.build()` + the configured model.
+    golden set baselines.
+
+    TODO(sprint7-phase7.2.8): replace with live LLM call when API key is
+    available. The wiring is straightforward:
+
+        from campaigns.services.cacheable_preamble import build as build_assembled
+        assembled = build_assembled(
+            product=prompt_template.product,
+            prompt_template=prompt_template,
+            prospect=None,
+            flagged_count=1,
+            include_conversation=False,
+        )
+        system = '\\n\\n'.join(b.content for b in assembled.system_blocks)
+        # Feed `system` + inbound body into anthropic.Anthropic().messages.create
+        # with the model from prompt_template.model, return the text blocks.
+
+    Blocked in the current sandbox environment: (a) anthropic SDK is not
+    installed in venv, (b) no ANTHROPIC_API_KEY available here. Rather than
+    fake scores, Phase 7.2.8 commits the rule-based-on-stub output with
+    this TODO and the note in commit 79b.. that the scores reflect stub
+    behavior, not real model output. The golden set runs meaningfully once
+    the Claude Code runtime provides API access.
     """
     ideal = (pair.get('ideal_reply', {}) or {}).get('body_text')
     return ideal

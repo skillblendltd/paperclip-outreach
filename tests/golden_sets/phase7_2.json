@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "captured_at": "2026-04-13",
+    "phase": "7.2.8",
+    "note": "Scores reflect the _stub_generate path (returns ideal reply verbatim) rated by _check_rule_based. The stub was NOT upgraded to a live LLM call in this environment because (a) the anthropic SDK is not installed in venv, and (b) no ANTHROPIC_API_KEY is available to the sandbox. Rather than fake pass/fail numbers from a real model, we commit the stub-based output with a TODO(sprint7-phase7.2.8) marker in campaigns/services/eval_harness.py. The rule-based scorer is meaningful — it catches length / em-dash / signature / corporate-fluff violations — it is the upstream generator that is still stubbed. Real regression coverage will land when the Claude Code runtime provides API access (Phase 3 sprint work).",
+    "threshold_pct": 95,
+    "mode": "rule_based"
+  },
+  "results": {
+    "taggiq": {
+      "brain_version": 1,
+      "prompt_template": "taggiq email reply v1 (Sprint 7) v1",
+      "total_pairs": 3,
+      "passed_pairs": 3,
+      "score_pct": 100,
+      "mode": "rule_based_stub"
+    },
+    "fullypromoted": {
+      "brain_version": 1,
+      "prompt_template": "fullypromoted email reply v1 (Sprint 7) v1",
+      "total_pairs": 3,
+      "passed_pairs": 3,
+      "score_pct": 100,
+      "mode": "rule_based_stub"
+    },
+    "print-promo": {
+      "brain_version": 1,
+      "prompt_template": "Lisa - FP Kingswood Email Expert v5 (voice-only, recipe-in-code) v6",
+      "total_pairs": 3,
+      "passed_pairs": 3,
+      "score_pct": 100,
+      "mode": "rule_based_stub"
+    }
+  }
+}
