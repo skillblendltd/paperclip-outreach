@@ -681,6 +681,7 @@ class AIUsageLog(BaseModel):
     success = models.BooleanField(default=True)
     error_message = models.TextField(blank=True, default='')
     prompt_version = models.IntegerField(null=True, blank=True, help_text='PromptTemplate.version used')
+    brain_version = models.IntegerField(null=True, blank=True, help_text='ProductBrain.version active at call time (Sprint 7)')
 
     class Meta:
         db_table = 'ai_usage_log'
@@ -692,6 +693,82 @@ class AIUsageLog(BaseModel):
 
     def __str__(self):
         return f'{self.feature} - {self.model} - ${self.cost_usd}'
+
+
+class ProductBrain(BaseModel):
+    """Sprint 7 — per-Product decision brain.
+
+    A brain is data, not code: JSON rules + references to a voice PromptTemplate
+    and a default CallScript. The rules_engine interprets these fields
+    deterministically; there is NO LLM in the decision layer. LLM calls happen
+    only at content generation (reply, call opener, transcript analysis), and
+    model selection per job lives in `jobs`.
+
+    One row per Product. Campaign-level overrides live in CampaignBrainOverride
+    as a sparse JSON dict.
+    """
+
+    product = models.OneToOneField(
+        Product, on_delete=models.CASCADE, related_name='brain',
+    )
+    version = models.IntegerField(default=1, help_text='Increment on every edit for audit trail')
+    is_active = models.BooleanField(default=True)
+
+    # Decision rules (rules-engine input). Shapes documented in
+    # campaigns/brain_schemas/ and docs/sprint-7-implementation-plan.md Section 2.3.
+    sequence_rules = models.JSONField(default=dict, blank=True)
+    timing_rules = models.JSONField(default=dict, blank=True)
+    terminal_states = models.JSONField(default=list, blank=True)
+    escalation_rules = models.JSONField(default=dict, blank=True)
+    success_signals = models.JSONField(default=dict, blank=True)
+    call_eligibility = models.JSONField(default=dict, blank=True)
+
+    # What to say on each touch (separate from how to sound).
+    content_strategy = models.JSONField(default=dict, blank=True)
+
+    # Per-job model + generation config. Sonnet 4.6 floor per Prakash 2026-04-13.
+    jobs = models.JSONField(default=dict, blank=True)
+
+    # Voice + script links (no data duplication).
+    reply_prompt_template = models.ForeignKey(
+        PromptTemplate, null=True, blank=True,
+        on_delete=models.PROTECT, related_name='brains',
+    )
+    call_script_default = models.ForeignKey(
+        'CallScript', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='brains',
+    )
+
+    # Eval gate (Phase 7.0 golden set).
+    golden_set_path = models.CharField(max_length=500, blank=True, default='')
+    eval_threshold_pct = models.IntegerField(default=90)
+
+    class Meta:
+        db_table = 'product_brain'
+        ordering = ['product__slug']
+
+    def __str__(self):
+        return f'Brain[{self.product.slug} v{self.version}]'
+
+
+class CampaignBrainOverride(BaseModel):
+    """Sprint 7 — sparse per-Campaign overrides on top of ProductBrain.
+
+    Store only the keys that differ from the product brain. The loader in
+    `campaigns.services.brain.load_brain()` merges: ProductBrain fields as
+    base, overrides win on any matching key.
+    """
+
+    campaign = models.OneToOneField(
+        Campaign, on_delete=models.CASCADE, related_name='brain_override',
+    )
+    overrides = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = 'campaign_brain_override'
+
+    def __str__(self):
+        return f'Override[{self.campaign.name}]'
 
 
 # SocialAccount, SocialPost, SocialPostDelivery moved to social_studio app in
