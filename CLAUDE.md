@@ -21,15 +21,18 @@ Scrape leads (Google Maps / BNI Connect)
 
 **Key differentiator:** This is not a tool that helps you send emails. It IS the sales team. Once configured, it runs the full outbound pipeline autonomously - scraping, emailing, calling, replying, learning, and booking demos while you sleep.
 
+**The bigger vision (Sprint 6+):** Paperclip is evolving from "a GTM engine Prakash uses for his three products" into a **contextual autonomous marketing system** — the first outbound engine that actually reads the prospect's conversation history before every touch, so email + call + reply feel like one continuous relationship instead of disjointed blasts. See `docs/contextual-autonomous-marketing.md` for the architectural vision and phased plan. The TaggIQ Warm Re-engagement campaign (`docs/taggiq-warm-reengagement-plan.md`) is the Phase 1 prove-it case.
+
 ## Who This Serves
 
 **Owner:** Prakash Inani - solo founder running three businesses through one GTM engine.
 
-| Product | What it is | Outreach goal |
-|---------|-----------|---------------|
-| **TaggIQ** | POS platform for print & promo shops | Get shop owners to try the platform |
-| **Fully Promoted Ireland** | Master franchise (300+ locations worldwide) | Recruit franchise partners across Ireland |
-| **Kritno** | Creative production platform (future) | Not active yet |
+| Product | What it is | Outreach goal | Product-specific goal |
+|---------|-----------|---------------|----------------------|
+| **TaggIQ** | POS platform for print & promo shops | Get shop owners to try the platform | Prove that 3 new capabilities (supplier order submission, decoration options from supplier catalogs, branded webstores) move cold BNI contacts to paid customers. 3-minute quote is the canonical narrative hook. First contextual campaign is `TaggIQ Warm Re-engagement Apr 2026`. |
+| **Fully Promoted Ireland** | Master franchise (300+ locations worldwide) | Recruit franchise partners across Ireland | Two personas in play: Prakash (franchise recruitment, prakash@fullypromoted.ie) and Lisa (FP Dublin B2B corporate sales, office@fullypromoted.ie). Lisa already runs fully autonomous on EC2 with v5 reply pipeline. Prakash voice still pending port to DB PromptTemplate. |
+| **Kritno** | Creative production platform (future) | Not active yet | Greenfield. When it launches, it'll be the third persona in the contextual marketing system — voice rules + Conversation context from day 1, no retrofit needed. |
+| **Paperclip Outreach** | The platform itself | Internal GTM tooling today | Phase 3 goal: productize into a standalone offering for design partners (Print RFT, Promotex.ie, etc). Two-product story — TaggIQ sells POS, Paperclip sells autonomous outbound. Natural cross-sell. |
 
 **Future:** Design partners (e.g., Print RFT, Promotex.ie) will use the system as their own outreach engine via the multi-tenant architecture.
 
@@ -336,6 +339,8 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 | Backup & Restore | `docs/backup-and-restore.md` | Database backup and restore procedures |
 | EC2 Deployment Runbook | `docs/ec2-deployment-runbook.md` | Step-by-step runbook for moving the cron stack from laptop to EC2 eu-west-1 (Sprint 5) |
 | AI Reply Architecture | `docs/ai-reply-architecture.md` | Org-agnostic reply pipeline (Sprint 5 v5) - how to add a new persona in one DB row, no code change |
+| Contextual Autonomous Marketing System | `docs/contextual-autonomous-marketing.md` | Architectural vision: email + call + reply continuity via conversation memory. 3-phase plan (Prove-it / Conversation model / Productize). Non-negotiable: Conversation service layer firewall before Phase 2 |
+| TaggIQ Warm Re-engagement Plan | `docs/taggiq-warm-reengagement-plan.md` | Sprint 6 Phase 1 campaign: 15 prospects, 4 emails, 1 Vapi call, 3 new TaggIQ capabilities as narrative. Resume point for next session. |
 | Social Studio v1 Plan | `docs/social-studio-v1-plan.md` | New `social_studio` Django app — TaggIQ LinkedIn pilot, HTML+Playwright renderer, zero-cost v1, platform-ready multi-tenant |
 | Social Studio Progress | `docs/social-studio-progress.md` | Living state for social_studio implementation — read at session start, update at session end |
 
@@ -345,6 +350,8 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 - Sprint 3 DONE: Product-scoped suppressions, DB call scripts, cron cutover to send_sequences
 - Sprint 4 DONE: PostgreSQL migration. Local stack has been running on Postgres in Docker since the docker-compose cutover; SQLite is no longer the default.
 - Sprint 5 IN PROGRESS: EC2 deployment to eu-west-1 (Ireland) for production. See `docs/ec2-deployment-runbook.md`. Cron image now bakes in Node 20 + Claude Code CLI; OAuth token persists in `claude_auth` Docker named volume; cron container uses `TZ=Europe/Dublin`.
+- Sprint 5 v5 DONE: Org-agnostic AI reply pipeline. `send_ai_reply` command with pre-send blocking (price/bounce/length), per-inbound retry budget (5 attempts), AIUsageLog cost tracking, MailboxConfig sibling-fallback. Voice rules in DB (PromptTemplate), execution recipe in code (`handle_replies._build_execution_preamble`). Lisa v5 active on both DBs. Adding a new persona is one DB row, no code change. See `docs/ai-reply-architecture.md`.
+- Sprint 6 IN PROGRESS: Contextual autonomous marketing system. Phase 1 prove-it: TaggIQ Warm Re-engagement campaign (15 prospects, 4 emails, 1 Vapi call). Paused mid-build pending Loom video from Prakash. See `docs/taggiq-warm-reengagement-plan.md` (campaign plan) and `docs/contextual-autonomous-marketing.md` (architectural vision, 3-phase plan).
 
 ---
 
