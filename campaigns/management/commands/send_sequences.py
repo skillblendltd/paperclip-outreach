@@ -119,7 +119,18 @@ class Command(BaseCommand):
             campaign_skipped = 0
             campaign_failed = 0
 
+            # Sprint 7 Phase 7.2.4 — flag=True path consults channel_timing
+            # before each send. Skip with a reason log and don't count toward
+            # caps. Flag=False path untouched.
+            flag_on = getattr(campaign, 'use_context_assembler', False)
+
             for prospect, seq_num in batch:
+                if flag_on:
+                    from campaigns.services.channel_timing import can_send_email
+                    can, why = can_send_email(prospect)
+                    if not can:
+                        self.stdout.write(f'  skip (timing): {prospect.email} — {why}')
+                        continue
                 template = get_template(campaign, seq_num, prospect)
                 if not template:
                     self.stdout.write(self.style.WARNING(
