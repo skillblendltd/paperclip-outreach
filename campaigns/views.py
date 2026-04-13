@@ -18,6 +18,22 @@ from campaigns.email_service import EmailService
 logger = logging.getLogger(__name__)
 
 
+def _append_escalation_note(prospect, reason: str) -> None:
+    """Sprint 7 Phase 7.2.6 — stamp an ESCALATION: line on prospect.notes
+    and emit a structured warning log. Shared by vapi_webhook and
+    send_ai_reply post-send escalation paths.
+    """
+    timestamp = timezone.now().isoformat()
+    line = f'ESCALATION: {reason} - {timestamp}'
+    prospect.notes = (prospect.notes + '\n' if prospect.notes else '') + line
+    logger.warning(
+        'escalation prospect=%s campaign=%s reason=%s',
+        prospect.id,
+        prospect.campaign_id,
+        reason,
+    )
+
+
 def _get_campaign(request, data=None):
     """Resolve campaign from campaign_id in query params or POST body."""
     campaign_id = None
@@ -743,6 +759,44 @@ def vapi_webhook(request):
             prospect.pain_signals = call_log.pain_signals
 
         prospect.save()
+
+        # Sprint 7 Phase 7.2.5 — brain state machine on flag=True campaigns.
+        # Runs after the existing status update so flag=False webhooks stay
+        # byte-identical. rules_engine.apply_call_outcome returns an
+        # OutcomeEffect; we apply new_status if it differs, log an escalation
+        # note if the effect requests one, then log the next_action decision
+        # for observability (we do NOT act on it here — the executor cron
+        # picks it up on the next tick).
+        if getattr(call_log.campaign, 'use_context_assembler', False):
+            try:
+                from campaigns.services.brain import load_brain, BrainNotFound
+                from campaigns.services import rules_engine, next_action
+                brain = load_brain(prospect)
+                effect = rules_engine.apply_call_outcome(brain, prospect, call_log)
+                status_changed = False
+                if effect.new_status and effect.new_status != prospect.status:
+                    prospect.status = effect.new_status
+                    status_changed = True
+                # Phase 7.2.6 escalation handoff — brain-requested escalation
+                # writes an ESCALATION note and fires a structured log.
+                if effect.handoff == 'escalation':
+                    _append_escalation_note(prospect, effect.reason or 'call_outcome')
+                    status_changed = True
+                if status_changed:
+                    prospect.save()
+                # Log the next_action decision (do not act on it in webhook).
+                try:
+                    na = next_action.decide_next_action(prospect)
+                    logger.info(
+                        '[sprint7 webhook] prospect=%s next_action channel=%s reason=%s brain_v=%s',
+                        prospect.id, na.channel, na.reason, na.brain_version,
+                    )
+                except Exception as exc:
+                    logger.warning(f'[sprint7 webhook] next_action failed for {prospect.id}: {exc}')
+            except BrainNotFound as exc:
+                logger.warning(f'[sprint7 webhook] no brain for prospect {prospect.id}: {exc}')
+            except Exception as exc:
+                logger.exception(f'[sprint7 webhook] brain state machine error: {exc}')
 
         logger.info(f'[VAPI WEBHOOK] Updated call {vapi_call_id}: status={call_log.status}, disposition={call_log.disposition}')
         return JsonResponse({'status': 'ok', 'call_id': vapi_call_id})
