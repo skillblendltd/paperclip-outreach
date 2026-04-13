@@ -25,6 +25,8 @@ from campaigns.services.reply_audit import (
     detect_bounce_reply,
     detect_length_violation,
 )
+# Sprint 7 Phase 7.2.1 — imported lazily inside the flag branch so flag=False
+# code path has zero new import side effects.
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +118,23 @@ class Command(BaseCommand):
             ).order_by('-version').first()
 
             if prompt_template:
-                self._invoke_with_db_prompt(product, prompt_template, count)
+                # Sprint 7 Phase 7.2.1 — if ANY flagged inbound for this product
+                # lives on a campaign with use_context_assembler=True, route
+                # through cacheable_preamble.build() so conversation context
+                # + brain_version get recorded. This is a per-product decision
+                # because handle_replies batches by product, not by campaign.
+                # Flag=False path (byte-sacred) is the else branch.
+                flag_on = InboundEmail.objects.filter(
+                    needs_reply=True,
+                    replied=False,
+                    campaign__isnull=False,
+                    campaign__product_ref=product,
+                    campaign__use_context_assembler=True,
+                ).exists()
+                if flag_on:
+                    self._invoke_with_contextual_prompt(product, prompt_template, count)
+                else:
+                    self._invoke_with_db_prompt(product, prompt_template, count)
             else:
                 # Fall back to skill file
                 skill = SKILL_FALLBACKS.get(slug)
@@ -309,6 +327,89 @@ class Command(BaseCommand):
             f'their retry budget and will be reviewed manually.\n'
             f'\n'
         )
+
+    def _invoke_with_contextual_prompt(self, product, prompt_template, count):
+        """Sprint 7 Phase 7.2.1 — flag=True path.
+
+        Builds the Claude CLI prompt via cacheable_preamble.build() so the
+        stable execution recipe + voice rules come from the same layered
+        assembly used by the Anthropic SDK path. Per-inbound conversation
+        context is NOT injected here (the agent fetches inbounds itself via
+        list_pending_replies at runtime); the Layer 1/3 block is the
+        system-level recipe, identical across inbounds. Phase 3 upgrades
+        handle_replies to the SDK path so per-inbound context + true prompt
+        caching both land — Phase 7.2 intentionally flattens to the -p CLI
+        arg to minimise blast radius.
+        """
+        from campaigns.services import cacheable_preamble
+        from campaigns.services.brain import load_brain_by_product, BrainNotFound
+
+        self.stdout.write(f'  [contextual] DB prompt: {prompt_template.name} (v{prompt_template.version})')
+        self.stdout.write(f'  [contextual] Model: {prompt_template.model}')
+
+        try:
+            brain = load_brain_by_product(product.slug)
+            brain_version = brain.brain_version
+        except Exception as exc:
+            self.stderr.write(self.style.WARNING(
+                f'  [contextual] no brain for product "{product.slug}": {exc} — proceeding without brain_version'
+            ))
+            brain_version = None
+
+        assembled = cacheable_preamble.build(
+            product=product,
+            prompt_template=prompt_template,
+            prospect=None,
+            flagged_count=count,
+            include_conversation=False,
+            max_context_tokens=2000,
+        )
+        # Flatten system_blocks + user_message into the single-string CLI `-p` arg.
+        # We lose the 5-minute Anthropic prompt cache benefit but gain the
+        # unified assembly path and brain_version recording. Upgrade to SDK is
+        # Phase 3 work — explicitly intentional here.
+        full_prompt = '\n\n'.join(b.content for b in assembled.system_blocks)
+        full_prompt += '\n\n' + assembled.user_message
+
+        model_map = {
+            'claude-sonnet-4-6': 'sonnet',
+            'claude-haiku-4-5': 'haiku',
+            'claude-opus-4-6': 'opus',
+        }
+        model_flag = model_map.get(prompt_template.model, 'sonnet')
+
+        # Stash brain_version on the environment so send_ai_reply (invoked by
+        # the agent as a subprocess) can pick it up and record it on AIUsageLog.
+        env = dict(os.environ)
+        if brain_version is not None:
+            env['PAPERCLIP_BRAIN_VERSION'] = str(brain_version)
+
+        try:
+            result = subprocess.run(
+                [
+                    CLAUDE_CLI,
+                    '--model', model_flag,
+                    '--allowedTools', 'Bash,Read,Write,Edit,Glob,Grep',
+                    '--max-turns', '30',
+                    '--output-format', 'text',
+                    '-p', full_prompt,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=600,
+                cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
+                env=env,
+            )
+            if result.returncode == 0:
+                self.stdout.write(self.style.SUCCESS(f'  [contextual] Claude finished successfully'))
+            else:
+                self.stderr.write(self.style.ERROR(f'  [contextual] Claude exited with code {result.returncode}'))
+                if result.stderr:
+                    self.stderr.write(f'  stderr: {result.stderr[:500]}')
+        except subprocess.TimeoutExpired:
+            self.stderr.write(self.style.ERROR(f'  [contextual] Claude timed out after 600s'))
+        except Exception as e:
+            self.stderr.write(self.style.ERROR(f'  [contextual] Error invoking Claude: {e}'))
 
     def _invoke_with_db_prompt(self, product, prompt_template, count):
         """Invoke Claude CLI with a prompt from the database.
