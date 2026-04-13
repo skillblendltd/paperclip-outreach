@@ -335,6 +335,7 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 | Sprint Plan | `docs/sprint-plan.md` | Implementation phases, status tracking, monitoring checklist |
 | Backup & Restore | `docs/backup-and-restore.md` | Database backup and restore procedures |
 | EC2 Deployment Runbook | `docs/ec2-deployment-runbook.md` | Step-by-step runbook for moving the cron stack from laptop to EC2 eu-west-1 (Sprint 5) |
+| AI Reply Architecture | `docs/ai-reply-architecture.md` | Org-agnostic reply pipeline (Sprint 5 v5) - how to add a new persona in one DB row, no code change |
 | Social Studio v1 Plan | `docs/social-studio-v1-plan.md` | New `social_studio` Django app — TaggIQ LinkedIn pilot, HTML+Playwright renderer, zero-cost v1, platform-ready multi-tenant |
 | Social Studio Progress | `docs/social-studio-progress.md` | Living state for social_studio implementation — read at session start, update at session end |
 
