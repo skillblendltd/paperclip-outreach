@@ -123,6 +123,49 @@ Before flipping any EC2 campaign to flag=True in Phase 7.4:
 3. Read `docs/sprint-7-implementation-plan.md` Section 4 Phase 7.3/7.4 tables
 4. Decide: am I here to do the CTO follow-ups (golden set + behavioral tests + dispatch helper) or to flip a flag?
 
+## Remaining Sprint 7 work — excluding testing, eval, and flag flips
+
+Prakash's directive (2026-04-13, session 2): TaggIQ + FP campaigns stay on the flag=False legacy path on local; FP print-promo stays on Lisa v5 flag=False on EC2. No flag flips, no real-LLM eval runs, no behavioral testing pushes — those are deferred until Prakash is ready to observe. This section is what remains of Sprint 7 that is NOT test/eval/switch.
+
+### A. Code follow-ups from CTO review (local, no flag flip needed)
+
+| # | Task | Size | File(s) | Contract tie-in |
+|---|---|---|---|---|
+| A1 | Replace `InboundEmail.objects.exists()` dispatch probe in `handle_replies._invoke_with_db_prompt` call site with a new `conversation.any_flagged_inbound_for_product(product)` helper. | S (~10 LOC + 1 test) | `campaigns/services/conversation.py`, `campaigns/management/commands/handle_replies.py` | Section 5: `conversation.py` is the ONLY reader of inbound history. CTO-flagged IMPORTANT. |
+| A2 | Wire `vapi_opener.build_first_message()` output into the actual Vapi call. Currently the dynamic opener is generated and stashed in Vapi call metadata as `dynamic_first_message`, but `CallService.place_call()` still sends the static `CallScript.first_message`. Add a `first_message_override` kwarg to `CallService.place_call()` and have `place_calls.py` pass the opener through on the flag=True branch. | M | `campaigns/services/call_service.py` (or wherever `CallService` lives), `campaigns/management/commands/place_calls.py` | Without this, Phase 7.2.3 only logs openers — calls still play the static script. |
+| A3 | Add `call_opener` to `AIUsageLog.FEATURE_CHOICES` + migration. Currently `vapi_opener` logs under `feature='call_analysis'` because Phase 7.2 was additive-only and forbade migrations. | S (1-line enum + 1 migration file) | `campaigns/models.py`, `campaigns/migrations/0018_*.py` | Clean cost attribution per feature. |
+
+### B. Phase 7.5 — docs + deprecation (runs at end of sprint, after 7.3/7.4 land)
+
+| # | Task | Size | File(s) |
+|---|---|---|---|
+| B1 | Update `docs/sprint-plan.md` Sprint 7 status row to DONE | S | `docs/sprint-plan.md` |
+| B2 | Update `CLAUDE.md` v2 Status list — add "Sprint 7 DONE" line with a one-paragraph summary of the brain platform | S | `CLAUDE.md` |
+| B3 | Write `docs/sprint-8-kickoff.md` — remaining campaigns to migrate, Phase 3 productization scope (SDK upgrade for handle_replies to unlock prompt caching, UI for editing brains, attribution tokens, public API for design partners) | M | `docs/sprint-8-kickoff.md` (new) |
+| B4 | Add a deprecation comment to `handle_replies._build_execution_preamble`: "Deprecated by Phase 7.2.1. Do NOT delete — still the live path for every flag=False campaign. Remove only after every campaign is on `use_context_assembler=True`." | XS | `campaigns/management/commands/handle_replies.py` |
+
+### C. EC2 seed work (one-shot, runs when Phase 7.4 starts)
+
+| # | Task | Size | Where |
+|---|---|---|---|
+| C1 | Seed FP print-promo `ProductBrain` row on the EC2 host. Lisa's voice is already in `PromptTemplate` on EC2 — this just adds the rules + content strategy layer on top. Run `python manage.py seed_sprint7_brains --product print-promo` inside `outreach_cron` container on EC2. `brain_doctor` must pass afterwards. | S | `ssh ec2-user@54.220.116.228` → `docker exec -it outreach_cron bash` → seed command |
+
+### D. Human-loop decisions (no code — Prakash-owned)
+
+| # | Decision | Why it matters |
+|---|---|---|
+| D1 | Expand golden set from 3 → 15 pairs per product. Claude drafts by pulling real inbound emails from both Postgres instances; Prakash reviews async. | Phase 7.0 stated target; 3 pairs is the starter, 15 is the agreed bar before flag flips on real traffic. |
+| D2 | Pick the second local campaign for Phase 7.3.5 flag flip (smallest TaggIQ or FP Franchise cohort). | Only matters when Prakash is ready to flip a second campaign. |
+
+### What this list excludes (per Prakash's directive)
+
+- Phase 7.3.1/7.3.2/7.3.5 flag flips and daily observation log entries
+- Phase 7.4.1–7.4.5 EC2 deploy + burn-in + flip + observation
+- Phase 7.2.7 behavioral Django TestCase coverage (structural regression command already exists)
+- Phase 7.2.8 real-LLM golden set pass (CLI subprocess wiring documented in `eval_harness.py` TODO block but not run)
+
+When Prakash says "we're ready to test/eval/switch," the first step is the CLI-subprocess upgrade in `eval_harness._stub_generate` (see `eval_harness.py:119` TODO — uses `claude -p ...` exactly like `handle_replies._invoke_with_db_prompt` at L338-360, zero new deps). That unblocks D1, which unblocks the flag flips.
+
 ## Decisions locked (do not re-litigate)
 
 ### Architecture (from CTO + AI architect review)
