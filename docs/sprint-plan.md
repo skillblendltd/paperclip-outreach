@@ -9,18 +9,24 @@
 
 ## Current Status
 
-| Sprint | Status | Commit | Date |
-|--------|--------|--------|------|
-| Sprint 1 | DONE | `6f5bc21` Sprint 1: Multi-tenant models + Organization/Product hierarchy | 2026-04-08 |
-| Sprint 2 | DONE | `d3befef` Sprint 2: Service layer + universal sender + 100 email templates seeded | 2026-04-08 |
-| Sprint 3 | DONE | `839516a` Sprint 3: Product-scoped suppressions, DB call scripts, universal sender cron | 2026-04-08 |
-| Sprint 4 | PENDING | - | Waiting for 5 business days of cron monitoring |
-| Sprint 5 | PLANNED | - | AWS deployment (after Sprint 4) |
-| Sprint 6 | PLANNED | - | TaggIQ webhook bridge (after Sprint 5) |
+| Sprint | Status | Reference |
+|--------|--------|-----------|
+| Sprint 1 | DONE | Multi-tenant models (Organization, Product, FK'd Campaigns, EmailTemplate, CallScript, PromptTemplate, AIUsageLog) |
+| Sprint 2 | DONE | Service layer + universal `send_sequences` + 146 email templates seeded |
+| Sprint 3 | DONE | Product-scoped suppressions, DB call scripts, cron cutover |
+| Sprint 4 | DONE | Postgres 16 migration. Both local and EC2 on Docker Postgres. SQLite out of the stack entirely. |
+| Sprint 5 | DONE | EC2 `paperclip-outreach-eu` (eu-west-1, `54.220.116.228`, Amazon Linux 2023 aarch64) running `outreach_cron` + `outreach_web` + `outreach_db`. Claude Code CLI baked into image. Cron partition: `--product print-promo` (Lisa). |
+| Sprint 5 v5 | DONE | Org-agnostic AI reply pipeline. Voice in `PromptTemplate`, mechanics in code. See `docs/ai-reply-architecture.md`. |
+| Sprint 6 Phase 1A | DONE (paused) | TaggIQ Warm Re-engagement campaign seeded, 15 prospects, `sending_enabled=False`. Blocked on Loom URL. See `docs/sprint-6-state.md`. |
+| Sprint 6 Phase 2A | DONE | Greenfield services (`conversation`, `context_assembler`, `channel_timing`, `ai_budget`, `cacheable_preamble`) shipped as dark code. 38/38 tests pass. |
+| Sprint 6 Phase 2B | FOLDED INTO SPRINT 7 | Wiring Phase 2A services into live code is Phase 7.2 of the Sprint 7 plan. |
+| **Sprint 7** | **PLANNED** | **Sales Director Platform MVP.** Per-product `ProductBrain` + per-campaign overrides, rules engine, `next_action` service, golden-set eval, two-host rollout. See `docs/sprint-7-implementation-plan.md` and `docs/sprint-7-progress.md`. |
 
-**Monitoring period:** 2026-04-09 to 2026-04-15 (Mon-Fri cron sends via send_sequences)
-**Sprint 4 earliest start:** 2026-04-16
-**Sprint 5-6 plan:** See `docs/aws-deployment-and-taggiq-integration.md`
+**Two-host production architecture (as of Sprint 5):**
+- Local Docker (Prakash's laptop) — TaggIQ (all), FP Ireland Franchise Recruitment, FP Dublin BNI Print & Promo. Cron: `--exclude-product print-promo`.
+- EC2 `paperclip-outreach-eu` — FP Kingswood Business Area, Dublin Construction & Trades (Lisa v5 print-promo voice). Cron: `--product print-promo`. Always-on.
+
+Both hosts run Postgres 16 on the same schema (`0016_sprint6_loom_hook_flag_budget`). Migrations apply to both, brain rows are seeded per host.
 
 ---
 
@@ -266,32 +272,62 @@ backup_to_gdrive.sh                    - still sqlite3 .backup
 
 ---
 
-## Sprint 5: AWS Deployment - PLANNED
+## Sprint 5: EC2 Deployment - DONE
 
-**Prerequisite:** Sprint 4 complete + 2 business days Docker cron verified
-**Full plan:** `docs/aws-deployment-and-taggiq-integration.md`
+See `docs/ec2-deployment-runbook.md` for the original plan. Actual outcome:
 
-Summary:
-- Deploy Paperclip Docker stack to EC2 t3.micro (eu-west-1, same VPC as TaggIQ)
-- Nginx + Let's Encrypt SSL at `outreach.taggiq.com`
-- Data migration: local PostgreSQL dump -> AWS restore (~30 min downtime)
-- Zero impact on current campaigns (sequence logic uses DB timestamps)
-- Vapi webhook URL updated to public endpoint
-- Local Mac no longer needed for 24/7 operation
+- `paperclip-outreach-eu` live in eu-west-1 (`54.220.116.228`), Amazon Linux 2023 aarch64
+- Node 20 + Claude Code CLI baked into `outreach_cron` Docker image
+- OAuth token persists in `claude_auth` named volume
+- Cron partitioned via `CRON_SEND_ARGS` / `CRON_REPLY_ARGS` env vars:
+  - Local: `--exclude-product print-promo`
+  - EC2:   `--product print-promo`
+- Zero split-brain risk — each campaign runs on exactly one host
+- Always-on for Lisa's print-promo reply pipeline; laptop can sleep without pausing Lisa
 
 ---
 
-## Sprint 6: TaggIQ Webhook Bridge - PLANNED
+## Sprint 6: Contextual Autonomous Marketing - Phase 1A + 2A DONE, rest folded into Sprint 7
 
-**Prerequisite:** Sprint 5 complete + 2 business days AWS cron verified
-**Full plan:** `docs/aws-deployment-and-taggiq-integration.md`
+See `docs/contextual-autonomous-marketing.md` (vision) and `docs/sprint-6-state.md` (execution).
+
+**Completed:**
+- Phase 1A — TaggIQ Warm Re-engagement campaign seeded: 15 prospects, 4 sequence emails, 1 Vapi call target, `sending_enabled=False` pending Loom URL from Prakash
+- Phase 2A — Greenfield services (`conversation.py`, `context_assembler.py`, `channel_timing.py`, `ai_budget.py`, `cacheable_preamble.py`) shipped as dark code. 38/38 tests pass. Zero impact on live path.
+- `Campaign.use_context_assembler` flag added in migration `0016`, defaults `False`
+
+**Deferred into Sprint 7:**
+- Phase 2B (wire services into live code) → becomes Phase 7.2
+- Phase 2C (generalize beyond TaggIQ) → becomes Phase 7.4 EC2 rollout
+- The brain/rules-engine layer that was implicit in Phase 2 becomes explicit in Sprint 7
+
+Note: The Sprint 6 plan called for a TaggIQ webhook bridge (trial lifecycle campaigns). That work is deferred to a future sprint — it's orthogonal to the contextual marketing + brain platform direction taken in Sprint 6/7.
+
+---
+
+## Sprint 7: Sales Director Platform MVP - PLANNED
+
+**Prerequisite:** Prakash approval to start Phase 7.0 (golden set capture, ~90 min)
+**Full plan:** `docs/sprint-7-implementation-plan.md`
+**Live state:** `docs/sprint-7-progress.md`
 
 Summary:
-- WebhookEvent model + HMAC-verified endpoint in Paperclip
-- Celery task + Django signals in TaggIQ fire lifecycle events
-- 6 events: trial_started, supplier_connected, first_quote_created, trial_expiring, subscription_started, trial_expired
-- 4 new lifecycle campaigns: Trial Activation, Trial Conversion, Trial Expiry, Win-Back
-- Closes the gap between TaggIQ signup and paid conversion
+- Each Product (and optionally each Campaign) gets its own "brain" — JSON rules + voice `PromptTemplate` row. Platform everything else.
+- New models: `ProductBrain` (1:1 Product), `CampaignBrainOverride` (sparse 1:1 Campaign). One additive column `AIUsageLog.brain_version`. Migration `0017`.
+- New services: `brain.py`, `rules_engine.py`, `next_action.py`, `eval_harness.py`, `vapi_opener.py`. Pure-Python rules engine, zero LLM on decisioning.
+- Wires Sprint 6 Phase 2A services into live code behind `Campaign.use_context_assembler` flag
+- Golden set eval harness (Opus 4.6 as judge) gates every merge touching reply/LLM paths
+- Sonnet 4.6 floor on all content-generation jobs, configurable per-brain via `jobs` JSON
+- Two brains running in production simultaneously (TaggIQ + FP Franchise on local, FP print-promo on EC2) is the MVP acceptance test
+- Zero impact on existing campaigns — flag=False path is byte-sacred during build
+
+**Phases:**
+1. 7.0 — Eval foundation (2 days, HARD BLOCKER)
+2. 7.1 — Data model + brain authoring (3 days, local)
+3. 7.2 — Wire executors through brain (5 days, local, feature-flagged)
+4. 7.3 — Local rollout (3 days, TaggIQ Warm Re-engagement first)
+5. 7.4 — EC2 rollout (2 days, Lisa print-promo)
+6. 7.5 — Cleanup + documentation
 
 ---
 
