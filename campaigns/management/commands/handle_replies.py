@@ -10,6 +10,7 @@ Usage:
     python manage.py handle_replies --product taggiq  # One product only
     python manage.py handle_replies --dry-run      # Check but don't invoke Claude
 """
+import os
 import subprocess
 import logging
 
@@ -36,15 +37,22 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--product', help='Only handle replies for this product slug')
+        parser.add_argument('--exclude-product', help='Exclude this product slug from reply handling and mailbox polling')
         parser.add_argument('--dry-run', action='store_true', help='Check mailboxes but do not invoke Claude')
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         product_filter = options.get('product')
+        exclude_product = options.get('exclude_product')
 
-        # Step 1: Check all mailboxes for new replies
+        # Step 1: Check mailboxes for new replies, scoped to product partition
         self.stdout.write('\n--- Checking mailboxes ---')
-        call_command('check_replies', verbosity=1, stdout=self.stdout, stderr=self.stderr)
+        check_kwargs = {'verbosity': 1, 'stdout': self.stdout, 'stderr': self.stderr}
+        if product_filter:
+            check_kwargs['product_slug'] = product_filter
+        if exclude_product:
+            check_kwargs['exclude_product_slug'] = exclude_product
+        call_command('check_replies', **check_kwargs)
 
         # Step 2: Find flagged replies grouped by product
         flagged_qs = InboundEmail.objects.filter(
@@ -55,6 +63,8 @@ class Command(BaseCommand):
 
         if product_filter:
             flagged_qs = flagged_qs.filter(campaign__product_ref__slug=product_filter)
+        if exclude_product:
+            flagged_qs = flagged_qs.exclude(campaign__product_ref__slug=exclude_product)
 
         # Group by product
         product_counts = {}
@@ -150,7 +160,7 @@ class Command(BaseCommand):
                 capture_output=True,
                 text=True,
                 timeout=600,
-                cwd='/Users/pinani/Documents/paperclip-outreach',
+                cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
             )
             if result.returncode == 0:
                 self.stdout.write(self.style.SUCCESS(f'  Claude finished successfully'))
@@ -180,7 +190,7 @@ class Command(BaseCommand):
                 capture_output=True,
                 text=True,
                 timeout=600,
-                cwd='/Users/pinani/Documents/paperclip-outreach',
+                cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
             )
             if result.returncode == 0:
                 self.stdout.write(self.style.SUCCESS(f'  Claude finished successfully'))

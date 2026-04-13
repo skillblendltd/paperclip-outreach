@@ -21,11 +21,12 @@ cat > /etc/cron.d/outreach << 'EOF'
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# Send sequences daily at 11am Mon-Fri
-0 11 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py send_sequences >> /tmp/campaigns_daily.log 2>&1
+# Send sequences daily at 11am Mon-Fri. CRON_SEND_ARGS lets each host scope itself
+# (e.g. EC2 uses --product print-promo, laptop uses --exclude-product print-promo)
+0 11 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py send_sequences ${CRON_SEND_ARGS:-} >> /tmp/campaigns_daily.log 2>&1
 
-# Check replies every 10 minutes
-*/10 * * * * root . /app/docker/.env.cron && cd /app && python manage.py handle_replies >> /tmp/outreach_reply_monitor.log 2>&1
+# Check replies every 10 minutes. CRON_REPLY_ARGS scopes the same way.
+*/10 * * * * root . /app/docker/.env.cron && cd /app && python manage.py handle_replies ${CRON_REPLY_ARGS:-} >> /tmp/outreach_reply_monitor.log 2>&1
 
 # Post to social media daily at 9am Mon-Fri
 0 9 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py post_to_social >> /tmp/outreach_social.log 2>&1

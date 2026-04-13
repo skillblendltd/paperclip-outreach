@@ -30,7 +30,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--product', help='Filter by product slug (e.g. taggiq, fullypromoted)')
+        parser.add_argument('--exclude-product', help='Exclude this product slug')
         parser.add_argument('--campaign', help='Filter by campaign name substring')
+        parser.add_argument('--exclude-campaign', help='Exclude campaigns whose name contains this substring')
         parser.add_argument('--dry-run', action='store_true', help='Preview without sending')
         parser.add_argument('--status', action='store_true', help='Show eligible counts only, do not send')
         parser.add_argument('--limit', type=int, default=0, help='Max sends per campaign (0=use campaign batch_size)')
@@ -39,7 +41,9 @@ class Command(BaseCommand):
         dry_run = options['dry_run']
         status_only = options['status']
         product_filter = options.get('product')
+        exclude_product = options.get('exclude_product')
         campaign_filter = options.get('campaign')
+        exclude_campaign = options.get('exclude_campaign')
         limit_override = options['limit']
 
         # Get active campaigns
@@ -51,8 +55,12 @@ class Command(BaseCommand):
 
         if product_filter:
             qs = qs.filter(product_ref__slug=product_filter)
+        if exclude_product:
+            qs = qs.exclude(product_ref__slug=exclude_product)
         if campaign_filter:
             qs = qs.filter(name__icontains=campaign_filter)
+        if exclude_campaign:
+            qs = qs.exclude(name__icontains=exclude_campaign)
 
         campaigns = list(qs)
         if not campaigns:

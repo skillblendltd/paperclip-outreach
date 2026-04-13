@@ -161,15 +161,19 @@ class Command(BaseCommand):
         parser.add_argument('--limit', type=int, default=0, help='Max emails to process per mailbox (0=no limit)')
         parser.add_argument('--campaign', help='Only process replies for this campaign name')
         parser.add_argument('--mailbox', help='Only check this mailbox (campaign name or product)')
+        parser.add_argument('--product-slug', help='Only check mailboxes for campaigns with this product_ref slug (v2)')
+        parser.add_argument('--exclude-product-slug', help='Exclude mailboxes for campaigns with this product_ref slug (v2)')
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         limit = options['limit']
         campaign_filter = options.get('campaign')
         mailbox_filter = options.get('mailbox')
+        product_slug = options.get('product_slug')
+        exclude_product_slug = options.get('exclude_product_slug')
 
         # Build list of mailboxes to check
-        mailboxes = self._get_mailboxes(campaign_filter, mailbox_filter)
+        mailboxes = self._get_mailboxes(campaign_filter, mailbox_filter, product_slug, exclude_product_slug)
 
         if not mailboxes:
             self.stderr.write(self.style.ERROR(
@@ -211,11 +215,11 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.WARNING('\n[DRY RUN] No changes were made.'))
 
-    def _get_mailboxes(self, campaign_filter, mailbox_filter):
+    def _get_mailboxes(self, campaign_filter, mailbox_filter, product_slug=None, exclude_product_slug=None):
         """Build list of mailbox configs to check. Falls back to settings.py."""
 
         # Check for MailboxConfig records in DB
-        mb_qs = MailboxConfig.objects.filter(is_active=True).select_related('campaign')
+        mb_qs = MailboxConfig.objects.filter(is_active=True).select_related('campaign__product_ref')
 
         if mailbox_filter:
             mb_qs = mb_qs.filter(
@@ -225,6 +229,12 @@ class Command(BaseCommand):
 
         if campaign_filter:
             mb_qs = mb_qs.filter(campaign__name__icontains=campaign_filter)
+
+        if product_slug:
+            mb_qs = mb_qs.filter(campaign__product_ref__slug=product_slug)
+
+        if exclude_product_slug:
+            mb_qs = mb_qs.exclude(campaign__product_ref__slug=exclude_product_slug)
 
         if mb_qs.exists():
             # Deduplicate by IMAP email - multiple campaigns can share one inbox
