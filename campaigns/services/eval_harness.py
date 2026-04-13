@@ -122,9 +122,16 @@ def _stub_generate(pair: dict, prompt_template: PromptTemplate) -> Optional[str]
     Phase 7.0 uses this to validate the harness end-to-end against the
     golden set baselines.
 
-    TODO(sprint7-phase7.2.8): replace with live LLM call when API key is
-    available. The wiring is straightforward:
+    TODO(sprint7-phase7.2.8): replace with a `claude` CLI subprocess call,
+    same pattern as `handle_replies._invoke_with_db_prompt` (lines 338-360).
+    NO anthropic SDK, NO API key — the Claude Code CLI is already installed
+    in the cron image on both local Docker and EC2 and reads its OAuth token
+    from the `claude_auth` Docker volume (Sprint 5 work). That is the whole
+    point of the two-host CLI setup.
 
+    Wiring recipe:
+
+        import os, subprocess
         from campaigns.services.cacheable_preamble import build as build_assembled
         assembled = build_assembled(
             product=prompt_template.product,
@@ -134,15 +141,35 @@ def _stub_generate(pair: dict, prompt_template: PromptTemplate) -> Optional[str]
             include_conversation=False,
         )
         system = '\\n\\n'.join(b.content for b in assembled.system_blocks)
-        # Feed `system` + inbound body into anthropic.Anthropic().messages.create
-        # with the model from prompt_template.model, return the text blocks.
+        inbound_body = (pair.get('inbound', {}) or {}).get('body_text', '')
+        full_prompt = (
+            system
+            + '\\n\\n==============================================================\\n'
+            + 'INBOUND EMAIL TO REPLY TO (eval mode — reply inline, do not call send_ai_reply)\\n'
+            + '==============================================================\\n'
+            + inbound_body
+        )
+        model_map = {
+            'claude-sonnet-4-6': 'sonnet',
+            'claude-haiku-4-5':  'haiku',
+            'claude-opus-4-6':   'opus',
+        }
+        model_flag = model_map.get(prompt_template.model, 'sonnet')
+        result = subprocess.run(
+            ['claude', '--model', model_flag,
+             '--allowedTools', '',            # read-only, no tools in eval mode
+             '--max-turns', '1',
+             '--output-format', 'text',
+             '-p', full_prompt],
+            capture_output=True, text=True, timeout=180,
+            cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
 
-    Blocked in the current sandbox environment: (a) anthropic SDK is not
-    installed in venv, (b) no ANTHROPIC_API_KEY available here. Rather than
-    fake scores, Phase 7.2.8 commits the rule-based-on-stub output with
-    this TODO and the note in commit 79b.. that the scores reflect stub
-    behavior, not real model output. The golden set runs meaningfully once
-    the Claude Code runtime provides API access.
+    Until that wiring lands, the stub returns the ideal reply verbatim so
+    the harness end-to-end path is exercised. Phase 7.2.8 commits labelled
+    the JSON mode as `rule_based_stub` — those scores are NOT a real
+    regression signal and must not be cited as evidence of readiness.
     """
     ideal = (pair.get('ideal_reply', {}) or {}).get('body_text')
     return ideal

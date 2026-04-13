@@ -111,12 +111,11 @@ Before flipping any EC2 campaign to flag=True in Phase 7.4:
 **Next actionable task for the human loop: Phase 7.3.1 — flip `use_context_assembler=True` on `TaggIQ Warm Re-engagement Apr 2026`.** Cron picks it up next run. Watch `docs/sprint-7-rollout-log.md` for day 1/2/3 entries.
 
 **Next actionable task for a fresh Claude session (no human input needed):**
-1. Install `anthropic` SDK in the venv + export `ANTHROPIC_API_KEY`
-2. Replace `eval_harness._stub_generate` per the TODO recipe
-3. Run `python manage.py eval_golden --product taggiq --product fullypromoted --product print-promo`
-4. Commit real scores to `tests/golden_sets/phase7_2_live.json`
-5. Write Django TestCase behavioral coverage for the 5 flag=True branches
-6. Promote `InboundEmail.objects.exists()` dispatch probe to `conversation.any_flagged_inbound_for_product(product)`
+1. Replace `eval_harness._stub_generate` with a `claude` CLI subprocess call — same pattern as `handle_replies._invoke_with_db_prompt` (L338-360). NO anthropic SDK, NO API key. The Claude Code CLI is already in the cron image on both hosts and reads its OAuth from the `claude_auth` Docker volume. Recipe is in the TODO block inside `eval_harness.py`.
+2. Run `python manage.py eval_golden --product taggiq` then `--product fullypromoted` then `--product print-promo` (print-promo must be run on EC2 since its brain lives on that host).
+3. Commit real scores to `tests/golden_sets/phase7_2_live.json`.
+4. Write Django TestCase behavioral coverage for the 5 flag=True branches (handle_replies, send_ai_reply, place_calls, send_sequences, vapi_webhook).
+5. Promote `InboundEmail.objects.exists()` dispatch probe in `handle_replies._invoke_with_contextual_prompt` to a `conversation.any_flagged_inbound_for_product(product)` helper.
 
 **Resume pointer:**
 1. `git log --oneline -25` — verify all 10 Phase 7.2 commits land at head
