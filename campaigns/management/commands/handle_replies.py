@@ -26,8 +26,9 @@ SKILL_FALLBACKS = {
     'fullypromoted': '/fp-email-expert',
 }
 
-# Claude CLI path
-CLAUDE_CLI = '/Users/pinani/.local/bin/claude'
+# Claude CLI binary - resolved via PATH (installed in container by Dockerfile,
+# or user-local install on developer machines)
+CLAUDE_CLI = 'claude'
 
 
 class Command(BaseCommand):

@@ -334,14 +334,16 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 | Architecture v2 Plan | `docs/architecture-v2-plan.md` | Multi-tenant design, all models, service layer, PostgreSQL migration |
 | Sprint Plan | `docs/sprint-plan.md` | Implementation phases, status tracking, monitoring checklist |
 | Backup & Restore | `docs/backup-and-restore.md` | Database backup and restore procedures |
+| EC2 Deployment Runbook | `docs/ec2-deployment-runbook.md` | Step-by-step runbook for moving the cron stack from laptop to EC2 eu-west-1 (Sprint 5) |
 | Social Studio v1 Plan | `docs/social-studio-v1-plan.md` | New `social_studio` Django app — TaggIQ LinkedIn pilot, HTML+Playwright renderer, zero-cost v1, platform-ready multi-tenant |
 | Social Studio Progress | `docs/social-studio-progress.md` | Living state for social_studio implementation — read at session start, update at session end |
 
-**v2 Status (as of 2026-04-08):**
+**v2 Status (as of 2026-04-13):**
 - Sprint 1 DONE: Multi-tenant models (Organization, Product, EmailTemplate, CallScript, PromptTemplate, AIUsageLog)
-- Sprint 2 DONE: Service layer + universal sender + 102 email templates seeded
+- Sprint 2 DONE: Service layer + universal sender + 146 email templates seeded
 - Sprint 3 DONE: Product-scoped suppressions, DB call scripts, cron cutover to send_sequences
-- Sprint 4 PENDING: PostgreSQL migration (after 5-day monitoring period, earliest 2026-04-16)
+- Sprint 4 DONE: PostgreSQL migration. Local stack has been running on Postgres in Docker since the docker-compose cutover; SQLite is no longer the default.
+- Sprint 5 IN PROGRESS: EC2 deployment to eu-west-1 (Ireland) for production. See `docs/ec2-deployment-runbook.md`. Cron image now bakes in Node 20 + Claude Code CLI; OAuth token persists in `claude_auth` Docker named volume; cron container uses `TZ=Europe/Dublin`.
 
 ---
 

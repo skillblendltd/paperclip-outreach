@@ -15,6 +15,7 @@ RUN apt-get update -qq && \
         gcc \
         cron \
         curl \
+        gnupg \
         ca-certificates \
         libnss3 \
         libnspr4 \
@@ -33,6 +34,13 @@ RUN apt-get update -qq && \
         libasound2 \
         fonts-liberation \
         fonts-noto-color-emoji && \
+    rm -rf /var/lib/apt/lists/*
+
+# Node.js 20 + Claude Code CLI (used by handle_replies for AI replies)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y -qq --no-install-recommends nodejs && \
+    npm install -g @anthropic-ai/claude-code && \
+    claude --version && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

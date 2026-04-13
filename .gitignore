@@ -10,3 +10,4 @@ backups/
 # social_studio
 social_studio/rendered_images/
 .DS_Store
+transfer/

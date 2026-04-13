@@ -46,10 +46,12 @@ services:
     restart: unless-stopped
     volumes:
       - .:/app
+      - claude_auth:/root/.claude
     env_file:
       - .env
     environment:
       - DATABASE_URL=postgres://outreach:${POSTGRES_PASSWORD:-localdev}@postgres:5432/outreach
+      - TZ=Europe/Dublin
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,3 +61,4 @@ services:
 
 volumes:
   pgdata:
+  claude_auth:
