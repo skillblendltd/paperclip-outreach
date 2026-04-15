@@ -82,9 +82,10 @@ class MailboxConfigInline(admin.StackedInline):
 class CampaignAdmin(admin.ModelAdmin):
     list_display = [
         'name', 'product_badge', 'sending_status', 'from_email',
-        'prospect_count', 'template_count', 'max_emails_per_day', 'min_gap_minutes',
+        'reply_window_badge', 'prospect_count', 'template_count',
+        'max_emails_per_day', 'min_gap_minutes',
     ]
-    list_filter = ['product_ref__slug', 'sending_enabled']
+    list_filter = ['product_ref__slug', 'sending_enabled', 'reply_window_timezone']
     search_fields = ['name']
     inlines = [EmailTemplateInline, MailboxConfigInline]
 
@@ -107,6 +108,24 @@ class CampaignAdmin(admin.ModelAdmin):
                 'send_window_timezone', 'send_window_start_hour', 'send_window_end_hour',
                 'send_window_days', 'batch_size', 'inter_send_delay_min',
                 'inter_send_delay_max', 'priority_cities',
+            ),
+            'classes': ('collapse',),
+        }),
+        ('Reply Window', {
+            'description': (
+                'Business-hours gate for AI auto-replies. Inbounds captured '
+                'outside this window are held until the window re-opens '
+                'the next allowed day. Grace minutes = delay after capture '
+                'before AI may reply, so a human operator can claim the '
+                'thread by opening it in their inbox. Days use '
+                '0=Mon..6=Sun, comma-separated.'
+            ),
+            'fields': (
+                'reply_window_timezone',
+                'reply_window_start_hour',
+                'reply_window_end_hour',
+                'reply_window_days',
+                'reply_grace_minutes',
             ),
             'classes': ('collapse',),
         }),
@@ -133,6 +152,34 @@ class CampaignAdmin(admin.ModelAdmin):
         if count == 0:
             return format_html('<span style="color:#e74c3c;font-weight:bold">0</span>')
         return count
+
+    @admin.display(description='Reply Window')
+    def reply_window_badge(self, obj):
+        """Compact display of configured reply window: "9-18 Mon-Fri Europe/Dublin (5m)".
+        Greyed when outside current live window.
+        """
+        from campaigns.services.reply_window import is_within_reply_window
+        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        try:
+            days = [int(x) for x in (obj.reply_window_days or '').split(',') if x.strip()]
+            day_str = (
+                '-'.join([day_names[days[0]], day_names[days[-1]]])
+                if len(days) > 1 and days == list(range(days[0], days[-1] + 1))
+                else ','.join(day_names[d] for d in days if 0 <= d <= 6)
+            )
+        except (ValueError, IndexError):
+            day_str = obj.reply_window_days or '?'
+        live = is_within_reply_window(obj)
+        colour = '#27ae60' if live else '#95a5a6'
+        label = (
+            f'{obj.reply_window_start_hour}-{obj.reply_window_end_hour} '
+            f'{day_str} {obj.reply_window_timezone} '
+            f'(grace {obj.reply_grace_minutes}m)'
+        )
+        return format_html(
+            '<span style="color:{};font-size:11px">{}</span>',
+            colour, label,
+        )
 
     @admin.display(description='Product')
     def product_badge(self, obj):
