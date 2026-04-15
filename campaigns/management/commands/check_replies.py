@@ -19,7 +19,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
 
-from django.db.models import Q
+from django.db.models import F, Q
 
 from campaigns.models import (
     Campaign, Prospect, EmailLog, EmailQueue,
@@ -829,6 +829,30 @@ class Command(BaseCommand):
                     received_at=received_at,
                 )
 
+                # H2 (2026-04-15): atomic reply counter update. Runs BEFORE
+                # _execute_actions so the subsequent in-method `save(update_
+                # fields=...)` calls do not clobber our F() write. Counts
+                # real human replies only — system emails (DocuSign etc),
+                # bounces, and out-of-office auto-acks are excluded.
+                #
+                # CRITICAL INVARIANT: this F() update and _execute_actions's
+                # prospect.save() calls MUST touch disjoint columns. The
+                # save() calls in _execute_actions currently all use
+                # update_fields=[...] without 'reply_count' or
+                # 'last_replied_at' — if anyone adds a plain save() there,
+                # the F() increment will be silently clobbered. See the
+                # docstring invariant note on _execute_actions.
+                COUNTED_CLASSIFICATIONS = (
+                    'interested', 'question', 'other',
+                    'not_interested', 'opt_out',
+                )
+                if not is_system and classification in COUNTED_CLASSIFICATIONS:
+                    Prospect.objects.filter(pk=prospect.pk).update(
+                        reply_count=F('reply_count') + 1,
+                        last_replied_at=inbound.created_at,
+                        updated_at=timezone.now(),
+                    )
+
                 # Execute auto-actions (opt-out, bounce, not-interested, etc.)
                 if not is_system:
                     self._execute_actions(prospect, inbound, classification)
@@ -939,7 +963,26 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR(f'    -> Auto-reply FAILED: {e}'))
 
     def _execute_actions(self, prospect, inbound, classification):
-        """Execute automated actions based on classification. No email sending."""
+        """Execute automated actions based on classification. No email sending.
+
+        CRITICAL INVARIANT (2026-04-15 — H2):
+            The caller has ALREADY applied an atomic F() update to
+            `prospect.reply_count` and `prospect.last_replied_at` on
+            this row immediately before calling this method. Every
+            `prospect.save()` in here MUST pass `update_fields=[...]`
+            with an explicit column list that DOES NOT include
+            `reply_count` or `last_replied_at` — otherwise the F()
+            increment will be silently clobbered by the stale
+            in-memory values on the Prospect instance.
+
+            If you need to change reply_count from inside this method,
+            use another `Prospect.objects.filter(pk=prospect.pk).update(
+            reply_count=...)` — never `prospect.save()` without
+            update_fields.
+
+            Enforced by convention, not by tests. Check every save()
+            in this method before merging.
+        """
 
         if classification == 'opt_out':
             prospect.status = 'opted_out'

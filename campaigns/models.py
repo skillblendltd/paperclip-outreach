@@ -226,6 +226,27 @@ class Prospect(BaseModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
     emails_sent = models.IntegerField(default=0)
     last_emailed_at = models.DateTimeField(null=True, blank=True)
+
+    # Inbound-side counters (migration 0020). Written by check_replies via
+    # F() atomic increment immediately after InboundEmail.create. Feeds the
+    # Sprint 7 brain escalation rule `on_reply_count_gte` and enables
+    # "sort by recency" in the admin. Counts real human replies only:
+    # interested / question / other / not_interested / opt_out. Excludes
+    # bounces, out-of-office auto-acks, and system-denylist matches.
+    reply_count = models.IntegerField(
+        default=0,
+        help_text='Number of real human replies received from this prospect. '
+                  'Written by check_replies atomic F() increment. Counts '
+                  'interested/question/other/not_interested/opt_out. Excludes '
+                  'bounce, out_of_office, system-denylist (DocuSign, etc).',
+    )
+    last_replied_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Most recent moment this prospect replied (capture time, '
+                  'not the email Date header). Used for "recent activity" '
+                  'sorting and KPI rollups.',
+    )
+
     calls_sent = models.IntegerField(default=0)
     last_called_at = models.DateTimeField(null=True, blank=True)
 
