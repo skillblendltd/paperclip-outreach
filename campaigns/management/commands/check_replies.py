@@ -30,6 +30,68 @@ from campaigns.email_service import EmailService
 logger = logging.getLogger(__name__)
 
 
+# G4 (2026-04-15): system-email denylist.
+# Inbounds matching these are forced to classification='other', needs_reply=False,
+# needs_manual_review=False BEFORE the regular classifier runs. Prevents the AI
+# reply pipeline from ever seeing DocuSign notifications, calendar invites,
+# out-of-office auto-acks, postmaster bounces, or our own system emails.
+SYSTEM_SENDER_DENYLIST_SUBSTRINGS = (
+    'postmaster@',
+    'mailer-daemon@',
+    'noreply@',
+    'no-reply@',
+    'do-not-reply@',
+    'bounces@',
+    'dse@',                      # DocuSign notification sender
+    'dse_na@',
+    'dse_demo@',
+    '@docusign.net',
+    'calendar-notification@',
+    'calendar-server@',
+    'meetings@',
+    'unknowngeneva@',
+    'notifications@github.com',
+    'notify@',
+)
+SYSTEM_SUBJECT_DENYLIST_PREFIXES = (
+    'auto-reply:',
+    'auto reply:',
+    'automatic reply:',
+    'out of office:',
+    '[request received]',
+    'accepted:',
+    'declined:',
+    'tentative:',
+    'document for esignature',
+    'please docusign:',
+    'appointment booked:',
+    'undeliverable:',
+    'delivery status notification',
+)
+
+
+def is_system_email(from_email: str, subject: str) -> bool:
+    """G4: return True iff this inbound should be archived silently.
+
+    Catches system-generated email that has no human on the other end:
+    DocuSign notifications, calendar invites, auto-acks, bounces,
+    postmaster replies, GitHub notifications, etc.
+
+    This runs BEFORE classification so the classifier never has a chance
+    to tag a DocuSign notice as 'interested' based on an accidental
+    keyword match.
+    """
+    lower_from = (from_email or '').lower()
+    for needle in SYSTEM_SENDER_DENYLIST_SUBSTRINGS:
+        if needle in lower_from:
+            return True
+    lower_subj = (subject or '').lower().strip()
+    for prefix in SYSTEM_SUBJECT_DENYLIST_PREFIXES:
+        if lower_subj.startswith(prefix):
+            return True
+    return False
+
+
 # Classification rules - checked in order, first match wins
 CLASSIFICATION_RULES = [
     ('opt_out', [
@@ -153,6 +215,203 @@ STATUS_RANK = {
 }
 
 
+def match_inbound_to_prospect(
+    from_email: str,
+    from_name: str,
+    in_reply_to: str,
+    mailbox_campaign=None,
+    mailbox_campaigns=None,
+    product_floor=None,
+    stdout=None,
+    style=None,
+):
+    """F1 — tenant-isolated inbound-to-prospect matching (2026-04-15).
+
+    Returns ``(prospect_or_None, match_source, ambiguous)``.
+
+    Precedence (first rule that returns wins; no fall-through to a less
+    authoritative rule once a rule matches):
+
+      1. **Thread ancestor** — parse ``In-Reply-To``, look up the outbound
+         ``EmailLog`` whose ``ses_message_id`` contains the normalized ID,
+         return ``email_log.prospect``. This is the ONLY unambiguous signal:
+         it traces the reply back to the exact outbound message we sent,
+         which has a definitive ``campaign`` FK.
+
+      2. **Mailbox-scoped email match** — if we know the product floor of
+         this mailbox (all campaigns on this inbox share one Product),
+         restrict the ``Prospect.email`` lookup to campaigns within that
+         Product. If still 0 matches, fall back to the mailbox's campaign
+         set. Never reach outside the mailbox's tenant boundary.
+
+      3. **Global fallback** — only runs when no product floor is known
+         AND no thread ancestor exists. If the global email lookup returns
+         exactly 1 prospect, use it. If it returns >1, return
+         ``ambiguous=True`` so the caller can save the inbound with
+         ``needs_manual_review=True`` and ``needs_reply=False``.
+
+      4. **Name-based last resort** — same as before, but only when a
+         single unique decision_maker_name match exists within the mailbox
+         boundary. Does NOT run if step 3 returned ambiguous (we do not
+         compound one uncertain signal with another).
+
+    ``ambiguous`` is True only when:
+      - Step 1 found no ancestor
+      - Step 2 returned 0 rows OR was skipped (no product_floor)
+      - Step 3 returned >1 rows across products
+
+    Callers should check ``ambiguous`` FIRST: if True, save the inbound
+    as needs_manual_review and skip auto-actions. A prospect is never
+    returned alongside ambiguous=True.
+
+    Args:
+        from_email: normalized lowercase sender email
+        from_name: raw ``From`` header name (may be empty)
+        in_reply_to: raw ``In-Reply-To`` header value (may be empty)
+        mailbox_campaign: single Campaign if inbox serves exactly one,
+            else None
+        mailbox_campaigns: list of Campaigns that share this inbox
+        product_floor: the Product every campaign on this inbox belongs
+            to, or None if the inbox spans multiple products (rare /
+            misconfiguration)
+        stdout, style: optional Django command output handles for
+            verbose logging of match sources
+    """
+    mailbox_campaigns = mailbox_campaigns or []
+
+    def _log(msg, styler=None):
+        if stdout is None:
+            return
+        if styler is not None:
+            stdout.write(styler(msg))
+        else:
+            stdout.write(msg)
+
+    # ---------- Rule 1: thread ancestor via In-Reply-To ----------
+    if in_reply_to:
+        ses_id = in_reply_to.strip('<>').split('@')[0]
+        if ses_id:
+            log = EmailLog.objects.filter(
+                ses_message_id__icontains=ses_id,
+            ).select_related('prospect__campaign__product_ref').first()
+            if log and log.prospect:
+                _log(
+                    f'  THREAD MATCH (In-Reply-To): {from_email} -> '
+                    f'{log.prospect.email} ({log.prospect.business_name}) '
+                    f'via EmailLog {log.id} campaign={log.campaign.name if log.campaign else "-"}',
+                    style.SUCCESS if style else None,
+                )
+                return log.prospect, 'thread_ancestor', False
+
+    # ---------- Rule 2: mailbox-scoped email match ----------
+    #
+    # Scope priority: product_floor > mailbox_campaigns > single campaign.
+    # We only fall outside these boundaries if nothing in the mailbox
+    # matches AND no product_floor exists.
+    scoped_qs = None
+    scope_label = None
+
+    if product_floor is not None:
+        scoped_qs = Prospect.objects.filter(
+            email__iexact=from_email,
+            campaign__product_ref=product_floor,
+        )
+        scope_label = f'product={product_floor.slug}'
+    elif mailbox_campaigns:
+        scoped_qs = Prospect.objects.filter(
+            email__iexact=from_email,
+            campaign__in=mailbox_campaigns,
+        )
+        scope_label = f'{len(mailbox_campaigns)} mailbox campaign(s)'
+    elif mailbox_campaign is not None:
+        scoped_qs = Prospect.objects.filter(
+            email__iexact=from_email,
+            campaign=mailbox_campaign,
+        )
+        scope_label = f'campaign={mailbox_campaign.name}'
+
+    if scoped_qs is not None:
+        scoped_count = scoped_qs.count()
+        if scoped_count == 1:
+            prospect = scoped_qs.select_related('campaign__product_ref').first()
+            _log(
+                f'  EMAIL MATCH (scoped {scope_label}): {from_email} -> '
+                f'{prospect.email} ({prospect.business_name})',
+            )
+            return prospect, 'email_scoped', False
+        if scoped_count > 1:
+            # Multiple prospect rows for this email within the mailbox
+            # boundary. No thread ancestor to disambiguate. Flag as
+            # ambiguous — caller must not auto-reply.
+            names = ', '.join(
+                f'{p.business_name}({p.campaign.name})'
+                for p in scoped_qs.select_related('campaign')[:3]
+            )
+            _log(
+                f'  AMBIGUOUS (scoped {scope_label}, {scoped_count} matches): '
+                f'{from_email} -> [{names}]',
+                style.WARNING if style else None,
+            )
+            return None, 'ambiguous_scoped', True
+        # scoped_count == 0: continue below. May fall through to global
+        # fallback only if no product_floor was enforced.
+
+    # ---------- Rule 3: global fallback (only if no product floor) ----------
+    #
+    # Product floor is the hardest tenant boundary we have. If it's set and
+    # the scoped lookup returned 0, we do NOT reach outside it — that would
+    # be a cross-product bleed (the exact bug F1 fixes). The inbound is
+    # saved as no-match with no prospect.
+    if product_floor is None:
+        global_qs = Prospect.objects.filter(email__iexact=from_email)
+        global_count = global_qs.count()
+        if global_count == 1:
+            prospect = global_qs.select_related('campaign__product_ref').first()
+            _log(
+                f'  EMAIL MATCH (global fallback): {from_email} -> '
+                f'{prospect.email} ({prospect.business_name}) '
+                f'campaign={prospect.campaign.name if prospect.campaign else "-"}',
+            )
+            return prospect, 'email_global', False
+        if global_count > 1:
+            # Cross-product collision with no thread ancestor. Ambiguous.
+            products_hit = {
+                p.campaign.product_ref.slug if p.campaign and p.campaign.product_ref else '?'
+                for p in global_qs.select_related('campaign__product_ref')[:10]
+            }
+            _log(
+                f'  AMBIGUOUS (global, {global_count} matches across products '
+                f'{sorted(products_hit)}): {from_email}',
+                style.WARNING if style else None,
+            )
+            return None, 'ambiguous_global', True
+
+    # ---------- Rule 4: name-based last resort (never ambiguous) ----------
+    if from_name:
+        first_name = from_name.strip().split()[0] if from_name.strip() else ''
+        if first_name:
+            name_qs = Prospect.objects.filter(
+                decision_maker_name__icontains=first_name,
+                emails_sent__gt=0,
+            ).select_related('campaign__product_ref')
+            if product_floor is not None:
+                name_qs = name_qs.filter(campaign__product_ref=product_floor)
+            elif mailbox_campaigns:
+                name_qs = name_qs.filter(campaign__in=mailbox_campaigns)
+            elif mailbox_campaign is not None:
+                name_qs = name_qs.filter(campaign=mailbox_campaign)
+            if name_qs.count() == 1:
+                prospect = name_qs.first()
+                _log(
+                    f'  NAME MATCH: {from_email} -> '
+                    f'{prospect.email} ({prospect.business_name})',
+                    style.WARNING if style else None,
+                )
+                return prospect, 'name', False
+
+    return None, 'no_match', False
+
+
 class Command(BaseCommand):
     help = 'Check IMAP mailboxes for reply emails, classify, and execute auto-actions'
 
@@ -198,6 +457,8 @@ class Command(BaseCommand):
                 imap_password=mb_info['imap_password'],
                 campaign=mb_info.get('campaign'),
                 mailbox_obj=mb_info.get('mailbox_obj'),
+                product_floor=mb_info.get('product_floor'),
+                mailbox_campaigns=mb_info.get('campaigns') or [],
                 dry_run=dry_run,
                 limit=limit,
             )
@@ -238,7 +499,15 @@ class Command(BaseCommand):
 
         if mb_qs.exists():
             # Deduplicate by IMAP email - multiple campaigns can share one inbox
-            # Group campaigns by imap_email so we only connect once per inbox
+            # Group campaigns by imap_email so we only connect once per inbox.
+            #
+            # F3 (2026-04-15 tenant isolation fix): each mailbox grouping carries
+            # BOTH the list of campaigns it serves AND the Product floor those
+            # campaigns share. `product_floor` is the Product that every campaign
+            # on this inbox belongs to (None only if campaigns span >1 product,
+            # which is a misconfiguration). Matching uses the floor to scope
+            # email-based prospect lookups so inbound replies never attribute
+            # to a prospect row outside this mailbox's Product boundary.
             seen_emails = {}
             for mb in mb_qs:
                 key = mb.imap_email.lower()
@@ -249,21 +518,38 @@ class Command(BaseCommand):
                         'imap_port': mb.imap_port,
                         'imap_email': mb.imap_email,
                         'imap_password': mb.imap_password,
-                        'campaign': None,  # search across all campaigns for this inbox
+                        'campaign': None,  # set below if single-campaign inbox
                         'mailbox_obj': mb,
                         'campaigns': [mb.campaign],
                     }
                 else:
                     seen_emails[key]['campaigns'].append(mb.campaign)
 
-            # If only one campaign for this inbox, scope to it
             for key, info in seen_emails.items():
+                # Derive the Product floor for this mailbox. If every campaign on
+                # this inbox shares the same Product, that Product is the floor
+                # and email-based prospect matching is scoped to it.
+                products = {
+                    c.product_ref_id for c in info['campaigns'] if c.product_ref_id
+                }
+                if len(products) == 1:
+                    info['product_floor'] = info['campaigns'][0].product_ref
+                else:
+                    # Mailbox spans >1 product or has no product_ref at all.
+                    # Matching falls back to mailbox campaign set only.
+                    info['product_floor'] = None
+
                 if len(info['campaigns']) == 1:
                     info['campaign'] = info['campaigns'][0]
                     info['label'] = f'{info["campaigns"][0].name} <{info["imap_email"]}>'
                 else:
-                    names = ', '.join(c.name for c in info['campaigns'])
-                    info['label'] = f'{info["imap_email"]} ({len(info["campaigns"])} campaigns)'
+                    floor_label = (
+                        info['product_floor'].slug if info['product_floor'] else 'MIXED'
+                    )
+                    info['label'] = (
+                        f'{info["imap_email"]} '
+                        f'({len(info["campaigns"])} campaigns, product={floor_label})'
+                    )
 
             return list(seen_emails.values())
 
@@ -288,8 +574,17 @@ class Command(BaseCommand):
         return []
 
     def _process_mailbox(self, imap_host, imap_port, imap_email, imap_password,
-                         campaign, mailbox_obj, dry_run, limit):
-        """Process a single IMAP mailbox. Returns (processed_count, actions_dict)."""
+                         campaign, mailbox_obj, dry_run, limit,
+                         product_floor=None, mailbox_campaigns=None):
+        """Process a single IMAP mailbox. Returns (processed_count, actions_dict).
+
+        product_floor / mailbox_campaigns (F3 — tenant isolation, 2026-04-15):
+            Carried forward from `_get_mailboxes` grouping. They define the
+            tenant boundary for email-based prospect matching — no unscoped
+            cross-product lookups. See `_match_to_prospect` for the precedence
+            rules.
+        """
+        mailbox_campaigns = mailbox_campaigns or []
 
         actions = {'opt_out': 0, 'bounce': 0, 'not_interested': 0, 'out_of_office': 0,
                    'interested': 0, 'question': 0, 'other': 0}
@@ -382,57 +677,66 @@ class Command(BaseCommand):
                 # Extract body
                 body_text = extract_text_body(msg)
 
-                # Match to prospect
-                # If we have a specific campaign (from MailboxConfig), scope to it
-                # Otherwise search across all campaigns (legacy fallback)
-                if campaign:
-                    prospect_qs = Prospect.objects.filter(
-                        email__iexact=from_email_addr, campaign=campaign
-                    )
-                else:
-                    prospect_qs = Prospect.objects.filter(email__iexact=from_email_addr)
-
-                prospect = prospect_qs.select_related('campaign').first()
-
-                # If mailbox is campaign-specific but no match, also try cross-campaign
-                if not prospect and campaign:
-                    prospect = Prospect.objects.filter(
-                        email__iexact=from_email_addr
-                    ).select_related('campaign').first()
-
-                # Fuzzy match via In-Reply-To: prospect replied from a different domain
-                # Match the SES message ID stored in EmailLog back to a prospect
-                if not prospect and in_reply_to:
-                    ses_id = in_reply_to.strip('<>').split('@')[0]
-                    log = EmailLog.objects.filter(
-                        ses_message_id__icontains=ses_id
-                    ).select_related('prospect__campaign').first()
-                    if log and log.prospect:
-                        prospect = log.prospect
-                        self.stdout.write(self.style.WARNING(
-                            f'  FUZZY MATCH (In-Reply-To): {from_email_addr} -> {prospect.email} ({prospect.business_name})'
-                        ))
-
-                # Last resort: match by first name against decision_maker_name (only if unique match)
-                if not prospect and from_name:
-                    first_name = from_name.strip().split()[0]
-                    qs = Prospect.objects.filter(
-                        decision_maker_name__icontains=first_name,
-                        emails_sent__gt=0,
-                    ).select_related('campaign')
-                    if campaign:
-                        qs = qs.filter(campaign=campaign)
-                    if qs.count() == 1:
-                        prospect = qs.first()
-                        self.stdout.write(self.style.WARNING(
-                            f'  NAME MATCH: {from_email_addr} -> {prospect.email} ({prospect.business_name})'
-                        ))
+                # F1 — tenant-isolated prospect matching (2026-04-15).
+                # Replaces the old email-first lookup with a thread-first,
+                # mailbox-scoped precedence. Details in `match_inbound_to_prospect`.
+                prospect, match_source, ambiguous = match_inbound_to_prospect(
+                    from_email=from_email_addr,
+                    from_name=from_name,
+                    in_reply_to=in_reply_to,
+                    mailbox_campaign=campaign,
+                    mailbox_campaigns=mailbox_campaigns,
+                    product_floor=product_floor,
+                    stdout=self.stdout,
+                    style=self.style,
+                )
 
                 if not prospect:
                     skipped_no_match += 1
                     # Mark as read so we don't reprocess
                     if not dry_run:
                         imap.store(msg_id, '+FLAGS', '\\Seen')
+
+                    # G4 (2026-04-15): system email with no prospect match —
+                    # archive silently. Do not create an InboundEmail row at
+                    # all, do not flag for review. Preserves the mailbox from
+                    # filling with DocuSign/calendar/bounce noise rows.
+                    if is_system_email(from_email_addr, subject):
+                        self.stdout.write(self.style.WARNING(
+                            f'  SYSTEM-ARCHIVED (no match): {from_email_addr} - {subject[:60]}'
+                        ))
+                        continue
+
+                    # F1 (2026-04-15): if matching returned ambiguous (>1
+                    # prospect rows for this email within the tenant boundary),
+                    # save the inbound with needs_manual_review=True and
+                    # needs_reply=False. Auto-reply pipeline must not touch it.
+                    if ambiguous:
+                        self.stdout.write(self.style.WARNING(
+                            f'  NEEDS MANUAL REVIEW ({match_source}): '
+                            f'{from_email_addr} - {subject[:60]}'
+                        ))
+                        if not dry_run:
+                            InboundEmail.objects.create(
+                                prospect=None,
+                                campaign=campaign,  # may be None
+                                from_email=from_email_addr,
+                                from_name=from_name,
+                                subject=subject,
+                                body_text=body_text[:10000],
+                                message_id=message_id,
+                                in_reply_to=in_reply_to,
+                                classification='other',
+                                needs_reply=False,
+                                needs_manual_review=True,
+                                received_at=received_at,
+                                notes=(
+                                    f'Ambiguous match ({match_source}) from mailbox '
+                                    f'{imap_email}. Multiple prospect rows matched by '
+                                    f'email with no thread ancestor to disambiguate.'
+                                ),
+                            )
+                        continue
 
                     # For campaign-specific mailboxes: only save if it looks like
                     # a real reply (has In-Reply-To header). Skip notifications,
@@ -483,16 +787,27 @@ class Command(BaseCommand):
                 ).order_by('-sequence_number').first()
                 replied_to_sequence = last_log.sequence_number if last_log else None
 
+                # G4 (2026-04-15): system-email denylist. DocuSign, calendar
+                # invites, postmaster, auto-acks get archived silently before
+                # they ever reach the classifier or the AI reply pipeline.
+                is_system = is_system_email(from_email_addr, subject)
+
                 # Classify
-                classification = classify_email(subject, body_text)
-                actions[classification] += 1
-
-                needs_reply = classification in ('interested', 'question', 'other')
-
-                label = f'{prospect.business_name} <{from_email_addr}>'
-                self.stdout.write(
-                    f'  {classification.upper():15s} {label} - {subject[:50]}'
-                )
+                if is_system:
+                    classification = 'other'
+                    needs_reply = False
+                    actions['other'] += 1
+                    self.stdout.write(self.style.WARNING(
+                        f'  SYSTEM-ARCHIVED  {from_email_addr} - {subject[:50]}'
+                    ))
+                else:
+                    classification = classify_email(subject, body_text)
+                    actions[classification] += 1
+                    needs_reply = classification in ('interested', 'question', 'other')
+                    label = f'{prospect.business_name} <{from_email_addr}>'
+                    self.stdout.write(
+                        f'  {classification.upper():15s} {label} - {subject[:50]}'
+                    )
 
                 if dry_run:
                     processed += 1
@@ -515,16 +830,29 @@ class Command(BaseCommand):
                 )
 
                 # Execute auto-actions (opt-out, bounce, not-interested, etc.)
-                self._execute_actions(prospect, inbound, classification)
+                if not is_system:
+                    self._execute_actions(prospect, inbound, classification)
 
                 # Auto-reply if campaign has it enabled and template exists
-                if (matched_campaign.auto_reply_enabled
+                if (not is_system
+                        and matched_campaign.auto_reply_enabled
                         and classification in ('interested', 'question')
                         and needs_reply):
                     self._try_auto_reply(prospect, inbound, matched_campaign, mailbox_obj)
 
-                # Mark IMAP message as SEEN
-                imap.store(msg_id, '+FLAGS', '\\Seen')
+                # G3 (2026-04-15): do NOT auto-mark needs_reply=True inbounds as
+                # \Seen here. Leaving them UNSEEN in IMAP is the signal that the
+                # human operator can still claim them by opening in their mail
+                # client. handle_replies re-checks \Seen before AI reply and
+                # marks \Seen only after successful send.
+                #
+                # System emails, opt-outs, bounces, not_interested, and
+                # out_of_office get marked \Seen immediately because they
+                # trigger suppression and do not need human review.
+                if is_system or classification in (
+                    'opt_out', 'bounce', 'not_interested', 'out_of_office',
+                ):
+                    imap.store(msg_id, '+FLAGS', '\\Seen')
                 processed += 1
 
             except Exception as e:

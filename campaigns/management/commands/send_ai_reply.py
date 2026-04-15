@@ -35,6 +35,7 @@ The persona-specific args (--from-name, --signature-name, --max-words) are
 required so this command never silently uses a Lisa-shaped default for
 TaggIQ or FP. Each prompt declares its own persona.
 """
+import imaplib
 import sys
 import time
 from datetime import timedelta
@@ -263,6 +264,21 @@ class Command(BaseCommand):
             'needs_reply', 'ai_attempt_count', 'updated_at',
         ])
 
+        # G6 (2026-04-15): mark the IMAP message as \Seen after a successful
+        # AI reply so the human inbox shows "read = AI handled it". Pairs
+        # with G3 (check_replies no longer auto-\Seens needs_reply=True
+        # inbounds) to turn the IMAP unread flag into a real triage signal:
+        # unread = pending, read = handled (by human OR by AI).
+        #
+        # Best-effort: IMAP errors are logged and swallowed. A failed mark
+        # does not unsend the reply.
+        try:
+            self._mark_imap_seen(inbound, campaign)
+        except Exception as imap_exc:
+            self.stdout.write(self.style.WARNING(
+                f'  G6: failed to mark IMAP \\Seen for {inbound.message_id}: {imap_exc}'
+            ))
+
         # 8. AIUsageLog (success)
         self._log_ai_usage(
             campaign, prospect, product, success=True,
@@ -315,6 +331,51 @@ class Command(BaseCommand):
         """Bump ai_attempt_count without marking replied. Used on pre-send block / failure."""
         inbound.ai_attempt_count = (inbound.ai_attempt_count or 0) + 1
         inbound.save(update_fields=['ai_attempt_count', 'updated_at'])
+
+    def _mark_imap_seen(self, inbound, campaign):
+        """G6 (2026-04-15): after a successful AI reply, mark the original
+        inbound message as \\Seen in the mailbox. Pairs with G3 in
+        check_replies which now leaves needs_reply=True inbounds as UNSEEN
+        so the human operator can claim them.
+
+        Connects to the IMAP mailbox via the inbound's campaign MailboxConfig
+        (with sibling fallback so Dublin Construction inbounds can be marked
+        on Kingswood's shared office@ mailbox). Searches by Message-ID.
+        Raises on failure so the caller can log-and-swallow.
+        """
+        if not inbound.message_id:
+            return  # Nothing to key off — best effort, skip
+
+        # 1. Direct mailbox for this campaign, then sibling fallback
+        mb = MailboxConfig.objects.filter(campaign=campaign, is_active=True).first()
+        if not mb and campaign and campaign.product_ref_id:
+            mb = MailboxConfig.objects.filter(
+                campaign__product_ref_id=campaign.product_ref_id,
+                is_active=True,
+            ).first()
+        if not mb:
+            return  # No mailbox config — cannot mark
+
+        imap = imaplib.IMAP4_SSL(mb.imap_host, mb.imap_port)
+        try:
+            imap.login(mb.imap_email, mb.imap_password)
+            imap.select('INBOX')
+            # Search by the RFC-822 Message-ID header. Strip angle brackets
+            # for the SEARCH literal (some servers are picky about them).
+            msg_id_value = inbound.message_id.strip('<>')
+            status, data = imap.search(
+                None, 'HEADER', 'Message-ID', f'<{msg_id_value}>'
+            )
+            if status != 'OK' or not data or not data[0]:
+                return
+            msg_nums = data[0].split()
+            for num in msg_nums:
+                imap.store(num, '+FLAGS', '\\Seen')
+        finally:
+            try:
+                imap.logout()
+            except Exception:
+                pass
 
     def _resolve_smtp_config(self, campaign, product):
         """Find an SMTP config for this campaign, falling back to sibling

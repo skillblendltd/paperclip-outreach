@@ -122,6 +122,31 @@ class Campaign(BaseModel):
     send_window_start_hour = models.IntegerField(default=10, help_text='Earliest hour to send (0-23)')
     send_window_end_hour = models.IntegerField(default=17, help_text='Latest hour to send (0-23)')
     send_window_days = models.CharField(max_length=20, default='0,1,2,3,4', help_text='Comma-separated weekday numbers (0=Mon)')
+
+    # Reply window — gates AI auto-replies to respect business hours so prospects
+    # do not feel they are talking to a 24x7 bot. Independent of send_window_*
+    # because reply cadence can be more generous than outbound cold drip.
+    reply_window_timezone = models.CharField(
+        max_length=50, default='Europe/Dublin',
+        help_text='Timezone for reply window (IANA name, e.g. Europe/Dublin)',
+    )
+    reply_window_start_hour = models.IntegerField(
+        default=9,
+        help_text='Earliest hour AI replies may go out (0-23, local time)',
+    )
+    reply_window_end_hour = models.IntegerField(
+        default=18,
+        help_text='Latest hour AI replies may go out (0-23, local time)',
+    )
+    reply_window_days = models.CharField(
+        max_length=20, default='0,1,2,3,4',
+        help_text='Comma-separated weekday numbers AI replies may run (0=Mon ... 6=Sun)',
+    )
+    reply_grace_minutes = models.IntegerField(
+        default=5,
+        help_text='Delay after an inbound is captured before AI may reply to it. '
+                  'Gives the human operator time to open and claim it manually.',
+    )
     batch_size = models.IntegerField(default=100, help_text='Max prospects to process per run')
     inter_send_delay_min = models.IntegerField(default=5, help_text='Min seconds between sends')
     inter_send_delay_max = models.IntegerField(default=60, help_text='Max seconds between sends')
@@ -434,6 +459,12 @@ class InboundEmail(BaseModel):
     replied_to_sequence = models.IntegerField(null=True, blank=True)
 
     needs_reply = models.BooleanField(default=False)
+    needs_manual_review = models.BooleanField(
+        default=False,
+        help_text='True when reply matching could not confidently attribute this '
+                  'inbound to a single tenant (Organization/Product/Campaign). '
+                  'Blocks auto-reply. Human reviews via admin.',
+    )
     replied = models.BooleanField(default=False)
     auto_replied = models.BooleanField(default=False, help_text='True if reply was sent by auto-reply system')
     reply_sent_at = models.DateTimeField(null=True, blank=True)

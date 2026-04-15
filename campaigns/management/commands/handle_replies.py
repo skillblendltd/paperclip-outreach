@@ -10,6 +10,7 @@ Usage:
     python manage.py handle_replies --product taggiq  # One product only
     python manage.py handle_replies --dry-run      # Check but don't invoke Claude
 """
+import imaplib
 import os
 import subprocess
 import logging
@@ -19,13 +20,14 @@ from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.utils import timezone
 
-from campaigns.models import InboundEmail, Product, PromptTemplate, EmailLog
+from campaigns.models import InboundEmail, MailboxConfig, Product, PromptTemplate, EmailLog
 from campaigns.services.reply_audit import (
     detect_price_violation,
     detect_bounce_reply,
     detect_length_violation,
 )
 from campaigns.services.day_awareness import current_day_awareness_block
+from campaigns.services.reply_window import is_within_reply_window
 # Sprint 7 Phase 7.2.1 — imported lazily inside the flag branch so flag=False
 # code path has zero new import side effects.
 
@@ -82,9 +84,21 @@ class Command(BaseCommand):
         if exclude_product:
             flagged_qs = flagged_qs.exclude(campaign__product_ref__slug=exclude_product)
 
-        # Group by product
+        # G5 (2026-04-15): apply reply-window + grace + unread cross-check
+        # gates BEFORE dispatching to Claude. Each gate logs its skip reason.
+        # Returns a filtered list of inbounds that are truly eligible for AI
+        # auto-reply right now.
+        actionable = self._filter_actionable_inbounds(list(flagged_qs))
+        # Restrict the dispatch set to the actionable ids — the downstream
+        # product-batching query in Claude invocations is handled elsewhere,
+        # but list_pending_replies (which the Claude agent calls via cron) reads
+        # the same DB state, so actionable filtering + needs_reply mutation in
+        # `_filter_actionable_inbounds` is what the agent will see.
+        actionable_ids = {i.id for i in actionable}
+
+        # Group by product (only inbounds that passed all gates)
         product_counts = {}
-        for inbound in flagged_qs:
+        for inbound in actionable:
             product = inbound.campaign.product_ref
             if product:
                 slug = product.slug
@@ -160,6 +174,179 @@ class Command(BaseCommand):
         # Cheap deterministic checks - no LLM call. Loud warnings if the prompt
         # is being violated (price quoted, replied to a bounce, etc).
         self._audit_recent_ai_replies(product_filter, exclude_product)
+
+    # ------------------------------------------------------------------
+    # G5 gates (2026-04-15): reply window + grace + unread cross-check
+    # ------------------------------------------------------------------
+
+    def _filter_actionable_inbounds(self, inbounds):
+        """Apply the three reply-safety gates and return the subset that is
+        eligible for AI auto-reply right now. Mutates DB state for inbounds
+        that have been claimed by the human operator (marks needs_reply=False
+        with a structured note) so that subsequent cron ticks do not revisit
+        them.
+
+        Order of checks (cheapest first):
+          1. Reply window  — is the inbound's campaign currently in its
+             configured business hours on an allowed weekday?
+          2. Grace window  — has the inbound been sitting in the DB for at
+             least `campaign.reply_grace_minutes`? If not, defer to give the
+             human operator time to claim it.
+          3. Unread check  — reconnect to the mailbox, query IMAP for
+             `UNSEEN HEADER Message-ID "<msg>"`. If empty set, the human has
+             marked the message as read → they are claiming it → skip and
+             flip DB row to needs_reply=False with note.
+
+        IMAP outage = fail open: if we cannot reach the mailbox to check,
+        we allow the reply through rather than silently blocking all replies
+        on a Gmail/Zoho incident. A WARN is logged so ops can investigate.
+        """
+        now = timezone.now()
+        actionable = []
+        skipped_window = 0
+        skipped_grace = 0
+        skipped_unread = 0
+
+        # Group inbounds by (imap_email, campaign) so we can do one IMAP
+        # login per mailbox and reuse it for all message-id checks in that
+        # mailbox. MailboxConfig.imap_email is the grouping key since the
+        # mailbox may be shared by multiple campaigns (sibling fallback).
+        by_mailbox: dict[str, list] = {}
+        inbound_mailbox: dict[str, MailboxConfig] = {}
+
+        for inbound in inbounds:
+            campaign = inbound.campaign
+
+            # Gate 1: reply window
+            if not is_within_reply_window(campaign, now):
+                skipped_window += 1
+                self.stdout.write(
+                    f'  skip (window): {inbound.from_email[:40]} '
+                    f'campaign={campaign.name[:40]} — outside reply window'
+                )
+                continue
+
+            # Gate 2: grace window. Use `created_at` (BaseModel auto-field,
+            # always aware UTC set at DB insert time) rather than
+            # `received_at` (populated from the email Date header and
+            # historically stripped of tzinfo in check_replies, which makes
+            # timezone math unreliable). `created_at` is also the semantically
+            # correct field: "how long has this been in the DB unseen".
+            grace_min = int(getattr(campaign, 'reply_grace_minutes', 5) or 5)
+            age = now - inbound.created_at
+            if age < timedelta(minutes=grace_min):
+                age_seconds = age.total_seconds()
+                skipped_grace += 1
+                self.stdout.write(
+                    f'  skip (grace):  {inbound.from_email[:40]} '
+                    f'captured {age_seconds:.0f}s ago (< {grace_min}min grace)'
+                )
+                continue
+
+            # Stash for the per-mailbox IMAP check below
+            mb = MailboxConfig.objects.filter(
+                campaign=campaign, is_active=True,
+            ).first()
+            if not mb:
+                # No mailbox config for this campaign — cannot cross-check
+                # UNSEEN state. Allow through (the existing pipeline has been
+                # operating this way for months). Log for visibility.
+                self.stdout.write(self.style.WARNING(
+                    f'  no mailbox cfg for {campaign.name} — skipping unread check'
+                ))
+                actionable.append(inbound)
+                continue
+            key = mb.imap_email.lower()
+            by_mailbox.setdefault(key, []).append(inbound)
+            inbound_mailbox[str(inbound.id)] = mb
+
+        # Gate 3: per-mailbox unread cross-check
+        for imap_email, group in by_mailbox.items():
+            mb = inbound_mailbox[str(group[0].id)]
+            try:
+                unseen_ids = self._imap_fetch_unseen_message_ids(mb)
+            except Exception as exc:
+                self.stderr.write(self.style.WARNING(
+                    f'  IMAP check failed for {imap_email}: {exc} — '
+                    f'allowing {len(group)} inbound(s) through without unread cross-check'
+                ))
+                actionable.extend(group)
+                continue
+
+            for inbound in group:
+                if inbound.message_id and inbound.message_id in unseen_ids:
+                    # Still unread → human has not claimed → eligible
+                    actionable.append(inbound)
+                else:
+                    # Either marked seen (human opened it) OR message was
+                    # deleted/moved. Either way, stop auto-reply for this
+                    # inbound and record the claim.
+                    skipped_unread += 1
+                    self.stdout.write(self.style.SUCCESS(
+                        f'  skip (claimed): {inbound.from_email[:40]} — '
+                        f'message no longer UNSEEN in {imap_email}'
+                    ))
+                    InboundEmail.objects.filter(id=inbound.id).update(
+                        needs_reply=False,
+                        notes=(inbound.notes or '') + (
+                            '\n' if inbound.notes else ''
+                        ) + f'[{now:%Y-%m-%d %H:%M}] User-claimed via read flag',
+                        updated_at=now,
+                    )
+
+        if any([skipped_window, skipped_grace, skipped_unread]):
+            self.stdout.write(
+                f'\nG5 gates: {len(actionable)} actionable, '
+                f'{skipped_window} outside window, '
+                f'{skipped_grace} in grace, '
+                f'{skipped_unread} user-claimed'
+            )
+        return actionable
+
+    def _imap_fetch_unseen_message_ids(self, mailbox_cfg):
+        """Return the set of `Message-ID` headers currently UNSEEN in the
+        given mailbox. One IMAP login, one SEARCH, one FETCH per unseen
+        message for the Message-ID header.
+
+        Returned IDs retain the surrounding angle brackets (matching the
+        format we store in InboundEmail.message_id).
+        """
+        imap = imaplib.IMAP4_SSL(mailbox_cfg.imap_host, mailbox_cfg.imap_port)
+        try:
+            imap.login(mailbox_cfg.imap_email, mailbox_cfg.imap_password)
+            imap.select('INBOX')
+            status, data = imap.search(None, 'UNSEEN')
+            if status != 'OK' or not data or not data[0]:
+                return set()
+            msg_nums = data[0].split()
+            if not msg_nums:
+                return set()
+            # Batch FETCH: fetch Message-ID header for all unseen msgs at once
+            fetch_spec = b','.join(msg_nums)
+            status, fetched = imap.fetch(
+                fetch_spec,
+                '(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])',
+            )
+            if status != 'OK' or not fetched:
+                return set()
+            out = set()
+            for item in fetched:
+                if not isinstance(item, tuple) or len(item) < 2:
+                    continue
+                raw = item[1]
+                if isinstance(raw, bytes):
+                    raw = raw.decode('utf-8', errors='replace')
+                for line in raw.splitlines():
+                    if line.lower().startswith('message-id:'):
+                        val = line.split(':', 1)[1].strip()
+                        if val:
+                            out.add(val)
+            return out
+        finally:
+            try:
+                imap.logout()
+            except Exception:
+                pass
 
     def _audit_recent_ai_replies(self, product_filter, exclude_product):
         """Run deterministic violation checks on AI replies from the last 30 min.

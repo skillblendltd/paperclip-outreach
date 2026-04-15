@@ -418,3 +418,23 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 - Never send back-to-back correction emails - ask Prakash first
 - No abstractions until the third time you need one
 - Test with real data before shipping
+
+## Reply matching isolation rules (2026-04-15)
+
+The reply pipeline must respect multi-tenant boundaries. A prospect that exists in both a TaggIQ campaign and a Fully Promoted campaign (BNI overlap, shared contact, etc.) is two independent `Prospect` rows with their own status, history, and voice. An inbound reply MUST be routed to the correct row, or the AI pipeline will apply the wrong product's voice to the wrong thread (the Alex/Printpoint incident).
+
+**The contract:**
+
+1. **Thread ancestor is the only unambiguous signal.** If the inbound has an `In-Reply-To` header and it resolves to an `EmailLog` whose `ses_message_id` matches, that outbound's `campaign` and `prospect` are authoritative. No other rule can override this.
+2. **Email-based prospect lookups MUST be tenant-scoped.** Never write `Prospect.objects.filter(email=...)` without a mailbox or product scope. The allowed scoping is (in order of strength):
+   - `campaign__product_ref=<product_floor>` where `product_floor` is the shared Product across all campaigns on the mailbox
+   - `campaign__in=<mailbox_campaigns>` when the mailbox spans >1 product (rare / misconfiguration)
+   - `campaign=<single_campaign>` when the mailbox serves exactly one campaign
+3. **When `>1` rows match by email within the tenant boundary AND no thread ancestor exists, the inbound is ambiguous.** Save it with `needs_manual_review=True, needs_reply=False, prospect=None`. The AI pipeline must never auto-reply to an ambiguous inbound. A human reviews via the Django admin.
+4. **The global fallback path (`Prospect.objects.filter(email=...).first()`) is only allowed when no product floor is known AND no thread ancestor exists AND the global lookup returns exactly one row.** Every other path is a rejected merge.
+5. **The canonical entry point is `campaigns.management.commands.check_replies.match_inbound_to_prospect`.** Any new command or service that needs to resolve an inbound to a prospect must call this helper, not reimplement matching.
+
+**Enforcement:**
+- `campaigns/tests/test_reply_matching.py` carries the regression suite (8 tests including the cross-product collision case). Must pass before any merge touching `check_replies`.
+- `python manage.py audit_reply_attribution --days 90` retrospectively audits the last N days of inbounds against the thread-ancestor ground truth. Run after any change to the matching logic.
+- Any PR that adds an unscoped `Prospect.objects.filter(email=...)` call in a reply-handling code path is a BLOCKER at CTO review.
