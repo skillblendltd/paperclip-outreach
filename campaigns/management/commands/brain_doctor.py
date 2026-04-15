@@ -13,7 +13,13 @@ are stable.
 """
 from __future__ import annotations
 
+import json
+import os
+import subprocess
 import sys
+import time
+from datetime import datetime, timedelta, timezone as dt_timezone
+from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
@@ -34,9 +40,29 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--strict', action='store_true',
                             help='Exit 1 if any CRITICAL finding')
+        parser.add_argument('--skip-cli-ping', action='store_true',
+                            help='Skip the Claude CLI auth healthcheck (for offline runs)')
+        parser.add_argument('--skip-log-scan', action='store_true',
+                            help='Skip the reply monitor log failure-streak scan')
 
     def handle(self, *args, **opts):
         findings = []  # (severity, brain_slug, message)
+
+        # 0a. Claude CLI auth healthcheck.
+        # Added 2026-04-15 after local cron silently produced 461 "exit 1"
+        # failures over 2 days because the OAuth access token had expired
+        # and the CLI was not auto-refreshing in -p non-interactive mode.
+        # brain_doctor now catches this on every run. Skip with --skip-cli-ping
+        # when running offline or in environments where CLI auth is irrelevant.
+        if not opts.get('skip_cli_ping'):
+            self._check_cli_auth(findings)
+
+        # 0b. Reply monitor log failure-streak scan.
+        # Surfaces "Claude exited with code N" spikes in the last hour so
+        # credential expiry, rate limits, or prompt-size blowups get caught
+        # before the inbound backlog grows silently.
+        if not opts.get('skip_log_scan'):
+            self._check_reply_log(findings)
 
         brains = ProductBrain.objects.select_related('product', 'reply_prompt_template') \
                                      .filter(is_active=True)
@@ -123,3 +149,130 @@ class Command(BaseCommand):
 
         if criticals and opts.get('strict'):
             sys.exit(1)
+
+    # ------------------------------------------------------------------
+    # Ops healthchecks added 2026-04-15
+    # ------------------------------------------------------------------
+
+    def _check_cli_auth(self, findings):
+        """Probe `claude` CLI auth with a minimal one-shot prompt.
+
+        Raises a CRITICAL finding on:
+          - CLI binary missing
+          - Non-zero exit (likely 401 auth error)
+          - Output contains 'authentication_error' / 'Invalid authentication'
+          - Access token in /root/.claude/.credentials.json expires in <24h
+            (so we warn BEFORE breakage, not after)
+        """
+        slug = 'cli_auth'
+
+        # Static check: credentials file exists + expiry lookahead
+        cred_paths = [
+            Path('/root/.claude/.credentials.json'),
+            Path(os.path.expanduser('~/.claude/.credentials.json')),
+        ]
+        cred_path = next((p for p in cred_paths if p.exists()), None)
+        if cred_path is None:
+            findings.append(('WARN', slug, 'no .credentials.json found on either /root or $HOME path'))
+        else:
+            try:
+                data = json.loads(cred_path.read_text())
+                oauth = data.get('claudeAiOauth') or {}
+                expires_at_ms = oauth.get('expiresAt')
+                if expires_at_ms:
+                    expires = datetime.fromtimestamp(expires_at_ms / 1000, tz=dt_timezone.utc)
+                    now = datetime.now(dt_timezone.utc)
+                    hours_left = (expires - now).total_seconds() / 3600
+                    if hours_left < 0:
+                        findings.append((
+                            'CRITICAL', slug,
+                            f'OAuth access token EXPIRED {abs(hours_left):.1f}h ago. '
+                            f'Run: docker exec -it outreach_cron claude setup-token'
+                        ))
+                    elif hours_left < 24:
+                        findings.append((
+                            'WARN', slug,
+                            f'OAuth access token expires in {hours_left:.1f}h. '
+                            f'Refresh preemptively: docker exec -it outreach_cron claude setup-token'
+                        ))
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+                findings.append(('WARN', slug, f'could not parse {cred_path}: {exc}'))
+
+        # Live probe: one-shot ping
+        try:
+            t0 = time.time()
+            result = subprocess.run(
+                ['claude', '--model', 'sonnet',
+                 '--max-turns', '1',
+                 '--output-format', 'text',
+                 '-p', 'Reply with the single word: pong'],
+                capture_output=True, text=True, timeout=45,
+                cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
+            )
+            elapsed = time.time() - t0
+            out = (result.stdout or '') + '\n' + (result.stderr or '')
+            if result.returncode != 0:
+                findings.append((
+                    'CRITICAL', slug,
+                    f'claude -p returned exit {result.returncode} in {elapsed:.1f}s. '
+                    f'Tail: {out.strip()[-300:]}'
+                ))
+            elif 'authentication_error' in out or 'Invalid authentication' in out:
+                findings.append((
+                    'CRITICAL', slug,
+                    f'claude -p succeeded but output mentions authentication_error. '
+                    f'Refresh token: docker exec -it outreach_cron claude setup-token'
+                ))
+            elif 'pong' not in out.lower():
+                findings.append((
+                    'WARN', slug,
+                    f'claude -p returned 0 but did not echo pong in {elapsed:.1f}s. '
+                    f'Tail: {out.strip()[-200:]}'
+                ))
+            else:
+                self.stdout.write(f'[INFO ] cli_auth: pong in {elapsed:.1f}s')
+        except FileNotFoundError:
+            findings.append(('CRITICAL', slug, 'claude binary not found on PATH'))
+        except subprocess.TimeoutExpired:
+            findings.append(('CRITICAL', slug, 'claude -p timed out after 45s'))
+        except Exception as exc:
+            findings.append(('WARN', slug, f'claude probe raised {type(exc).__name__}: {exc}'))
+
+    def _check_reply_log(self, findings):
+        """Scan /tmp/outreach_reply_monitor.log for recent failure streaks.
+
+        Counts lines matching 'Claude exited with code' in the trailing
+        200 lines (~last hour of cron output). Fires WARN at 3+, CRITICAL
+        at 10+. This is cheap line counting, not log parsing, so it works
+        on both hosts without any shared log infra.
+        """
+        slug = 'reply_log'
+        log_path = Path('/tmp/outreach_reply_monitor.log')
+        if not log_path.exists():
+            return  # Silent: log may not exist on dev machines
+
+        try:
+            # Read just the tail to avoid loading a multi-MB file
+            with log_path.open('rb') as fh:
+                fh.seek(0, 2)
+                size = fh.tell()
+                fh.seek(max(0, size - 200_000))  # last ~200KB
+                tail = fh.read().decode('utf-8', errors='replace')
+        except Exception as exc:
+            findings.append(('WARN', slug, f'could not tail {log_path}: {exc}'))
+            return
+
+        recent_lines = tail.splitlines()[-200:]
+        failures = sum(1 for ln in recent_lines if 'Claude exited with code' in ln)
+        if failures >= 10:
+            findings.append((
+                'CRITICAL', slug,
+                f'{failures} "Claude exited with code" lines in last 200 log entries. '
+                f'Reply pipeline is almost certainly broken. Check CLI auth.'
+            ))
+        elif failures >= 3:
+            findings.append((
+                'WARN', slug,
+                f'{failures} "Claude exited with code" lines in last 200 log entries. '
+                f'Investigate before backlog grows.'
+            ))

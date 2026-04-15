@@ -261,6 +261,29 @@ All endpoints support `?campaign_id=` or `?product=` filtering. No auth required
 
 **EC2 is Amazon Linux 2023 aarch64 running Node 20 + Claude Code CLI natively.** The CLI is baked into the `outreach_cron` image and the OAuth token persists in the `claude_auth` Docker volume. This unblocked always-on autonomy for Lisa's print-promo reply pipeline — no SDK rewrite needed.
 
+### Claude CLI auth — refresh runbook
+
+The `handle_replies` command shells out to the `claude` CLI inside each cron container. The CLI authenticates via an OAuth access token stored in `/root/.claude/.credentials.json`. **Access tokens expire roughly every 5 days.** In non-interactive `-p` mode the CLI does NOT reliably auto-refresh via the saved refresh token, so an expired access token surfaces as `Failed to authenticate. API Error: 401` and the handle_replies cron silently logs `Claude exited with code 1` on every tick. Unhandled inbounds pile up in the DB with `needs_reply=True`.
+
+**Detection:** `python manage.py brain_doctor` on either host runs a `claude -p "Reply with: pong"` probe, decodes `expiresAt` from the credentials file, and surfaces CRITICAL / WARN findings for expired or soon-to-expire tokens AND for failure-streak spikes in `/tmp/outreach_reply_monitor.log`. Run daily from cron or manually whenever replies seem quiet.
+
+**Fix (2 minutes, interactive, per host):**
+```
+# Local
+docker exec -it outreach_cron claude setup-token
+
+# EC2
+ssh -i ~/.ssh/paperclip-eu.pem ec2-user@54.220.116.228 \
+    docker exec -it outreach_cron claude setup-token
+```
+`setup-token` issues a **long-lived** subscription token (no expiry) and writes it to `/root/.claude/.credentials.json`. Follow the browser prompt once, approve on claude.ai, done.
+
+**Sanity check after refresh:**
+```
+docker exec outreach_cron claude --model sonnet --max-turns 1 --output-format text -p "Say ok in one word"
+```
+Expect `ok` and exit 0. Next `*/10` cron tick processes whatever reply backlog accumulated.
+
 Cron jobs are installed by `docker/cron-entrypoint.sh` on container start (same on both hosts):
 
 | Cron | Command | What it does |
