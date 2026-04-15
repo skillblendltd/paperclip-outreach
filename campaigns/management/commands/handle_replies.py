@@ -25,6 +25,7 @@ from campaigns.services.reply_audit import (
     detect_bounce_reply,
     detect_length_violation,
 )
+from campaigns.services.day_awareness import current_day_awareness_block
 # Sprint 7 Phase 7.2.1 — imported lazily inside the flag branch so flag=False
 # code path has zero new import side effects.
 
@@ -423,6 +424,11 @@ class Command(BaseCommand):
         self.stdout.write(f'  Model: {prompt_template.model}')
 
         preamble = self._build_execution_preamble(product, prompt_template)
+        # Day-awareness block: regenerated on every run with today's weekday
+        # + rule banning past-day slot proposals. Lives between preamble and
+        # voice rules so Claude reads "today is Wednesday" BEFORE reading any
+        # hardcoded "Tuesday or Wednesday" example line in the voice rules.
+        day_block = current_day_awareness_block()
         voice_rules = prompt_template.system_prompt
         kicker = (
             f'\n\n==============================================================\n'
@@ -432,9 +438,11 @@ class Command(BaseCommand):
             f'Use Step 1 to fetch them, then for each one apply Step 2 (voice rules above), '
             f'Step 3 to send via send_ai_reply, and Step 4 to verify all are handled.\n'
             f'Do NOT ask for confirmation. Run the commands directly using the Bash tool.\n'
+            f'REMINDER: honor the CURRENT DATE AWARENESS block - never propose a slot '
+            f'that has already passed.\n'
         )
 
-        full_prompt = preamble + '\n\n' + voice_rules + kicker
+        full_prompt = preamble + '\n\n' + day_block + '\n\n' + voice_rules + kicker
 
         # Map model names to Claude CLI model flags
         model_map = {

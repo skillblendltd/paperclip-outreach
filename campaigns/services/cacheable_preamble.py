@@ -45,6 +45,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from campaigns.services.context_assembler import build_context_window, INJECTION_GUARD
+from campaigns.services.day_awareness import current_day_awareness_block
 
 
 @dataclass
@@ -126,15 +127,23 @@ def build(
             signature_name=sig,
         )
 
-    # ---------- Layer 3: per-call kicker (not cached) ----------
+    # ---------- Layer 3: per-call kicker + day awareness (not cached) ----------
+    # Day awareness is regenerated on every run and lives in the non-cached
+    # layer on purpose — the stable prefix above is cached for 5 minutes via
+    # Anthropic prompt caching, so injecting a daily-changing block there
+    # would break the cache every midnight for no benefit.
+    day_block = current_day_awareness_block()
     kicker = (
-        f'\n\n==============================================================\n'
+        '\n\n' + day_block +
+        f'\n==============================================================\n'
         f'YOUR JOB RIGHT NOW\n'
         f'==============================================================\n'
         f'There are {flagged_count} flagged inbound email(s) for product "{product.name}".\n'
         f'Use Step 1 to fetch them, then for each one apply Step 2 (voice rules above), '
         f'Step 3 to send via send_ai_reply, and Step 4 to verify all are handled.\n'
         f'Do NOT ask for confirmation. Run the commands directly using the Bash tool.\n'
+        f'REMINDER: honor the CURRENT DATE AWARENESS block - never propose a slot '
+        f'that has already passed.\n'
     )
 
     # ---------- Assemble the block list ----------
