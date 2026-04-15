@@ -167,13 +167,20 @@ class Command(BaseCommand):
         slug = 'cli_auth'
 
         # Static check: credentials file exists + expiry lookahead
+        # If CLAUDE_CODE_OAUTH_TOKEN env var is set, the env-var auth path is
+        # in use and .credentials.json is optional (may be absent by design).
+        env_token = os.environ.get('CLAUDE_CODE_OAUTH_TOKEN', '').strip()
         cred_paths = [
             Path('/root/.claude/.credentials.json'),
             Path(os.path.expanduser('~/.claude/.credentials.json')),
         ]
         cred_path = next((p for p in cred_paths if p.exists()), None)
         if cred_path is None:
-            findings.append(('WARN', slug, 'no .credentials.json found on either /root or $HOME path'))
+            if not env_token:
+                findings.append(('CRITICAL', slug,
+                    'no .credentials.json AND no CLAUDE_CODE_OAUTH_TOKEN env var. '
+                    'CLI has no auth source. Run: claude setup-token (or set env var)'))
+            # else: env-var auth is in use, no creds file expected → no finding
         else:
             try:
                 data = json.loads(cred_path.read_text())
