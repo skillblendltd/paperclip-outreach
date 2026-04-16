@@ -4,9 +4,9 @@
 
 | Data | Location | In GitHub? |
 |------|----------|-----------|
-| SQLite DB (prospects, opt-outs, email logs, statuses) | `db/outreach.sqlite3` | No — backed up here |
-| Scraped CSV files | `google-maps-scraper/output/*.csv` | No — backed up here |
-| Code | All `.py`, config files | Yes — GitHub |
+| SQLite DB (prospects, opt-outs, email logs, statuses) | `db/outreach.sqlite3` | No - backed up here |
+| Scraped CSV files | `google-maps-scraper/output/*.csv` | No - backed up here |
+| Code | All `.py`, config files | Yes - GitHub |
 
 **The DB is the most critical asset.** It contains every prospect status, opt-out, reply thread, and campaign history. It cannot be re-created from scratch.
 
@@ -16,9 +16,9 @@
 
 ### Tools
 
-- **rclone** — syncs local files to Google Drive
-- **cron** — runs the backup nightly at 11pm
-- **SQLite `.backup`** — atomic backup safe to run while campaigns are live
+- **rclone** - syncs local files to Google Drive
+- **cron** - runs the backup nightly at 11pm
+- **SQLite `.backup`** - atomic backup safe to run while campaigns are live
 
 ### Schedule
 
@@ -31,7 +31,7 @@ Runs every night at 11pm. Backs up DB + all CSVs to:
 gdrive:/paperclip-outreach-backup/
 ```
 
-Google Drive keeps 30 days of version history natively — so you have a 30-day restore window.
+Google Drive keeps 30 days of version history natively - so you have a 30-day restore window.
 
 ### SQLite WAL mode
 
@@ -61,7 +61,7 @@ rclone config
 ```
 
 Follow the prompts:
-1. `n` — New remote
+1. `n` - New remote
 2. Name: `gdrive`
 3. Storage type: `drive`
 4. Client ID: press Enter (leave blank)
@@ -70,10 +70,10 @@ Follow the prompts:
 7. Root folder ID: press Enter (leave blank)
 8. Service account file: press Enter (leave blank)
 9. Edit advanced config: `n`
-10. Use auto config: `y` — browser opens, sign in with Prakash's Google account
+10. Use auto config: `y` - browser opens, sign in with Prakash's Google account
 11. Configure as Team Drive: `n`
 12. Confirm: `y`
-13. `q` — Quit config
+13. `q` - Quit config
 
 ### 3. Verify the connection
 
