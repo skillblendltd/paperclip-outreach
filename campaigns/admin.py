@@ -787,10 +787,11 @@ class InboundEmailAdmin(admin.ModelAdmin):
     list_display = [
         'received_at', 'from_email', 'prospect_link', 'campaign',
         'subject_short', 'classification_badge', 'needs_reply_badge',
-        'replied_badge', 'auto_replied_badge',
+        'needs_manual_review', 'replied_badge', 'auto_replied_badge',
     ]
     list_filter = [
-        'classification', 'needs_reply', 'replied', 'auto_replied', 'campaign',
+        'classification', 'needs_reply', 'needs_manual_review', 'replied',
+        'auto_replied', 'campaign',
     ]
     list_select_related = ['prospect', 'campaign']
     search_fields = ['from_email', 'subject', 'body_text', 'from_name']
@@ -924,7 +925,9 @@ class MailboxConfigAdmin(admin.ModelAdmin):
     @admin.display(description='Last Checked')
     def last_checked_badge(self, obj):
         if obj.last_checked_at:
-            return obj.last_checked_at.strftime('%Y-%m-%d %H:%M')
+            from django.utils import timezone as tz
+            local_dt = tz.localtime(obj.last_checked_at)
+            return local_dt.strftime('%Y-%m-%d %H:%M %Z')
         return format_html('<span style="color:#999">Never</span>')
 
     @admin.display(description='Last Error')

@@ -108,6 +108,7 @@ class Command(BaseCommand):
 
         if not product_counts:
             self.stdout.write('\nNo flagged replies needing AI response.')
+            self._print_attention_summary()
             return
 
         self.stdout.write(f'\n--- Flagged replies by product ---')
@@ -170,10 +171,71 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS('\nAll replies handled.'))
 
+        # Step 4b: Attention summary - surface anything needing human eyes
+        self._print_attention_summary()
+
         # Step 5: Audit AI replies sent in the last 30 minutes for rule violations.
         # Cheap deterministic checks - no LLM call. Loud warnings if the prompt
         # is being violated (price quoted, replied to a bounce, etc).
         self._audit_recent_ai_replies(product_filter, exclude_product)
+
+    # ------------------------------------------------------------------
+    # Attention summary - surface items needing human eyes
+    # ------------------------------------------------------------------
+
+    def _print_attention_summary(self):
+        """Print a clear summary of inbounds needing manual attention.
+        Runs every cron tick so Prakash can tail the log and see what's stuck.
+        Only surfaces items from the last 24 hours to avoid noise from old history."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        now = timezone.now()
+        since = now - timedelta(hours=24)
+        items = []
+
+        # 1. Manual review needed (ambiguous matches) - last 24h
+        manual_review = InboundEmail.objects.filter(
+            needs_manual_review=True, replied=False,
+            created_at__gte=since,
+        ).values_list('from_email', flat=True)
+        for email in manual_review:
+            items.append(f'  - {email} (ambiguous match, needs manual review)')
+
+        # 2. No-match inbounds with In-Reply-To (real replies we couldn't route) - last 24h
+        # Exclude postmaster/mailer-daemon (delivery notifications, not real replies)
+        no_match_replies = InboundEmail.objects.filter(
+            prospect__isnull=True, replied=False,
+            in_reply_to__isnull=False,
+            created_at__gte=since,
+        ).exclude(
+            in_reply_to=''
+        ).exclude(
+            from_email__icontains='postmaster'
+        ).exclude(
+            from_email__icontains='mailer-daemon'
+        ).values_list('from_email', flat=True)
+        for email in no_match_replies:
+            items.append(f'  - {email} (no prospect match, has In-Reply-To)')
+
+        # 3. Stuck outside reply window for > 6 hours
+        six_hours_ago = now - timedelta(hours=6)
+        stuck = InboundEmail.objects.filter(
+            needs_reply=True, replied=False,
+            created_at__lt=six_hours_ago,
+            created_at__gte=since,
+        ).values_list('from_email', 'campaign__name')
+        for email, camp in stuck:
+            items.append(f'  - {email} (pending > 6 hours, campaign: {camp})')
+
+        if items:
+            self.stdout.write(self.style.WARNING(
+                f'\nATTENTION: {len(items)} inbound(s) need review (last 24h)'
+            ))
+            for item in items:
+                self.stdout.write(self.style.WARNING(item))
+        else:
+            self.stdout.write('\nNo items needing attention.')
 
     # ------------------------------------------------------------------
     # G5 gates (2026-04-15): reply window + grace + unread cross-check

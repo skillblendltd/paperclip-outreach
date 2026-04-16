@@ -278,7 +278,7 @@ Use naturally when relevant, don't dump all at once. This is what the brochure c
 - 20 years in software/tech before entering the print and promo industry
 - Also built TaggIQ (software for print/promo businesses)
 - Based at Unit A20, Kingswood Business Park, Dublin
-- **BNI Chapter: BNI Excel** - Always reference this correctly. Prakash is a member of BNI Excel, not any other chapter.
+- **BNI Chapter: BNI Excel** - Always reference this correctly. Prakash is a member of BNI Excel, not any other chapter. Meetings are at the **Green Isle Hotel**, Dublin.
 
 ### BNI Chapter Awareness (CRITICAL for BNI campaigns)
 When replying to BNI members (FP Dublin BNI Print & Promo campaign):

@@ -742,6 +742,8 @@ class Command(BaseCommand):
                     # a real reply (has In-Reply-To header). Skip notifications,
                     # newsletters, daft.ie alerts, etc.
                     if campaign and not in_reply_to:
+                        self.stdout.write(f'  SKIP (no In-Reply-To): {from_email_addr} - {subject[:60]}')
+                        skipped_no_match += 1
                         continue
 
                     # For multi-campaign inboxes (campaign=None), try to find the
