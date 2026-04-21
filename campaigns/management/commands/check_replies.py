@@ -655,9 +655,28 @@ class Command(BaseCommand):
                 if not message_id:
                     message_id = f'no-msgid-{msg_id.decode()}-{timezone.now().isoformat()}'
 
-                # Dedup check
-                if InboundEmail.objects.filter(message_id=message_id).exists():
-                    skipped_dedup += 1
+                # Dedup check — but with "unread reinstate" logic.
+                # If Prakash marks an email unread again after the system
+                # previously set needs_reply=False (human-claimed gate),
+                # that is his signal to the system: "handle this one."
+                # Reset needs_reply=True so the auto-reply pipeline picks it up.
+                existing_inbound = InboundEmail.objects.filter(message_id=message_id).first()
+                if existing_inbound:
+                    if not existing_inbound.replied and not existing_inbound.needs_reply:
+                        # Previously claimed/skipped, now UNSEEN again — reinstate
+                        existing_inbound.needs_reply = True
+                        existing_inbound.notes = (
+                            (existing_inbound.notes or '')
+                            + (f'\n' if existing_inbound.notes else '')
+                            + f'[{timezone.now():%Y-%m-%d %H:%M}] Reinstated: marked unread again in IMAP'
+                        )
+                        existing_inbound.save(update_fields=['needs_reply', 'notes', 'updated_at'])
+                        from_addr = parseaddr(msg.get('From', ''))[1]
+                        self.stdout.write(self.style.SUCCESS(
+                            f'  REINSTATED (unread signal): {from_addr} - {msg.get("Subject", "")[:50]}'
+                        ))
+                    else:
+                        skipped_dedup += 1
                     continue
 
                 from_name, from_email_addr = parseaddr(msg.get('From', ''))
