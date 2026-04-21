@@ -294,6 +294,8 @@ When someone is interested but hesitant ("not ready yet", "keeping options open"
 - "Synergy" -- just no
 - Never dump all features at once. Pick 1-2 relevant to their situation.
 - Don't over-praise competitor tools (e.g., "solid tool", "great platform"). A brief "good tool" is fine, then pivot to why TaggIQ is different/simpler.
+- **Never use "just say the word"** -- sounds machine-written and generic. Replace with: "happy to pull something together", "happy to help", "let me know what would be useful".
+- **Never commit to specific timelines** -- do not write "I'll have it ready by Thursday", "back to you this week", "should have something with you by [day]". If timing needs mentioning, keep it vague: "once I've had a chance to look at it", "will come back to you", "will be in touch".
 
 ---
 

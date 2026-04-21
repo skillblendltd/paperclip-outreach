@@ -15,4 +15,11 @@ urlpatterns = [
     path('calls/', views.outreach_calls, name='outreach_calls'),
     path('calls/stats/', views.outreach_calls_stats, name='outreach_calls_stats'),
     path('script-insights/', views.outreach_script_insights, name='outreach_script_insights'),
+    # Sprint 9 — Analytics & Observability
+    path('analytics/pipeline/', views.analytics_pipeline, name='analytics_pipeline'),
+    path('analytics/funnel/', views.analytics_funnel, name='analytics_funnel'),
+    path('analytics/trends/', views.analytics_trends, name='analytics_trends'),
+    path('analytics/campaigns/', views.analytics_campaigns, name='analytics_campaigns'),
+    path('analytics/actions/', views.analytics_actions, name='analytics_actions'),
+    path('health/', views.health_check, name='health_check'),
 ]

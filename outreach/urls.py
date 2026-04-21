@@ -8,4 +8,5 @@ admin.site.index_title = 'Campaign Dashboard'
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('campaigns.urls')),
+    path('dashboard/', include('campaigns.urls_dashboard')),
 ]

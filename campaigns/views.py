@@ -1093,3 +1093,67 @@ def outreach_script_insights(request):
             for i in insights
         ],
     })
+
+
+# =====================================================================
+# Sprint 9 — Analytics & Observability Endpoints
+# =====================================================================
+
+from campaigns.services import analytics as analytics_service
+
+
+def analytics_pipeline(request):
+    """GET /api/analytics/pipeline/?product=taggiq&days=7"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+    product = request.GET.get('product')
+    days = int(request.GET.get('days', 7))
+    return JsonResponse(analytics_service.get_pipeline_kpis(product_slug=product, days=days))
+
+
+def analytics_funnel(request):
+    """GET /api/analytics/funnel/?product=taggiq&days=30"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+    product = request.GET.get('product')
+    days = int(request.GET.get('days', 30))
+    return JsonResponse(analytics_service.get_funnel_transitions(product_slug=product, days=days))
+
+
+def analytics_trends(request):
+    """GET /api/analytics/trends/?product=taggiq&days=14"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+    product = request.GET.get('product')
+    days = int(request.GET.get('days', 14))
+    return JsonResponse(analytics_service.get_daily_trends(product_slug=product, days=days))
+
+
+def analytics_campaigns(request):
+    """GET /api/analytics/campaigns/?product=taggiq&days=30"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+    product = request.GET.get('product')
+    days = int(request.GET.get('days', 30))
+    return JsonResponse(analytics_service.get_campaign_rankings(product_slug=product, days=days))
+
+
+def analytics_actions(request):
+    """GET /api/analytics/actions/?product=taggiq"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+    product = request.GET.get('product')
+    return JsonResponse(analytics_service.get_action_items(product_slug=product))
+
+
+def health_check(request):
+    """GET /api/health/"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET only'}, status=405)
+    return JsonResponse(analytics_service.get_health_status())
+
+
+def dashboard_page(request):
+    """GET /dashboard/ - renders the analytics dashboard template."""
+    from django.shortcuts import render
+    return render(request, 'dashboard.html')

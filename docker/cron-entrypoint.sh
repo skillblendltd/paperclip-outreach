@@ -34,6 +34,12 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Nudge stale warm leads + reactivate follow_up_later — 30 min after send_sequences
 30 11 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py nudge_stale_leads ${CRON_SEND_ARGS:-} >> /tmp/outreach_nudge.log 2>&1
 
+# Daily KPI email at 8am Mon-Fri
+0 8 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py daily_kpi_email >> /tmp/outreach_kpi.log 2>&1
+
+# Health check at 8am daily (including weekends)
+0 8 * * * root . /app/docker/.env.cron && cd /app && python manage.py brain_doctor >> /tmp/outreach_health.log 2>&1
+
 # Nightly backup at 23:00
 0 23 * * * root . /app/docker/.env.cron && cd /app && /app/backup_to_gdrive.sh >> /tmp/outreach_backup.log 2>&1
 

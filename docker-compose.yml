@@ -40,25 +40,9 @@ services:
       sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8002"
 
-  cron:
-    build: .
-    container_name: outreach_cron
-    restart: unless-stopped
-    volumes:
-      - .:/app
-      - claude_auth:/root/.claude
-    env_file:
-      - .env
-    environment:
-      - DATABASE_URL=postgres://outreach:${POSTGRES_PASSWORD:-localdev}@postgres:5432/outreach
-      - TZ=Europe/Dublin
-    depends_on:
-      postgres:
-        condition: service_healthy
-      web:
-        condition: service_started
-    command: ["/app/docker/cron-entrypoint.sh"]
+  # cron service REMOVED — all cron jobs run on EC2 only (54.220.116.228).
+  # See docker-compose.ec2.yml for the production cron configuration.
+  # DO NOT re-add a local cron service — it causes duplicate sends/replies.
 
 volumes:
   pgdata:
-  claude_auth:
