@@ -18,6 +18,60 @@ from campaigns.email_service import EmailService
 logger = logging.getLogger(__name__)
 
 
+def _queue_post_call_action(call_log, prospect) -> None:
+    """Queue the appropriate follow-up email after a Vapi call ends.
+
+    Silent no-op if templates are not yet configured — campaigns without
+    post-call templates skip gracefully without raising.
+    """
+    from campaigns.models import EmailQueue, EmailTemplate
+    from datetime import timedelta
+
+    campaign = call_log.campaign
+    if not campaign or not campaign.sending_enabled:
+        return
+
+    template_name = None
+    delay_hours = 0
+
+    if call_log.status == 'voicemail':
+        template_name = 'post_call_voicemail'
+        delay_hours = 4  # Give them time to check voicemail before email lands
+
+    elif call_log.status == 'answered' and call_log.disposition in ('interested', 'send_info'):
+        template_name = 'post_call_demo_link'
+        delay_hours = 1  # Strike while the iron is hot
+
+    elif call_log.status == 'answered' and call_log.disposition == 'demo_booked':
+        template_name = 'demo_confirmation'
+        delay_hours = 0.5
+
+    if not template_name:
+        return
+
+    tmpl = EmailTemplate.objects.filter(
+        campaign=campaign,
+        template_name=template_name,
+        is_active=True,
+    ).first()
+    if not tmpl:
+        return  # Template not configured for this campaign yet
+
+    send_after = timezone.now() + timedelta(hours=delay_hours)
+    EmailQueue.objects.get_or_create(
+        prospect=prospect,
+        campaign=campaign,
+        template=tmpl,
+        status='pending',
+        defaults={
+            'send_after': send_after,
+            'ab_variant': '',
+            'triggered_by': 'vapi_webhook',
+        },
+    )
+    logger.info('[vapi_webhook] queued %s for prospect=%s', template_name, prospect.id)
+
+
 def _append_escalation_note(prospect, reason: str) -> None:
     """Sprint 7 Phase 7.2.6 — stamp an ESCALATION: line on prospect.notes
     and emit a structured warning log. Shared by vapi_webhook and
@@ -737,54 +791,64 @@ def vapi_webhook(request):
 
         call_log.save()
 
-        # Update prospect based on disposition
+        # Update prospect fields that don't involve status
         prospect = call_log.prospect
-        if call_log.disposition == 'demo_booked':
-            prospect.status = 'demo_scheduled'
-        elif call_log.disposition == 'interested':
-            prospect.status = 'interested'
-        elif call_log.disposition == 'not_interested':
-            prospect.status = 'not_interested'
-        elif call_log.disposition == 'do_not_call':
-            prospect.status = 'opted_out'
-            prospect.send_enabled = False
-
         if call_log.email_captured:
             if not prospect.email:
                 prospect.email = call_log.email_captured
-
         if call_log.current_tools:
             prospect.current_tools = call_log.current_tools
         if call_log.pain_signals:
             prospect.pain_signals = call_log.pain_signals
+        prospect.save(update_fields=[
+            'email', 'current_tools', 'pain_signals', 'updated_at'
+        ] if any([call_log.email_captured, call_log.current_tools, call_log.pain_signals])
+          else ['updated_at'])
 
-        prospect.save()
+        # Status transitions go through lifecycle gateway
+        from campaigns.services import lifecycle
+        disposition_to_status = {
+            'demo_booked':    'demo_scheduled',
+            'interested':     'interested',
+            'not_interested': 'not_interested',
+            'do_not_call':    'opted_out',
+        }
+        target_status = disposition_to_status.get(call_log.disposition)
+        if target_status:
+            try:
+                lifecycle.transition(
+                    prospect, target_status,
+                    reason=f'call:disposition={call_log.disposition}',
+                    triggered_by='vapi_webhook',
+                )
+            except ValueError as exc:
+                logger.warning('[vapi_webhook] lifecycle skip for %s: %s', prospect.id, exc)
+
+        # Queue post-call follow-up emails
+        _queue_post_call_action(call_log, prospect)
 
         # Sprint 7 Phase 7.2.5 — brain state machine on flag=True campaigns.
-        # Runs after the existing status update so flag=False webhooks stay
-        # byte-identical. rules_engine.apply_call_outcome returns an
-        # OutcomeEffect; we apply new_status if it differs, log an escalation
-        # note if the effect requests one, then log the next_action decision
-        # for observability (we do NOT act on it here — the executor cron
-        # picks it up on the next tick).
+        # Runs after lifecycle transition. rules_engine.apply_call_outcome returns an
+        # OutcomeEffect; we apply new_status if it differs from current, log escalations.
         if getattr(call_log.campaign, 'use_context_assembler', False):
             try:
                 from campaigns.services.brain import load_brain, BrainNotFound
                 from campaigns.services import rules_engine, next_action
                 brain = load_brain(prospect)
                 effect = rules_engine.apply_call_outcome(brain, prospect, call_log)
-                status_changed = False
                 if effect.new_status and effect.new_status != prospect.status:
-                    prospect.status = effect.new_status
-                    status_changed = True
-                # Phase 7.2.6 escalation handoff — brain-requested escalation
-                # writes an ESCALATION note and fires a structured log.
+                    try:
+                        lifecycle.transition(
+                            prospect, effect.new_status,
+                            reason=f'brain:call_outcome={effect.reason}',
+                            triggered_by='vapi_webhook:brain',
+                        )
+                    except ValueError as exc:
+                        logger.warning('[sprint7 webhook] brain lifecycle skip: %s', exc)
                 if effect.handoff == 'escalation':
                     _append_escalation_note(prospect, effect.reason or 'call_outcome')
-                    status_changed = True
-                if status_changed:
-                    prospect.save()
-                # Log the next_action decision (do not act on it in webhook).
+                    prospect.save(update_fields=['notes', 'updated_at'])
+                # Log the next_action decision (observability only — cron executes it).
                 try:
                     na = next_action.decide_next_action(prospect)
                     logger.info(

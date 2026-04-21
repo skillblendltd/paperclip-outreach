@@ -384,6 +384,8 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 | Social Studio Progress | `docs/social-studio-progress.md` | Living state for social_studio implementation — read at session start, update at session end |
 | Sprint 7 Implementation Plan | `docs/sprint-7-implementation-plan.md` | Sales Director Platform MVP — `ProductBrain` model, rules engine, `next_action` service, golden-set eval, two-host rollout coordination |
 | Sprint 7 Progress | `docs/sprint-7-progress.md` | Live execution tracker for Sprint 7 — update after every merge, read at session start |
+| Sprint 8 Implementation Plan | `docs/sprint-8-implementation-plan.md` | Call pipeline fixes + lifecycle state machine + ProspectEvent audit + nudge logic |
+| Sprint 8 Progress | `docs/sprint-8-progress.md` | Live execution tracker for Sprint 8 — update after every task, read at session start |
 
 **v2 Status (as of 2026-04-13):**
 - Sprint 1 DONE: Multi-tenant models (Organization, Product, EmailTemplate, CallScript, PromptTemplate, AIUsageLog)
@@ -394,6 +396,7 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 - Sprint 5 v5 DONE: Org-agnostic AI reply pipeline. `send_ai_reply` command with pre-send blocking (price/bounce/length), per-inbound retry budget (5 attempts), AIUsageLog cost tracking, MailboxConfig sibling-fallback. Voice rules in DB (PromptTemplate), execution recipe in code (`handle_replies._build_execution_preamble`). Lisa v5 active on EC2 for print-promo. Adding a new persona is one DB row, no code change. See `docs/ai-reply-architecture.md`.
 - Sprint 6 Phase 1A + 2A DONE: TaggIQ Warm Re-engagement campaign seeded (15 prospects, 4 emails, 1 Vapi call, `sending_enabled=False`). Phase 2A greenfield services shipped as dark code (`conversation`, `context_assembler`, `channel_timing`, `ai_budget`, `cacheable_preamble`). 38/38 tests pass. Zero live-path impact. Phase 1B (launch) waits on Loom URL; Phase 2B (wire services into live code) folded into Sprint 7.
 - Sprint 7 PLANNED: Sales Director Platform MVP. Per-Product `ProductBrain` + per-Campaign overrides, `next_action` rules engine, golden-set eval harness, two brains in production simultaneously (TaggIQ + FP Franchise). Wires Sprint 6 Phase 2A services into live code behind the existing `Campaign.use_context_assembler` flag. See `docs/sprint-7-implementation-plan.md`.
+- Sprint 8 IN PROGRESS: Prospect Lifecycle State Machine + Call Pipeline Fix. Fixes 5 bugs in the call pipeline (wrong eligibility, dynamic_first_message not reaching Vapi, {{FNAME}} not rendered, no channel_timing on static path, thin Vapi context), adds ProspectEvent audit model, lifecycle.py transition gateway (single source of truth for all status changes), post-call email queuing (voicemail/demo link), nudge_stale_leads command (7-day/14-day interested limbo fix), and follow_up_later re-entry. Plan at `docs/sprint-8-implementation-plan.md`, progress at `docs/sprint-8-progress.md`.
 
 ---
 

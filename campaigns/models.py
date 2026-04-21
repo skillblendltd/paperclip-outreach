@@ -848,3 +848,31 @@ class WebhookEvent(BaseModel):
     def __str__(self):
         status = 'OK' if self.processed else 'PENDING'
         return f'{self.event_type} ({self.delivery_id[:8]}) [{status}]'
+
+
+class ProspectEvent(BaseModel):
+    """Audit trail for every prospect status transition.
+
+    Created by lifecycle.transition() — the single gateway for all prospect
+    status changes. Never written to directly from other code.
+    """
+    prospect = models.ForeignKey(
+        Prospect, on_delete=models.CASCADE, related_name='events'
+    )
+    from_status = models.CharField(max_length=20)
+    to_status = models.CharField(max_length=20)
+    reason = models.CharField(max_length=200, help_text='e.g. reply:interested, call:voicemail')
+    triggered_by = models.CharField(
+        max_length=50,
+        help_text='e.g. handle_replies, vapi_webhook, place_calls, admin, nudge_stale_leads',
+    )
+
+    class Meta:
+        db_table = 'prospect_events'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['prospect', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.prospect.email} | {self.from_status} -> {self.to_status} ({self.triggered_by})'

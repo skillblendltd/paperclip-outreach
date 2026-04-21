@@ -38,7 +38,16 @@ def build_first_message(prospect: Prospect, brain: Brain) -> str:
     fallback = _fallback_first_message(prospect, brain)
 
     last_topic = get_last_topic(prospect)
-    if not last_topic:
+
+    # Pull last inbound reply snippet for context
+    from campaigns.services.conversation import get_prospect_timeline
+    timeline = get_prospect_timeline(prospect, days=60)
+    last_inbound = next(
+        (e for e in reversed(timeline) if e.direction == 'in'), None
+    )
+    last_reply_snippet = (last_inbound.body[:300].strip() if last_inbound else '')
+
+    if not last_topic and not last_reply_snippet:
         # Nothing to reference — static fallback is the correct behavior.
         return fallback
 
@@ -55,13 +64,17 @@ def build_first_message(prospect: Prospect, brain: Brain) -> str:
     system_prompt = (
         'You are writing the first spoken line an AI voice agent will say when '
         'it dials a prospect. Two short sentences max. Reference the last '
-        'outbound touch naturally, then ask for 60 seconds. No em dashes. No '
-        'pricing. Sound like a colleague following up, not a telemarketer.'
+        'outbound touch or their reply naturally, then ask for 60 seconds. '
+        'No em dashes. No pricing. Sound like a colleague following up, not a '
+        'telemarketer. If they mentioned a specific tool or pain, reference it.'
     )
     user_msg = (
         f'Prospect: {prospect.decision_maker_name or "there"} at '
         f'{prospect.business_name or "your company"}.\n'
-        f'Last outbound topic: {last_topic}\n\n'
+        f'Last outbound topic: {last_topic or "general intro"}\n'
+        f'Their last reply: {last_reply_snippet or "No reply on record"}\n'
+        f'Current tools: {prospect.current_tools or "Unknown"}\n'
+        f'Pain signals: {prospect.pain_signals or "None recorded"}\n\n'
         f'Write the two-sentence opener now.'
     )
 

@@ -986,17 +986,16 @@ class Command(BaseCommand):
             in this method before merging.
         """
 
+        from campaigns.services import lifecycle as lc
+
         if classification == 'opt_out':
-            prospect.status = 'opted_out'
-            prospect.send_enabled = False
-            prospect.save(update_fields=['status', 'send_enabled', 'updated_at'])
-            # Product-scoped suppression: opt-out only blocks this product, not all products
-            product_ref = prospect.campaign.product_ref if prospect.campaign else None
-            Suppression.objects.get_or_create(
-                email=prospect.email,
-                product=product_ref,
-                defaults={'reason': 'opt_out', 'notes': f'Auto-detected from reply: {inbound.subject[:100]}'}
-            )
+            # lifecycle.transition handles send_enabled=False + product suppression as side effects
+            try:
+                lc.transition(prospect, 'opted_out',
+                              reason=f'reply:opt_out subject={inbound.subject[:80]}',
+                              triggered_by='check_replies')
+            except ValueError as exc:
+                logger.warning('check_replies lifecycle skip opt_out: %s', exc)
             cancelled = EmailQueue.objects.filter(
                 prospect=prospect, status='pending'
             ).update(status='cancelled', error_message='Prospect opted out')
@@ -1021,9 +1020,13 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('    -> Suppressed (bounce), sending disabled'))
 
         elif classification == 'not_interested':
-            prospect.status = 'not_interested'
-            prospect.send_enabled = False
-            prospect.save(update_fields=['status', 'send_enabled', 'updated_at'])
+            # lifecycle.transition handles send_enabled=False as side effect
+            try:
+                lc.transition(prospect, 'not_interested',
+                              reason=f'reply:not_interested subject={inbound.subject[:80]}',
+                              triggered_by='check_replies')
+            except ValueError as exc:
+                logger.warning('check_replies lifecycle skip not_interested: %s', exc)
             cancelled = EmailQueue.objects.filter(
                 prospect=prospect, status='pending'
             ).update(status='cancelled', error_message='Prospect not interested')
@@ -1047,19 +1050,27 @@ class Command(BaseCommand):
         elif classification == 'interested':
             current_rank = STATUS_RANK.get(prospect.status, 0)
             if current_rank < STATUS_RANK.get('interested', 3):
-                prospect.status = 'interested'
-                prospect.save(update_fields=['status', 'updated_at'])
-                inbound.status_updated = True
-                inbound.save(update_fields=['status_updated', 'updated_at'])
+                try:
+                    lc.transition(prospect, 'interested',
+                                  reason=f'reply:interested subject={inbound.subject[:80]}',
+                                  triggered_by='check_replies')
+                    inbound.status_updated = True
+                    inbound.save(update_fields=['status_updated', 'updated_at'])
+                except ValueError as exc:
+                    logger.warning('check_replies lifecycle skip interested: %s', exc)
             self.stdout.write(self.style.SUCCESS('    -> Flagged as interested, needs reply'))
 
         elif classification == 'question':
             current_rank = STATUS_RANK.get(prospect.status, 0)
             if current_rank < STATUS_RANK.get('engaged', 2):
-                prospect.status = 'engaged'
-                prospect.save(update_fields=['status', 'updated_at'])
-                inbound.status_updated = True
-                inbound.save(update_fields=['status_updated', 'updated_at'])
+                try:
+                    lc.transition(prospect, 'engaged',
+                                  reason=f'reply:question subject={inbound.subject[:80]}',
+                                  triggered_by='check_replies')
+                    inbound.status_updated = True
+                    inbound.save(update_fields=['status_updated', 'updated_at'])
+                except ValueError as exc:
+                    logger.warning('check_replies lifecycle skip engaged: %s', exc)
             self.stdout.write(self.style.SUCCESS('    -> Question detected, needs reply'))
 
         elif classification == 'other':

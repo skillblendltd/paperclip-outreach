@@ -70,9 +70,9 @@ class Command(BaseCommand):
             # Find eligible prospects:
             # - has phone number
             # - send_enabled
-            # - not opted out, not interested, not do-not-call
+            # - warm status only (interested, engaged, follow_up_later) — calls are a warm channel
             # - calls_sent < max_calls_per_prospect
-            # - not called in last 24 hours (min gap)
+            # - not called recently (min gap)
             min_gap_cutoff = timezone.now() - timedelta(minutes=campaign.min_gap_call_minutes)
 
             eligible = Prospect.objects.filter(
@@ -80,8 +80,7 @@ class Command(BaseCommand):
                 send_enabled=True,
                 phone__gt='',  # has phone
                 calls_sent__lt=campaign.max_calls_per_prospect,
-            ).exclude(
-                status__in=['new', 'opted_out', 'not_interested', 'demo_scheduled', 'design_partner'],
+                status__in=['interested', 'engaged', 'follow_up_later'],  # allowlist: warm signals only
             ).exclude(
                 last_called_at__gte=min_gap_cutoff,
             ).order_by('-score', '-tier')[:remaining]
@@ -124,6 +123,15 @@ class Command(BaseCommand):
                     self.stdout.write(
                         f'  [contextual] opener: {dynamic_first_message[:80]}'
                     )
+                else:
+                    # Static path: still check channel_timing to avoid same-day email+call
+                    from campaigns.services.channel_timing import can_place_call
+                    can, why = can_place_call(prospect)
+                    if not can:
+                        self.stdout.write(
+                            f'  skip (timing): {prospect.phone} — {why}'
+                        )
+                        continue
 
                 if dry_run:
                     self.stdout.write(f'  [DRY RUN] Would call: {prospect.phone} ({prospect.business_name})')
@@ -133,7 +141,7 @@ class Command(BaseCommand):
                 call_metadata = {'prospect_id': str(prospect.id), 'campaign_id': str(campaign.id)}
                 if dynamic_first_message:
                     call_metadata['dynamic_first_message'] = dynamic_first_message
-                # Place call
+                # Place call — pass dynamic_first_message so it reaches Vapi's firstMessage field
                 result = CallService.place_call(
                     phone_number=prospect.phone,
                     assistant_id=assistant_id,
@@ -141,6 +149,7 @@ class Command(BaseCommand):
                     prospect_name=prospect.decision_maker_name or '',
                     company_name=prospect.business_name,
                     segment=prospect.segment,
+                    first_message=dynamic_first_message or '',
                     metadata=call_metadata,
                 )
 
@@ -155,12 +164,21 @@ class Command(BaseCommand):
                 )
 
                 if result['success']:
-                    # Update prospect
+                    # Update prospect call counters
                     prospect.calls_sent += 1
                     prospect.last_called_at = timezone.now()
+                    prospect.save(update_fields=['calls_sent', 'last_called_at', 'updated_at'])
+                    # Status transition goes through lifecycle gateway (not direct assignment)
+                    # Note: warm-only prospects (interested/engaged/follow_up_later) keep their
+                    # status after a call is placed — outcome webhook handles the transition.
+                    from campaigns.services import lifecycle
                     if prospect.status == 'new':
-                        prospect.status = 'contacted'
-                    prospect.save(update_fields=['calls_sent', 'last_called_at', 'status'])
+                        try:
+                            lifecycle.transition(prospect, 'contacted',
+                                                 reason='call:placed_to_new',
+                                                 triggered_by='place_calls')
+                        except ValueError as exc:
+                            logger.warning('place_calls lifecycle skip: %s', exc)
 
                     self.stdout.write(self.style.SUCCESS(
                         f'  ✓ Called {prospect.phone} ({prospect.business_name}) — call_id: {result["call_id"]}'
@@ -171,7 +189,8 @@ class Command(BaseCommand):
                         f'  ✗ Failed {prospect.phone} ({prospect.business_name}): {result["error"][:100]}'
                     ))
 
-                # Rate limiting
-                time.sleep(max(campaign.min_gap_call_minutes * 60, 5))
+                # Rate limiting — fixed 30s between API calls (min_gap_call_minutes
+                # is enforced by the DB query above, not the sleep)
+                time.sleep(30)
 
         self.stdout.write(f'\nDone. Total calls placed: {total_placed}')
