@@ -252,12 +252,12 @@ All endpoints support `?campaign_id=` or `?product=` filtering. No auth required
 
 ## Cron Schedule (fully autonomous)
 
-**The pipeline now runs across two Docker hosts, partitioned by product.** Both hosts run the same Django code, same Postgres 16 schema, and the same cron entrypoint. They are separated by `CRON_SEND_ARGS` / `CRON_REPLY_ARGS` env vars so each host only processes the campaigns assigned to it. No split-brain — a campaign belongs to exactly one host.
+**The pipeline runs on a single host: EC2 `paperclip-outreach-eu`.** All campaigns (TaggIQ, FP, print-promo) are consolidated on EC2 as of 2026-04-21. Local Docker is stopped. EC2 runs with no `CRON_SEND_ARGS` / `CRON_REPLY_ARGS` filter — it handles everything.
 
-| Host | Location | Postgres | Cron partition | Campaigns handled |
-|------|----------|----------|----------------|-------------------|
-| **Local Docker** | Prakash's laptop | `outreach_db` container | `--exclude-product print-promo` | TaggIQ (all), FP Ireland Franchise Recruitment, FP Dublin BNI Print & Promo |
-| **EC2 `paperclip-outreach-eu`** | eu-west-1, `54.220.116.228` | `outreach_db` container | `--product print-promo` | FP Kingswood Business Area, Dublin Construction & Trades (Lisa v5 voice) |
+| Host | Location | Postgres | Campaigns handled |
+|------|----------|----------|-------------------|
+| **EC2 `paperclip-outreach-eu`** | eu-west-1, `54.220.116.228` | `outreach_db` container | ALL — TaggIQ, FP Ireland Franchise, FP Dublin BNI, Kingswood, Dublin Construction |
+| ~~Local Docker~~ | ~~Prakash's laptop~~ | ~~stopped~~ | ~~none~~ |
 
 **EC2 is Amazon Linux 2023 aarch64 running Node 20 + Claude Code CLI natively.** The CLI is baked into the `outreach_cron` image and the OAuth token persists in the `claude_auth` Docker volume. This unblocked always-on autonomy for Lisa's print-promo reply pipeline — no SDK rewrite needed.
 
@@ -288,9 +288,10 @@ Cron jobs are installed by `docker/cron-entrypoint.sh` on container start (same 
 
 | Cron | Command | What it does |
 |------|---------|--------------|
-| `0 11 * * 1-5` | `python manage.py send_sequences $CRON_SEND_ARGS` | Daily Mon-Fri 11am: universal sender (scoped by host partition) |
-| `*/10 * * * *` | `python manage.py handle_replies $CRON_REPLY_ARGS` | Every 10 min: IMAP check + Claude auto-reply (scoped by host partition) |
-| `0 9 * * 1-5` | `python manage.py post_to_social` | Daily Mon-Fri 9am: LinkedIn posts (local host only) |
+| `0 11 * * 1-5` | `python manage.py send_sequences` | Daily Mon-Fri 11am: universal sender (all campaigns) |
+| `*/10 * * * *` | `python manage.py handle_replies` | Every 10 min: IMAP check + Claude auto-reply (all campaigns) |
+| `30 11 * * 1-5` | `python manage.py nudge_stale_leads` | Daily Mon-Fri 11:30am: warm nudge + follow_up_later re-entry |
+| `0 9 * * 1-5` | `python manage.py post_to_social` | Daily Mon-Fri 9am: LinkedIn posts |
 | `0 23 * * *` | `/app/backup_to_gdrive.sh` | Nightly: database backup to Google Drive |
 
 ### Bring the stack up / down (same commands on both hosts)
@@ -392,7 +393,7 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 - Sprint 2 DONE: Service layer + universal sender + 146 email templates seeded
 - Sprint 3 DONE: Product-scoped suppressions, DB call scripts, cron cutover to send_sequences
 - Sprint 4 DONE: PostgreSQL migration. Both local and EC2 run Postgres 16 in Docker; SQLite is no longer in the stack anywhere.
-- Sprint 5 DONE: EC2 `paperclip-outreach-eu` live in eu-west-1 (`54.220.116.228`) on Amazon Linux 2023 aarch64. Node 20 + Claude Code CLI baked into cron image, OAuth token in `claude_auth` Docker volume, `TZ=Europe/Dublin`. Cron partitioned `--product print-promo` on EC2, `--exclude-product print-promo` on local. Two-host production is the current architecture — see Cron Schedule section above.
+- Sprint 5 DONE: EC2 `paperclip-outreach-eu` live in eu-west-1 (`54.220.116.228`) on Amazon Linux 2023 aarch64. Node 20 + Claude Code CLI baked into cron image, OAuth token in `claude_auth` Docker volume, `TZ=Europe/Dublin`. Originally partitioned (print-promo on EC2, rest on local), now consolidated: all campaigns on EC2 as of 2026-04-21. Local Docker stopped.
 - Sprint 5 v5 DONE: Org-agnostic AI reply pipeline. `send_ai_reply` command with pre-send blocking (price/bounce/length), per-inbound retry budget (5 attempts), AIUsageLog cost tracking, MailboxConfig sibling-fallback. Voice rules in DB (PromptTemplate), execution recipe in code (`handle_replies._build_execution_preamble`). Lisa v5 active on EC2 for print-promo. Adding a new persona is one DB row, no code change. See `docs/ai-reply-architecture.md`.
 - Sprint 6 Phase 1A + 2A DONE: TaggIQ Warm Re-engagement campaign seeded (15 prospects, 4 emails, 1 Vapi call, `sending_enabled=False`). Phase 2A greenfield services shipped as dark code (`conversation`, `context_assembler`, `channel_timing`, `ai_budget`, `cacheable_preamble`). 38/38 tests pass. Zero live-path impact. Phase 1B (launch) waits on Loom URL; Phase 2B (wire services into live code) folded into Sprint 7.
 - Sprint 7 PLANNED: Sales Director Platform MVP. Per-Product `ProductBrain` + per-Campaign overrides, `next_action` rules engine, golden-set eval harness, two brains in production simultaneously (TaggIQ + FP Franchise). Wires Sprint 6 Phase 2A services into live code behind the existing `Campaign.use_context_assembler` flag. See `docs/sprint-7-implementation-plan.md`.
