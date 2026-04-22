@@ -643,7 +643,7 @@ class Command(BaseCommand):
                 break
 
             try:
-                status, msg_data = imap.fetch(msg_id, '(RFC822)')
+                status, msg_data = imap.fetch(msg_id, '(BODY.PEEK[])')
                 if status != 'OK':
                     continue
 
