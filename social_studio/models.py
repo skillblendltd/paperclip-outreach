@@ -39,7 +39,7 @@ class SocialAccount(BaseModel):
 
     class Meta:
         db_table = 'social_accounts'
-        unique_together = [('product', 'platform')]
+        unique_together = [('product', 'platform', 'page_id')]
         ordering = ['product', 'platform']
 
     def __str__(self):

@@ -28,8 +28,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Check replies every 10 minutes. CRON_REPLY_ARGS scopes the same way.
 */10 * * * * root . /app/docker/.env.cron && cd /app && python manage.py handle_replies ${CRON_REPLY_ARGS:-} >> /tmp/outreach_reply_monitor.log 2>&1
 
-# Post to social media daily at 9am Mon-Fri
-0 9 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py post_to_social >> /tmp/outreach_social.log 2>&1
+# Post to social media daily at 9am Mon-Fri (all products with scheduled posts)
+0 9 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py publish_post --next-scheduled >> /tmp/outreach_social.log 2>&1
 
 # Nudge stale warm leads + reactivate follow_up_later — 30 min after send_sequences
 30 11 * * 1-5 root . /app/docker/.env.cron && cd /app && python manage.py nudge_stale_leads ${CRON_SEND_ARGS:-} >> /tmp/outreach_nudge.log 2>&1
