@@ -187,8 +187,6 @@ class Command(BaseCommand):
         """Print a clear summary of inbounds needing manual attention.
         Runs every cron tick so Prakash can tail the log and see what's stuck.
         Only surfaces items from the last 24 hours to avoid noise from old history."""
-        from django.utils import timezone
-        from datetime import timedelta
 
         now = timezone.now()
         since = now - timedelta(hours=24)
@@ -263,6 +261,9 @@ class Command(BaseCommand):
         we allow the reply through rather than silently blocking all replies
         on a Gmail/Zoho incident. A WARN is logged so ops can investigate.
         """
+        # Use Django's timezone.now() for DB comparisons (created_at is naive
+        # when USE_TZ=False) but pass None to is_within_reply_window() so it
+        # constructs its own timezone-correct datetime internally.
         now = timezone.now()
         actionable = []
         skipped_window = 0
@@ -279,8 +280,9 @@ class Command(BaseCommand):
         for inbound in inbounds:
             campaign = inbound.campaign
 
-            # Gate 1: reply window
-            if not is_within_reply_window(campaign, now):
+            # Gate 1: reply window (pass None so it constructs its own
+            # timezone-correct datetime - avoids Django TIME_ZONE mismatch)
+            if not is_within_reply_window(campaign):
                 skipped_window += 1
                 self.stdout.write(
                     f'  skip (window): {inbound.from_email[:40]} '
