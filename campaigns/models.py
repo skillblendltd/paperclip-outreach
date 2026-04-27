@@ -215,6 +215,15 @@ class Prospect(BaseModel):
     # Decision maker
     decision_maker_name = models.CharField(max_length=300, blank=True, default='')
     decision_maker_title = models.CharField(max_length=200, blank=True, default='')
+    decision_maker_email = models.EmailField(blank=True, default='')
+    linkedin_url = models.URLField(blank=True, default='')
+
+    # Enrichment tracking
+    enrichment_source = models.CharField(
+        max_length=50, blank=True, default='',
+        help_text='Source that provided decision maker data: companies_house, cro, website, google, bni',
+    )
+    enriched_at = models.DateTimeField(null=True, blank=True)
 
     # Classification
     business_type = models.CharField(max_length=100, blank=True, default='')
