@@ -77,10 +77,26 @@ def build_for_org(
             skipped.append((conn, 'circuit_breaker_open'))
             continue
 
-        secret = _resolve_secret(conn.auth_secret_ref)
-        if conn.auth_secret_ref and not secret:
-            skipped.append((conn, f'secret_unresolved:{conn.auth_secret_ref}'))
+        auth_type = getattr(conn, 'auth_type', 'static_bearer') or 'static_bearer'
+
+        # OAuth-CLI: tokens live in /root/.claude/ (user-scope MCP added via
+        # `claude mcp add --user`). The CLI inherits these alongside any
+        # servers we add via --mcp-config, so we DO NOT add this server to
+        # our JSON. Just count it as loaded for audit.
+        if auth_type == 'oauth_cli':
+            if not conn.cli_user_scope_name:
+                skipped.append((conn, 'oauth_cli_no_scope_name'))
+                continue
+            loaded.append(conn)
             continue
+
+        # static_bearer / none: build the JSON entry as before.
+        secret = ''
+        if auth_type == 'static_bearer':
+            secret = _resolve_secret(conn.auth_secret_ref)
+            if conn.auth_secret_ref and not secret:
+                skipped.append((conn, f'secret_unresolved:{conn.auth_secret_ref}'))
+                continue
 
         entry = _build_server_entry(conn, secret)
         if entry is None:
@@ -89,9 +105,17 @@ def build_for_org(
         mcp_servers_block[conn.slug] = entry
         loaded.append(conn)
 
-    if not mcp_servers_block:
+    # `loaded` may include oauth_cli connections even when mcp_servers_block
+    # is empty — those are valid (CLI inherits them). Only return None when
+    # NOTHING loaded at all.
+    if not loaded:
         return BuildResult(config_path=None, connections=[], skipped=skipped,
                            reason='no_eligible_connections')
+
+    if not mcp_servers_block:
+        # All loaded are oauth_cli; nothing to write to --mcp-config.
+        return BuildResult(config_path=None, connections=loaded, skipped=skipped,
+                           reason='ok_oauth_cli_only')
 
     payload = {'mcpServers': mcp_servers_block}
 

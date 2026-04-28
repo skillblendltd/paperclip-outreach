@@ -131,6 +131,83 @@ class ConfigBuilderTests(TestCase):
             'config for self.org')
 
 
+class OAuthCLIConnectionTests(TestCase):
+    """Connections with auth_type='oauth_cli' don't write to --mcp-config —
+    the Claude CLI inherits them from its user-scope OAuth state."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.org = Organization.objects.create(name='S', slug='s-oauth')
+        cls.taggiq_server = MCPServer.objects.create(
+            slug='taggiq', display_name='TaggIQ', transport='http',
+        )
+
+    def test_oauth_cli_connection_loads_without_writing_json(self):
+        OrgMCPConnection.objects.create(
+            organization=self.org, server=self.taggiq_server,
+            slug='taggiq', auth_type='oauth_cli',
+            cli_user_scope_name='taggiq',
+            connection_config={'url': 'https://api.taggiq.com/mcp'},
+            is_active=True,
+        )
+        r = config_builder.build_for_org(self.org, ['taggiq'])
+        self.assertEqual(r.reason, 'ok_oauth_cli_only')
+        self.assertIsNone(r.config_path,
+            'OAuth-CLI servers do not need --mcp-config; CLI inherits them')
+        self.assertEqual([c.slug for c in r.connections], ['taggiq'],
+            'Connection still counts as loaded for audit')
+
+    def test_oauth_cli_without_scope_name_is_skipped(self):
+        OrgMCPConnection.objects.create(
+            organization=self.org, server=self.taggiq_server,
+            slug='taggiq', auth_type='oauth_cli',
+            cli_user_scope_name='',  # missing
+            connection_config={'url': 'https://api.taggiq.com/mcp'},
+            is_active=True,
+        )
+        r = config_builder.build_for_org(self.org, ['taggiq'])
+        self.assertEqual(r.reason, 'no_eligible_connections')
+        self.assertEqual(r.skipped[0][1], 'oauth_cli_no_scope_name')
+
+    def test_mixed_oauth_cli_and_static_bearer_writes_only_static(self):
+        """When an Org has both an OAuth-CLI server and a static-bearer
+        server in the same call, only the bearer one lands in the JSON."""
+        # OAuth-CLI: TaggIQ
+        OrgMCPConnection.objects.create(
+            organization=self.org, server=self.taggiq_server,
+            slug='taggiq', auth_type='oauth_cli',
+            cli_user_scope_name='taggiq',
+            connection_config={'url': 'https://api.taggiq.com/mcp'},
+            is_active=True,
+        )
+        # Static-bearer: a hypothetical second server
+        other = MCPServer.objects.create(
+            slug='internal_api', display_name='Internal', transport='http',
+        )
+        OrgMCPConnection.objects.create(
+            organization=self.org, server=other,
+            slug='internal', auth_type='static_bearer',
+            auth_secret_ref='INTERNAL_KEY',
+            connection_config={'url': 'https://internal.test/mcp'},
+            is_active=True,
+        )
+        with patch.dict(os.environ, {'INTERNAL_KEY': 'sk-int'}):
+            r = config_builder.build_for_org(self.org, ['taggiq', 'internal'])
+
+        self.assertIsNotNone(r.config_path,
+            'Static-bearer side must produce a config file')
+        try:
+            with open(r.config_path) as fh:
+                payload = json.load(fh)
+            # Only the static-bearer server is in the JSON
+            self.assertEqual(list(payload['mcpServers'].keys()), ['internal'])
+        finally:
+            os.unlink(r.config_path)
+        # Both connections counted as loaded for audit
+        slugs = sorted(c.slug for c in r.connections)
+        self.assertEqual(slugs, ['internal', 'taggiq'])
+
+
 class HandleRepliesRoutingTests(TestCase):
     """_product_mcp_slugs returns the union across the product's campaigns;
     _run_claude routes to MCP runner only when union is non-empty."""

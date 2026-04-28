@@ -1041,6 +1041,12 @@ class OrgMCPConnection(BaseModel):
     Gmail accounts).
     """
 
+    AUTH_TYPE_CHOICES = [
+        ('static_bearer', 'Static bearer key (env var)'),
+        ('oauth_cli', 'OAuth managed by Claude CLI (--user scope)'),
+        ('none', 'No auth (public MCP server)'),
+    ]
+
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE,
         related_name='mcp_connections',
@@ -1056,12 +1062,27 @@ class OrgMCPConnection(BaseModel):
                   "'gmail-lisa') if the Org has multiple connections to the "
                   "same server type.",
     )
+    auth_type = models.CharField(
+        max_length=32,
+        choices=AUTH_TYPE_CHOICES,
+        default='static_bearer',
+        help_text="Authentication mode. 'static_bearer' = env-var bearer key "
+                  "in our --mcp-config. 'oauth_cli' = OAuth managed by Claude "
+                  "CLI (claude mcp add --user); we don't include the server "
+                  "in our --mcp-config but the CLI inherits it from user "
+                  "scope. 'none' = public server, no auth.",
+    )
     auth_secret_ref = models.CharField(
         max_length=200, blank=True, default='',
-        help_text="Reference to where the auth secret lives, NOT the secret. "
-                  "Either an env var name (e.g. 'TAGGIQ_API_KEY_SKILLBLEND') "
-                  "or an AWS Secrets Manager ARN. Resolved at runtime by "
-                  "config_builder.",
+        help_text="static_bearer only: reference to where the auth secret "
+                  "lives (env var name like 'TAGGIQ_API_KEY_SKILLBLEND' or "
+                  "Secrets Manager ARN). Ignored for oauth_cli/none.",
+    )
+    cli_user_scope_name = models.CharField(
+        max_length=64, blank=True, default='',
+        help_text="oauth_cli only: the name used when Prakash ran "
+                  "`claude mcp add --user <name>` in the cron container. "
+                  "Token state lives in the claude_auth Docker volume.",
     )
     connection_config = models.JSONField(
         default=dict, blank=True,
