@@ -885,3 +885,82 @@ class ProspectEvent(BaseModel):
 
     def __str__(self):
         return f'{self.prospect.email} | {self.from_status} -> {self.to_status} ({self.triggered_by})'
+
+
+class CallTask(BaseModel):
+    """Queued outbound call request. Provider-agnostic by design — the row only
+    knows WHO to call, WHEN, and WHY. The HOW (Vapi vs future provider, voice,
+    assistant ID) is resolved at dispatch time from Campaign.call_provider.
+
+    Producer:  campaigns.services.call_trigger.on_warm_transition
+               (the only authorised producer).
+    Consumer:  campaigns.management.commands.process_call_queue
+               (the only automatic consumer).
+
+    Idempotency: a partial unique index ensures at most one row per prospect
+    is in 'pending' state at any time. on_warm_transition update_or_creates.
+    """
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('dispatched', 'Dispatched'),
+        ('done', 'Done'),
+        ('skipped', 'Skipped'),
+        ('failed', 'Failed'),
+    ]
+
+    prospect = models.ForeignKey(
+        Prospect, on_delete=models.CASCADE, related_name='call_tasks'
+    )
+    scheduled_for = models.DateTimeField(
+        db_index=True,
+        help_text='UTC. Earliest moment process_call_queue may dispatch.'
+    )
+    reason = models.CharField(
+        max_length=200,
+        help_text='e.g. warm:reply:interested, warm:reply:question, warm:call_disposition'
+    )
+    triggering_event = models.ForeignKey(
+        ProspectEvent,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='call_tasks',
+        help_text='The lifecycle event that produced this task (audit link).'
+    )
+    attempts = models.IntegerField(
+        default=0,
+        help_text='Dispatch attempts. process_call_queue gives up at 5.'
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True
+    )
+    skip_reason = models.TextField(
+        blank=True, default='',
+        help_text='Populated when status=skipped or status=failed.'
+    )
+    dispatched_at = models.DateTimeField(null=True, blank=True)
+    provider_call_id = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text='Provider-returned call ID, e.g. Vapi call.id.'
+    )
+
+    class Meta:
+        db_table = 'call_tasks'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', 'scheduled_for']),
+            models.Index(fields=['prospect', '-created_at']),
+        ]
+        constraints = [
+            # At most one pending CallTask per prospect — enforces idempotency
+            # so re-firing on_warm_transition updates an existing row instead
+            # of stacking duplicates.
+            models.UniqueConstraint(
+                fields=['prospect'],
+                condition=models.Q(status='pending'),
+                name='uniq_pending_call_task_per_prospect',
+            ),
+        ]
+
+    def __str__(self):
+        return f'CallTask({self.prospect.email}, {self.status}, {self.scheduled_for:%Y-%m-%d %H:%M})'

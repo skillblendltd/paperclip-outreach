@@ -10,7 +10,12 @@ urlpatterns = [
     path('status/', views.outreach_status, name='outreach_status'),
     path('dashboard/', views.outreach_dashboard, name='outreach_dashboard'),
     path('import/', views.outreach_import_prospects, name='outreach_import'),
-    path('webhooks/vapi/', views.vapi_webhook, name='vapi_webhook'),
+    # Provider-agnostic call webhook namespace. New canonical path is
+    # /api/webhooks/calls/<provider>/. The legacy /api/webhooks/vapi/ is
+    # kept as an alias so existing Vapi-side URL config continues to work
+    # until you update it in the Vapi dashboard.
+    path('webhooks/calls/<str:provider_slug>/', views.call_webhook, name='call_webhook'),
+    path('webhooks/vapi/', views.vapi_webhook, name='vapi_webhook'),  # legacy alias
     path('webhooks/taggiq/', webhook_handlers.taggiq_webhook, name='taggiq_webhook'),
     path('calls/', views.outreach_calls, name='outreach_calls'),
     path('calls/stats/', views.outreach_calls_stats, name='outreach_calls_stats'),

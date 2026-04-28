@@ -722,10 +722,14 @@ def outreach_import_prospects(request):
 
 
 @csrf_exempt
-def vapi_webhook(request):
-    """
-    Receive Vapi end-of-call webhooks.
-    Updates CallLog with outcome, transcript, recording, and updates Prospect status.
+def call_webhook(request, provider_slug: str = 'vapi'):
+    """Provider-agnostic call webhook endpoint.
+
+    Routed via /api/webhooks/calls/<provider_slug>/. Adapter-specific parsing
+    happens inside `parse_webhook(provider_slug, raw)` which returns a
+    normalized CallEvent. This view does ALL the Paperclip-side work
+    (CallLog write, lifecycle transition, post-call email queue) using ONLY
+    the normalized event — provider vocabulary stops at the adapter line.
     """
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
@@ -735,138 +739,161 @@ def vapi_webhook(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
+    from campaigns.call_provider import base as cp_base
+    try:
+        event = cp_base.parse_webhook(provider_slug, data)
+    except KeyError:
+        return JsonResponse({'error': f'Unknown provider {provider_slug}'}, status=400)
+
+    if event is None:
+        # Adapter signalled this payload is non-terminal (heartbeat, function
+        # call, etc.). Falling through to the legacy handler keeps function-
+        # call paths working until they're migrated. Until then, return ok.
+        # NOTE: function-call handling is still in vapi_webhook below.
+        return _legacy_dispatch_for_non_terminal(provider_slug, data)
+
+    # Update CallLog by provider_call_id. CallLog.vapi_call_id is named after
+    # the original provider but the value is provider-agnostic.
+    try:
+        call_log = CallLog.objects.get(vapi_call_id=event.provider_call_id)
+    except CallLog.DoesNotExist:
+        logger.warning('CallLog not found for provider_call_id=%s', event.provider_call_id)
+        return JsonResponse({'status': 'ignored', 'reason': 'call not found'})
+
+    call_log.transcript = event.transcript
+    call_log.recording_url = event.recording_url
+    call_log.summary = event.summary or call_log.summary
+    if event.duration_seconds:
+        call_log.call_duration = event.duration_seconds
+
+    if event.event_type == 'no_answer':
+        call_log.status = 'no_answer'
+    elif event.event_type == 'voicemail':
+        call_log.status = 'voicemail'
+    elif event.event_type == 'answered' or call_log.call_duration > 0:
+        call_log.status = 'answered'
+
+    if event.disposition:
+        call_log.disposition = event.disposition
+
+    call_log.save()
+
+    prospect = call_log.prospect
+    update_fields = ['updated_at']
+    if call_log.email_captured and not prospect.email:
+        prospect.email = call_log.email_captured
+        update_fields.append('email')
+    if call_log.current_tools:
+        prospect.current_tools = call_log.current_tools
+        update_fields.append('current_tools')
+    if call_log.pain_signals:
+        prospect.pain_signals = call_log.pain_signals
+        update_fields.append('pain_signals')
+    prospect.save(update_fields=update_fields)
+
+    # Status transitions go through the lifecycle gateway (which fires
+    # call_trigger.on_warm_transition automatically if the new status is warm).
+    from campaigns.services import lifecycle
+    disposition_to_status = {
+        'demo_booked':    'demo_scheduled',
+        'interested':     'interested',
+        'not_interested': 'not_interested',
+        'do_not_call':    'opted_out',
+    }
+    target_status = disposition_to_status.get(call_log.disposition or '')
+    if target_status:
+        try:
+            lifecycle.transition(
+                prospect, target_status,
+                reason=f'call:disposition={call_log.disposition}',
+                triggered_by=f'call_webhook:{provider_slug}',
+            )
+        except ValueError as exc:
+            logger.warning('[call_webhook] lifecycle skip for %s: %s', prospect.id, exc)
+
+    # Mark the originating CallTask as done if we can correlate.
+    if event.correlation_id:
+        try:
+            from campaigns.models import CallTask
+            CallTask.objects.filter(id=event.correlation_id).update(
+                status='done', updated_at=timezone.now(),
+            )
+        except Exception as exc:
+            logger.warning('[call_webhook] CallTask close failed: %s', exc)
+
+    _queue_post_call_action(call_log, prospect)
+
+    # Sprint 7 brain state machine on flag=True campaigns.
+    if getattr(call_log.campaign, 'use_context_assembler', False):
+        try:
+            from campaigns.services.brain import load_brain, BrainNotFound
+            from campaigns.services import rules_engine, next_action
+            brain = load_brain(prospect)
+            effect = rules_engine.apply_call_outcome(brain, prospect, call_log)
+            if effect.new_status and effect.new_status != prospect.status:
+                try:
+                    lifecycle.transition(
+                        prospect, effect.new_status,
+                        reason=f'brain:call_outcome={effect.reason}',
+                        triggered_by=f'call_webhook:brain:{provider_slug}',
+                    )
+                except ValueError as exc:
+                    logger.warning('[call_webhook] brain lifecycle skip: %s', exc)
+            if effect.handoff == 'escalation':
+                _append_escalation_note(prospect, effect.reason or 'call_outcome')
+                prospect.save(update_fields=['notes', 'updated_at'])
+            try:
+                na = next_action.decide_next_action(prospect)
+                logger.info(
+                    '[call_webhook] prospect=%s next_action=%s reason=%s',
+                    prospect.id, na.channel, na.reason,
+                )
+            except Exception as exc:
+                logger.warning('[call_webhook] next_action failed: %s', exc)
+        except BrainNotFound as exc:
+            logger.warning('[call_webhook] no brain: %s', exc)
+        except Exception as exc:
+            logger.exception('[call_webhook] brain state machine error: %s', exc)
+
+    logger.info(
+        '[call_webhook:%s] call=%s status=%s disposition=%s',
+        provider_slug, event.provider_call_id, call_log.status, call_log.disposition,
+    )
+    return JsonResponse({'status': 'ok', 'call_id': event.provider_call_id})
+
+
+def _legacy_dispatch_for_non_terminal(provider_slug: str, data: dict):
+    """Bridge for non-terminal Vapi events (function-call, etc.) that the new
+    adapter parse_webhook returns None for. Routes them to the existing
+    vapi_webhook function-call handling. Will be removed when function-call
+    handling moves into the adapter."""
+    if provider_slug != 'vapi':
+        # Other providers' non-terminal events are ignored for now.
+        return JsonResponse({'status': 'ignored', 'reason': 'non-terminal'})
+    return _vapi_legacy_function_call(data)
+
+
+@csrf_exempt
+def vapi_webhook(request):
+    """LEGACY alias — delegates to call_webhook with provider_slug='vapi'.
+
+    Kept active so the Vapi dashboard's existing webhook URL keeps working.
+    Update the dashboard to /api/webhooks/calls/vapi/ when convenient.
+    """
+    return call_webhook(request, provider_slug='vapi')
+
+
+def _vapi_legacy_function_call(data: dict):
+    """Vapi function-call payload handler. Lives here (not in the adapter)
+    until function-call handling is part of the CallEvent contract.
+
+    end-of-call-report payloads are now handled by call_webhook via the
+    provider-agnostic CallEvent path; this function only handles function-
+    call messages (capture_email, end_call, schedule_callback).
+    """
     message_type = data.get('message', {}).get('type', '') if 'message' in data else data.get('type', '')
 
-    # Handle end-of-call report
-    if message_type == 'end-of-call-report':
-        message = data.get('message', data)
-        call_data = message.get('call', {})
-        vapi_call_id = call_data.get('id', '')
-
-        if not vapi_call_id:
-            return JsonResponse({'error': 'No call ID'}, status=400)
-
-        try:
-            call_log = CallLog.objects.get(vapi_call_id=vapi_call_id)
-        except CallLog.DoesNotExist:
-            logger.warning(f'CallLog not found for vapi_call_id: {vapi_call_id}')
-            return JsonResponse({'status': 'ignored', 'reason': 'call not found'})
-
-        # Update call log
-        call_log.transcript = message.get('transcript', '')
-        call_log.recording_url = message.get('recordingUrl', '')
-        call_log.summary = message.get('summary', '')
-
-        # Duration
-        started = call_data.get('startedAt', '')
-        ended = call_data.get('endedAt', '')
-        if started and ended:
-            from datetime import datetime
-            try:
-                start_dt = datetime.fromisoformat(started.replace('Z', '+00:00'))
-                end_dt = datetime.fromisoformat(ended.replace('Z', '+00:00'))
-                call_log.call_duration = int((end_dt - start_dt).total_seconds())
-            except (ValueError, TypeError):
-                pass
-
-        # Determine status from call end reason
-        end_reason = call_data.get('endedReason', '')
-        if end_reason in ('customer-did-not-answer', 'customer-busy'):
-            call_log.status = 'no_answer'
-        elif end_reason == 'voicemail':
-            call_log.status = 'voicemail'
-        elif call_log.call_duration > 0:
-            call_log.status = 'answered'
-
-        # Extract structured data from analysis
-        analysis = message.get('analysis', {})
-        structured = analysis.get('structuredData', {})
-
-        if structured.get('appointmentBooked'):
-            call_log.disposition = 'demo_booked'
-
-        call_summary = structured.get('callSummary', '') or analysis.get('summary', '')
-        if call_summary:
-            call_log.summary = call_summary
-
-        call_log.save()
-
-        # Update prospect fields that don't involve status
-        prospect = call_log.prospect
-        if call_log.email_captured:
-            if not prospect.email:
-                prospect.email = call_log.email_captured
-        if call_log.current_tools:
-            prospect.current_tools = call_log.current_tools
-        if call_log.pain_signals:
-            prospect.pain_signals = call_log.pain_signals
-        prospect.save(update_fields=[
-            'email', 'current_tools', 'pain_signals', 'updated_at'
-        ] if any([call_log.email_captured, call_log.current_tools, call_log.pain_signals])
-          else ['updated_at'])
-
-        # Status transitions go through lifecycle gateway
-        from campaigns.services import lifecycle
-        disposition_to_status = {
-            'demo_booked':    'demo_scheduled',
-            'interested':     'interested',
-            'not_interested': 'not_interested',
-            'do_not_call':    'opted_out',
-        }
-        target_status = disposition_to_status.get(call_log.disposition)
-        if target_status:
-            try:
-                lifecycle.transition(
-                    prospect, target_status,
-                    reason=f'call:disposition={call_log.disposition}',
-                    triggered_by='vapi_webhook',
-                )
-            except ValueError as exc:
-                logger.warning('[vapi_webhook] lifecycle skip for %s: %s', prospect.id, exc)
-
-        # Queue post-call follow-up emails
-        _queue_post_call_action(call_log, prospect)
-
-        # Sprint 7 Phase 7.2.5 — brain state machine on flag=True campaigns.
-        # Runs after lifecycle transition. rules_engine.apply_call_outcome returns an
-        # OutcomeEffect; we apply new_status if it differs from current, log escalations.
-        if getattr(call_log.campaign, 'use_context_assembler', False):
-            try:
-                from campaigns.services.brain import load_brain, BrainNotFound
-                from campaigns.services import rules_engine, next_action
-                brain = load_brain(prospect)
-                effect = rules_engine.apply_call_outcome(brain, prospect, call_log)
-                if effect.new_status and effect.new_status != prospect.status:
-                    try:
-                        lifecycle.transition(
-                            prospect, effect.new_status,
-                            reason=f'brain:call_outcome={effect.reason}',
-                            triggered_by='vapi_webhook:brain',
-                        )
-                    except ValueError as exc:
-                        logger.warning('[sprint7 webhook] brain lifecycle skip: %s', exc)
-                if effect.handoff == 'escalation':
-                    _append_escalation_note(prospect, effect.reason or 'call_outcome')
-                    prospect.save(update_fields=['notes', 'updated_at'])
-                # Log the next_action decision (observability only — cron executes it).
-                try:
-                    na = next_action.decide_next_action(prospect)
-                    logger.info(
-                        '[sprint7 webhook] prospect=%s next_action channel=%s reason=%s brain_v=%s',
-                        prospect.id, na.channel, na.reason, na.brain_version,
-                    )
-                except Exception as exc:
-                    logger.warning(f'[sprint7 webhook] next_action failed for {prospect.id}: {exc}')
-            except BrainNotFound as exc:
-                logger.warning(f'[sprint7 webhook] no brain for prospect {prospect.id}: {exc}')
-            except Exception as exc:
-                logger.exception(f'[sprint7 webhook] brain state machine error: {exc}')
-
-        logger.info(f'[VAPI WEBHOOK] Updated call {vapi_call_id}: status={call_log.status}, disposition={call_log.disposition}')
-        return JsonResponse({'status': 'ok', 'call_id': vapi_call_id})
-
-    # Handle function calls (capture_email, end_call, etc.)
-    elif message_type == 'function-call':
+    if message_type == 'function-call':
         message = data.get('message', data)
         func_call = message.get('functionCall', {})
         func_name = func_call.get('name', '')

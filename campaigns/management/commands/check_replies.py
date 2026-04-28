@@ -92,6 +92,61 @@ def is_system_email(from_email: str, subject: str) -> bool:
     return False
 
 
+# Auto-responder loop guard (2026-04-28). Apr 23 incident: our AI replied to
+# MDaemon/Roto auto-acks and got back another ack, looped 6 times in 90 min
+# before stopping. RFC 3834 specifies Auto-Submitted: auto-replied for any
+# server-generated reply; mainstream MTAs (Exchange, MDaemon, Postfix vacation)
+# all set it. X-Autoreply / X-Autorespond / Precedence: auto_reply are common
+# vendor variants. Any of these = treat as a system email, do not reply.
+AUTO_RESPONDER_HEADER_VALUES = {
+    'auto-submitted': ('auto-replied', 'auto-generated', 'auto-notified'),
+    'x-autoreply': ('yes',),
+    'x-autorespond': ('yes',),
+    'x-autorespond-from': ('',),  # presence of header alone is the signal
+    'x-auto-response-suppress': ('',),
+    'precedence': ('auto_reply', 'auto-reply'),
+}
+
+
+def is_auto_responder(msg) -> bool:
+    """Return True if email headers indicate this was server-generated.
+
+    RFC 3834 + common vendor headers. Catches the MDaemon/Roto/Exchange
+    vacation-replier loops that were burning AI budget on Apr 23.
+    """
+    if msg is None:
+        return False
+    for header, allowed_lower in AUTO_RESPONDER_HEADER_VALUES.items():
+        raw = msg.get(header, '')
+        if not raw:
+            continue
+        # Empty tuple = presence-of-header alone is enough
+        if allowed_lower == ('',):
+            return True
+        val = raw.split(';', 1)[0].strip().lower()
+        for needle in allowed_lower:
+            if needle and needle in val:
+                return True
+    return False
+
+
+def recent_ai_reply_to_prospect(prospect, hours: int = 24) -> bool:
+    """Per-prospect cap: True if we already sent an AI-generated reply to this
+    prospect within `hours`. Prevents the auto-responder ping-pong even if the
+    prospect's MTA does not set Auto-Submitted.
+    """
+    if not prospect:
+        return False
+    from datetime import timedelta
+    cutoff = timezone.now() - timedelta(hours=hours)
+    return EmailLog.objects.filter(
+        prospect=prospect,
+        triggered_by__icontains='ai_reply',
+        created_at__gte=cutoff,
+        status='sent',
+    ).exists()
+
+
 # Classification rules - checked in order, first match wins
 CLASSIFICATION_RULES = [
     ('opt_out', [
@@ -813,6 +868,16 @@ class Command(BaseCommand):
                 # they ever reach the classifier or the AI reply pipeline.
                 is_system = is_system_email(from_email_addr, subject)
 
+                # G7 (2026-04-28): auto-responder loop guard. RFC-3834 headers
+                # + per-prospect 24h reply cap. Apr 23 incident: MDaemon vacation
+                # responder looped with our AI 6 times in 90 min.
+                is_auto_resp = is_auto_responder(msg)
+                already_replied_recently = (
+                    not is_system
+                    and not is_auto_resp
+                    and recent_ai_reply_to_prospect(prospect, hours=24)
+                )
+
                 # Classify
                 if is_system:
                     classification = 'other'
@@ -821,10 +886,26 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.WARNING(
                         f'  SYSTEM-ARCHIVED  {from_email_addr} - {subject[:50]}'
                     ))
+                elif is_auto_resp:
+                    classification = 'out_of_office'
+                    needs_reply = False
+                    actions['out_of_office'] = actions.get('out_of_office', 0) + 1
+                    self.stdout.write(self.style.WARNING(
+                        f'  AUTO-RESPONDER (header-detected) '
+                        f'{from_email_addr} - {subject[:50]}'
+                    ))
                 else:
                     classification = classify_email(subject, body_text)
                     actions[classification] += 1
                     needs_reply = classification in ('interested', 'question', 'other')
+                    if already_replied_recently and needs_reply:
+                        # Suppress: we already replied within 24h. Keep the row
+                        # for audit but don't fire the AI again.
+                        needs_reply = False
+                        self.stdout.write(self.style.WARNING(
+                            f'  RATE-CAP (24h ai_reply already sent) '
+                            f'{from_email_addr} - {subject[:50]}'
+                        ))
                     label = f'{prospect.business_name} <{from_email_addr}>'
                     self.stdout.write(
                         f'  {classification.upper():15s} {label} - {subject[:50]}'
@@ -835,6 +916,12 @@ class Command(BaseCommand):
                     continue
 
                 # Save InboundEmail
+                guard_note = ''
+                if is_auto_resp:
+                    guard_note = 'G7: Auto-responder header detected (RFC 3834 / vendor variant); needs_reply forced False'
+                elif already_replied_recently:
+                    guard_note = 'G7: AI reply already sent within 24h; needs_reply forced False to break loop'
+
                 inbound = InboundEmail.objects.create(
                     prospect=prospect,
                     campaign=matched_campaign,
@@ -848,6 +935,7 @@ class Command(BaseCommand):
                     replied_to_sequence=replied_to_sequence,
                     needs_reply=needs_reply,
                     received_at=received_at,
+                    notes=guard_note,
                 )
 
                 # H2 (2026-04-15): atomic reply counter update. Runs BEFORE

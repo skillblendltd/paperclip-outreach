@@ -15,6 +15,7 @@ echo "[$(date)] Environment exported to /app/docker/.env.cron"
 touch /tmp/campaigns_daily.log
 touch /tmp/outreach_reply_monitor.log
 touch /tmp/outreach_cron.log
+touch /tmp/outreach_call_queue.log
 
 # Write cron jobs - source env before each command
 cat > /etc/cron.d/outreach << 'EOF'
@@ -39,6 +40,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Health check at 8am daily (including weekends)
 0 8 * * * root . /app/docker/.env.cron && cd /app && python manage.py brain_doctor >> /tmp/outreach_health.log 2>&1
+
+# Process the warm-lead call queue every 5 minutes (Sprint 9).
+# Picks pending CallTask rows whose scheduled_for has elapsed and dispatches
+# via the configured call provider (Vapi today; provider-agnostic boundary).
+*/5 * * * * root . /app/docker/.env.cron && cd /app && python manage.py process_call_queue >> /tmp/outreach_call_queue.log 2>&1
 
 # Nightly backup at 23:00
 0 23 * * * root . /app/docker/.env.cron && cd /app && /app/backup_to_gdrive.sh >> /tmp/outreach_backup.log 2>&1

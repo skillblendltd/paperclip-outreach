@@ -102,7 +102,30 @@ def transition(prospect, new_status: str, reason: str,
     )
 
     _fire_side_effects(prospect, from_status=current, to_status=new_status)
+    _fire_post_transition_hooks(prospect, event)
     return event
+
+
+# ---------------------------------------------------------------------------
+# Post-transition hooks (Sprint 9 — warm-trigger contextual calling)
+# ---------------------------------------------------------------------------
+
+def _fire_post_transition_hooks(prospect, event) -> None:
+    """Fan out to registered hooks AFTER the transition + side effects have
+    landed. Each hook is wrapped independently so a hook failure never rolls
+    back the transition or blocks other hooks.
+
+    Currently registered:
+      - call_trigger.on_warm_transition (Sprint 9)
+    """
+    try:
+        from campaigns.services.call_trigger import on_warm_transition
+        on_warm_transition(prospect, event)
+    except Exception as exc:
+        logger.error(
+            'lifecycle post-hook call_trigger failed prospect=%s: %s',
+            prospect.id, exc,
+        )
 
 
 # ---------------------------------------------------------------------------
