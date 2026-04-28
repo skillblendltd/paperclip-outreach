@@ -339,24 +339,22 @@ class Command(BaseCommand):
 
             for inbound in group:
                 if inbound.message_id and inbound.message_id in unseen_ids:
-                    # Still unread → human has not claimed → eligible
+                    # Currently UNSEEN → eligible this tick. Operator can
+                    # release a previously-claimed inbound back to the AI by
+                    # marking it unread again; we re-check every tick so that
+                    # works automatically.
                     actionable.append(inbound)
                 else:
-                    # Either marked seen (human opened it) OR message was
-                    # deleted/moved. Either way, stop auto-reply for this
-                    # inbound and record the claim.
+                    # Currently SEEN (human opened it on phone, or message
+                    # archived/moved). Skip THIS tick only — do NOT mutate
+                    # needs_reply. The next tick re-runs this check; if the
+                    # operator flips it back to unread the AI will pick it up.
                     skipped_unread += 1
                     self.stdout.write(self.style.SUCCESS(
                         f'  skip (claimed): {inbound.from_email[:40]} — '
-                        f'message no longer UNSEEN in {imap_email}'
+                        f'currently SEEN in {imap_email} '
+                        f'(mark unread to release to AI)'
                     ))
-                    InboundEmail.objects.filter(id=inbound.id).update(
-                        needs_reply=False,
-                        notes=(inbound.notes or '') + (
-                            '\n' if inbound.notes else ''
-                        ) + f'[{now:%Y-%m-%d %H:%M}] User-claimed via read flag',
-                        updated_at=now,
-                    )
 
         if any([skipped_window, skipped_grace, skipped_unread]):
             self.stdout.write(

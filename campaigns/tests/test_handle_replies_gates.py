@@ -178,7 +178,10 @@ class HandleRepliesFilterGateTests(TestCase):
     # Gate 3: unread cross-check
     # ------------------------------------------------------------------
 
-    def test_gate_skips_and_flips_inbound_claimed_by_human(self):
+    def test_gate_skips_inbound_claimed_by_human_without_mutating(self):
+        """SEEN-in-mailbox inbound is skipped this tick but needs_reply stays
+        True, so the operator can mark the email back to UNSEEN on their phone
+        and the AI will pick it up on the next tick."""
         _open_window(self.campaign)
         p = self._mk_prospect('claimed@example.test')
         inbound = self._mk_inbound(p, '<claim-1@x>', age_minutes=10)
@@ -188,9 +191,23 @@ class HandleRepliesFilterGateTests(TestCase):
 
         self.assertEqual(len(actionable), 0)
         inbound.refresh_from_db()
-        self.assertFalse(inbound.needs_reply,
-            'Claimed inbound must have needs_reply flipped to False')
-        self.assertIn('User-claimed via read flag', inbound.notes or '')
+        self.assertTrue(inbound.needs_reply,
+            'needs_reply must remain True so a future unread-flip releases it')
+
+    def test_gate_releases_inbound_when_marked_unread_again(self):
+        """Round-trip: tick 1 sees SEEN and skips, tick 2 sees UNSEEN (operator
+        flipped it) and lets the AI through."""
+        _open_window(self.campaign)
+        p = self._mk_prospect('flip-back@example.test')
+        inbound = self._mk_inbound(p, '<flip-1@x>', age_minutes=10)
+
+        cmd_seen = self._mk_cmd(unseen_ids_return=set())
+        self.assertEqual(len(cmd_seen._filter_actionable_inbounds([inbound])), 0)
+
+        cmd_unseen = self._mk_cmd(unseen_ids_return={inbound.message_id})
+        actionable = cmd_unseen._filter_actionable_inbounds([inbound])
+        self.assertEqual(len(actionable), 1,
+            'After operator marks unread again, AI must pick it up')
 
     def test_gate_passes_inbound_still_unseen(self):
         _open_window(self.campaign)
@@ -257,8 +274,9 @@ class HandleRepliesFilterGateTests(TestCase):
         self.assertTrue(fresh.needs_reply,
             'Grace-window skip must not flip needs_reply — will retry later')
 
-        # claimed_old and claimed_old2 flipped to needs_reply=False
+        # claimed_old and claimed_old2 stay needs_reply=True (skipped this tick
+        # but releasable — operator marks them unread and the next tick picks up)
         claimed_old.refresh_from_db()
         claimed_old2.refresh_from_db()
-        self.assertFalse(claimed_old.needs_reply)
-        self.assertFalse(claimed_old2.needs_reply)
+        self.assertTrue(claimed_old.needs_reply)
+        self.assertTrue(claimed_old2.needs_reply)

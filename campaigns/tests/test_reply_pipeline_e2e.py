@@ -267,9 +267,9 @@ class ReplyPipelineEndToEndTests(TestCase):
 
     def test_claim_via_read_state_prevents_reply(self):
         """When the human operator opens an email in their inbox (IMAP
-        \\Seen flag set), the AI must skip that inbound and flip the DB
-        row to needs_reply=False with a claim note. Scripted replay of
-        the "just open the email to stop the AI" workflow.
+        \\Seen flag set), the AI must skip that inbound this tick — but
+        leave needs_reply=True so the operator can release it back to the
+        AI by marking the message unread again.
         """
         # Set up a wide-open reply window so the window gate does not fire
         self.fp_campaign.reply_window_start_hour = 0
@@ -314,8 +314,9 @@ class ReplyPipelineEndToEndTests(TestCase):
             'Claimed (non-unseen) inbound must not be actionable')
 
         inbound.refresh_from_db()
-        self.assertFalse(inbound.needs_reply)
-        self.assertIn('User-claimed via read flag', inbound.notes or '')
+        self.assertTrue(inbound.needs_reply,
+            'needs_reply must remain True so flipping the email back to '
+            'unread on the phone re-promotes it to the AI')
 
     # ------------------------------------------------------------------
     # Full-stack: counter increment + tenant isolation in one flow
