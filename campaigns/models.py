@@ -161,6 +161,14 @@ class Campaign(BaseModel):
         default=False,
         help_text='Sprint 6 feature flag. When True, replies/sends inject per-prospect conversation context from Phase 2 services. Defaults False (dark). Flipped manually after shadow eval wins.',
     )
+    mcp_servers = models.JSONField(
+        default=list, blank=True,
+        help_text='Sprint 10. Per-campaign opt-in to MCP servers. List of '
+                  'OrgMCPConnection.slug values (e.g. ["taggiq", "canva"]). '
+                  'Empty = no MCP exposure (default). config_builder takes '
+                  'the intersection with active OrgMCPConnections in the '
+                  'campaign owner Organization.',
+    )
 
     class Meta:
         db_table = 'campaigns'
@@ -964,3 +972,217 @@ class CallTask(BaseModel):
 
     def __str__(self):
         return f'CallTask({self.prospect.email}, {self.status}, {self.scheduled_for:%Y-%m-%d %H:%M})'
+
+
+# ---------------------------------------------------------------------------
+# MCP integration (Sprint 10 Phase A)
+# ---------------------------------------------------------------------------
+
+class MCPServer(BaseModel):
+    """Registry of MCP server types Paperclip can connect to.
+
+    One row per server *type* (e.g. 'taggiq', 'canva'). An Organization with
+    a TaggIQ tenant gets one OrgMCPConnection pointing at this row.
+
+    Adding a new server type = one row here + optionally one entry in
+    campaigns.mcp.registry.DEFAULT_TOOL_ALLOWLIST. No code-side adapters.
+    """
+
+    TRANSPORT_CHOICES = [
+        ('stdio', 'Stdio (local subprocess)'),
+        ('http', 'HTTP'),
+        ('sse', 'Server-Sent Events'),
+        ('streamable_http', 'Streamable HTTP'),
+    ]
+
+    slug = models.SlugField(max_length=64, unique=True,
+        help_text="Short identifier, e.g. 'taggiq', 'canva', 'gmail'.")
+    display_name = models.CharField(max_length=200)
+    transport = models.CharField(
+        max_length=32, choices=TRANSPORT_CHOICES, default='http',
+    )
+    default_command_template = models.TextField(
+        blank=True, default='',
+        help_text='For stdio servers, the command (e.g. "npx -y @taggiq/mcp"). '
+                  'OrgMCPConnection.connection_config can override.',
+    )
+    documentation_url = models.URLField(blank=True, default='')
+    known_tools = models.JSONField(
+        default=list, blank=True,
+        help_text='Cached tool names for UI / allowlist editor. '
+                  'Authoritative source is the live MCP server.',
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'mcp_servers'
+        ordering = ['slug']
+
+    def __str__(self):
+        return f'{self.display_name} ({self.slug})'
+
+
+class OrgMCPConnection(BaseModel):
+    """Per-Organization connection to one MCP server.
+
+    The connection lives at Org because:
+      - auth (API keys, OAuth tokens) belongs to the Org
+      - rotating an API key shouldn't touch every Campaign row
+      - cross-tenant isolation: Print RFT (future design partner) gets their
+        own Org with their own connections; never sees Skillblend's TaggIQ.
+
+    Per-campaign exposure lives separately on Campaign.mcp_servers (a JSON
+    list of slugs). Default: empty = no MCP for that campaign.
+
+    The unique key is (organization, slug) — `slug` is the human label
+    (e.g. 'taggiq', 'gmail-prakash', 'gmail-lisa'). `server` points at
+    the MCPServer registry row. This lets one Org have multiple
+    connections to the same server type with different auth (e.g. two
+    Gmail accounts).
+    """
+
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE,
+        related_name='mcp_connections',
+    )
+    server = models.ForeignKey(
+        MCPServer, on_delete=models.PROTECT,
+        related_name='org_connections',
+    )
+    slug = models.SlugField(
+        max_length=64,
+        help_text="Human-readable slug for this connection within the Org. "
+                  "Default to MCPServer.slug; override (e.g. 'gmail-prakash', "
+                  "'gmail-lisa') if the Org has multiple connections to the "
+                  "same server type.",
+    )
+    auth_secret_ref = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text="Reference to where the auth secret lives, NOT the secret. "
+                  "Either an env var name (e.g. 'TAGGIQ_API_KEY_SKILLBLEND') "
+                  "or an AWS Secrets Manager ARN. Resolved at runtime by "
+                  "config_builder.",
+    )
+    connection_config = models.JSONField(
+        default=dict, blank=True,
+        help_text='Per-connection overrides: URL, headers (non-secret), '
+                  'environment vars, etc. Renders into the MCP config JSON.',
+    )
+    enabled_tools = models.JSONField(
+        default=list, blank=True,
+        help_text='Allowlist of tool names. Empty = use registry defaults '
+                  '(read-only safe set). Adding a write tool requires '
+                  'CTO + AI Architect review.',
+    )
+    is_active = models.BooleanField(default=True)
+    last_health_check_at = models.DateTimeField(null=True, blank=True)
+    last_health_status = models.CharField(
+        max_length=32, default='unknown',
+        help_text="'ok' | 'down' | 'unknown'. config_builder excludes 'down' "
+                  "connections for the next 1 hour after last failure.",
+    )
+    last_error = models.TextField(blank=True, default='')
+
+    class Meta:
+        db_table = 'org_mcp_connections'
+        unique_together = [('organization', 'slug')]
+        ordering = ['organization', 'slug']
+
+    def __str__(self):
+        return f'{self.organization.slug}:{self.slug} ({self.server.slug})'
+
+
+class MCPSession(BaseModel):
+    """One Claude invocation that had MCP tools available. Summary record.
+
+    Created at the start of a runner.run_with_mcp() call; updated at the end
+    with cost / duration / outcome. Per-tool detail lives in MCPActionLog
+    (Phase B onwards).
+    """
+
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE,
+        related_name='mcp_sessions',
+    )
+    prospect = models.ForeignKey(
+        Prospect, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='mcp_sessions',
+    )
+    inbound_email = models.ForeignKey(
+        InboundEmail, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='mcp_sessions',
+    )
+    triggered_by = models.CharField(
+        max_length=64, default='',
+        help_text="e.g. 'handle_replies', 'process_call_queue', 'manual'.",
+    )
+    server_slugs = models.JSONField(
+        default=list, blank=True,
+        help_text='List of OrgMCPConnection slugs exposed in this session.',
+    )
+    claude_model = models.CharField(max_length=100, default='')
+    total_input_tokens = models.IntegerField(default=0)
+    total_output_tokens = models.IntegerField(default=0)
+    total_cost_usd = models.DecimalField(
+        max_digits=10, decimal_places=4, default=0,
+    )
+    num_turns = models.IntegerField(default=0)
+    tool_calls_count = models.IntegerField(default=0)
+    success = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True, default='')
+    duration_ms = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'mcp_sessions'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['organization', '-created_at']),
+            models.Index(fields=['triggered_by', '-created_at']),
+        ]
+
+    def __str__(self):
+        status = 'OK' if self.success else 'FAIL'
+        return f'MCPSession({self.organization.slug}, {status}, {self.created_at:%Y-%m-%d %H:%M})'
+
+
+class MCPActionLog(BaseModel):
+    """One MCP tool call. Phase B+ writes these from stream-json parsing.
+
+    Schema is defined now so no migration is needed when Phase B lands.
+    """
+
+    session = models.ForeignKey(
+        MCPSession, on_delete=models.CASCADE,
+        related_name='actions',
+    )
+    connection = models.ForeignKey(
+        OrgMCPConnection, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='actions',
+    )
+    tool_name = models.CharField(
+        max_length=200,
+        help_text="Fully qualified, e.g. 'taggiq:create_quote_draft'.",
+    )
+    tool_args = models.JSONField(
+        default=dict, blank=True,
+        help_text='Truncated to 4KB. Sensitive fields redacted by audit.',
+    )
+    result = models.JSONField(
+        default=dict, blank=True,
+        help_text='Truncated to 4KB.',
+    )
+    success = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True, default='')
+    duration_ms = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'mcp_action_logs'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['session', '-created_at']),
+            models.Index(fields=['tool_name', '-created_at']),
+        ]
+
+    def __str__(self):
+        status = 'OK' if self.success else 'FAIL'
+        return f'MCPAction({self.tool_name}, {status})'

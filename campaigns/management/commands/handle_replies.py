@@ -578,6 +578,100 @@ class Command(BaseCommand):
             f'\n'
         )
 
+    # ------------------------------------------------------------------
+    # MCP-aware Claude invocation (Sprint 10 Phase A)
+    # ------------------------------------------------------------------
+
+    def _product_mcp_slugs(self, product) -> list:
+        """Union of Campaign.mcp_servers across all campaigns under this
+        product. Empty list = no MCP (existing direct-subprocess path)."""
+        from campaigns.models import Campaign
+        union = set()
+        qs = Campaign.objects.filter(
+            product_ref=product
+        ).values_list('mcp_servers', flat=True)
+        for entry in qs:
+            if isinstance(entry, list):
+                for s in entry:
+                    if isinstance(s, str) and s:
+                        union.add(s)
+        return sorted(union)
+
+    def _run_claude(self, *, prompt, model_flag, product,
+                    allowed_tools='Bash,Read,Write,Edit,Glob,Grep',
+                    extra_env=None, label=''):
+        """Run the Claude CLI. Routes through mcp.runner when the product has
+        any MCP-enabled campaigns; otherwise preserves the legacy direct
+        subprocess path (byte-for-byte unchanged behavior on no-MCP campaigns).
+        """
+        mcp_slugs = self._product_mcp_slugs(product)
+        prefix = f'  {label} ' if label else '  '
+
+        if mcp_slugs:
+            organization = getattr(product, 'organization', None)
+            if organization is None:
+                self.stderr.write(self.style.WARNING(
+                    f'{prefix}MCP requested but product has no organization; '
+                    f'falling back to direct subprocess'
+                ))
+            else:
+                from campaigns.mcp.runner import run_with_mcp
+                result = run_with_mcp(
+                    prompt=prompt,
+                    organization=organization,
+                    allowed_slugs=mcp_slugs,
+                    triggered_by='handle_replies',
+                    model_flag=model_flag,
+                    allowed_tools=allowed_tools,
+                    extra_env=extra_env,
+                )
+                if result.success:
+                    cost = result.cost_usd
+                    loaded = result.servers_loaded or []
+                    skipped = result.servers_skipped or []
+                    msg = f'{prefix}Claude finished successfully [MCP loaded={loaded} cost=${cost}]'
+                    if skipped:
+                        msg += f' [skipped={skipped}]'
+                    self.stdout.write(self.style.SUCCESS(msg))
+                else:
+                    self.stderr.write(self.style.ERROR(
+                        f'{prefix}Claude+MCP error: {result.error[:500]}'
+                    ))
+                return
+
+        # Legacy direct path — no MCP servers configured for this product.
+        env = dict(os.environ)
+        if extra_env:
+            env.update(extra_env)
+        try:
+            result = subprocess.run(
+                [
+                    CLAUDE_CLI,
+                    '--model', model_flag,
+                    '--allowedTools', allowed_tools,
+                    '--max-turns', '30',
+                    '--output-format', 'text',
+                    '-p', prompt,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=600,
+                cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
+                env=env,
+            )
+            if result.returncode == 0:
+                self.stdout.write(self.style.SUCCESS(f'{prefix}Claude finished successfully'))
+            else:
+                self.stderr.write(self.style.ERROR(
+                    f'{prefix}Claude exited with code {result.returncode}'
+                ))
+                if result.stderr:
+                    self.stderr.write(f'{prefix}stderr: {result.stderr[:500]}')
+        except subprocess.TimeoutExpired:
+            self.stderr.write(self.style.ERROR(f'{prefix}Claude timed out after 600s'))
+        except Exception as exc:
+            self.stderr.write(self.style.ERROR(f'{prefix}Error invoking Claude: {exc}'))
+
     def _invoke_with_contextual_prompt(self, product, prompt_template, count):
         """Sprint 7 Phase 7.2.1 — flag=True path.
 
@@ -628,38 +722,19 @@ class Command(BaseCommand):
         }
         model_flag = model_map.get(prompt_template.model, 'sonnet')
 
-        # Stash brain_version on the environment so send_ai_reply (invoked by
-        # the agent as a subprocess) can pick it up and record it on AIUsageLog.
-        env = dict(os.environ)
+        # Stash brain_version so send_ai_reply (invoked by the agent as a
+        # subprocess) can pick it up and record it on AIUsageLog.
+        extra_env = {}
         if brain_version is not None:
-            env['PAPERCLIP_BRAIN_VERSION'] = str(brain_version)
+            extra_env['PAPERCLIP_BRAIN_VERSION'] = str(brain_version)
 
-        try:
-            result = subprocess.run(
-                [
-                    CLAUDE_CLI,
-                    '--model', model_flag,
-                    '--allowedTools', 'Bash,Read,Write,Edit,Glob,Grep',
-                    '--max-turns', '30',
-                    '--output-format', 'text',
-                    '-p', full_prompt,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=600,
-                cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
-                env=env,
-            )
-            if result.returncode == 0:
-                self.stdout.write(self.style.SUCCESS(f'  [contextual] Claude finished successfully'))
-            else:
-                self.stderr.write(self.style.ERROR(f'  [contextual] Claude exited with code {result.returncode}'))
-                if result.stderr:
-                    self.stderr.write(f'  stderr: {result.stderr[:500]}')
-        except subprocess.TimeoutExpired:
-            self.stderr.write(self.style.ERROR(f'  [contextual] Claude timed out after 600s'))
-        except Exception as e:
-            self.stderr.write(self.style.ERROR(f'  [contextual] Error invoking Claude: {e}'))
+        self._run_claude(
+            prompt=full_prompt,
+            model_flag=model_flag,
+            product=product,
+            extra_env=extra_env or None,
+            label='[contextual]',
+        )
 
     def _invoke_with_db_prompt(self, product, prompt_template, count):
         """Invoke Claude CLI with a prompt from the database.
@@ -701,56 +776,17 @@ class Command(BaseCommand):
         }
         model_flag = model_map.get(prompt_template.model, 'sonnet')
 
-        try:
-            result = subprocess.run(
-                [
-                    CLAUDE_CLI,
-                    '--model', model_flag,
-                    '--allowedTools', 'Bash,Read,Write,Edit,Glob,Grep',
-                    '--max-turns', '30',
-                    '--output-format', 'text',
-                    '-p', full_prompt,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=600,
-                cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
-            )
-            if result.returncode == 0:
-                self.stdout.write(self.style.SUCCESS(f'  Claude finished successfully'))
-            else:
-                self.stderr.write(self.style.ERROR(f'  Claude exited with code {result.returncode}'))
-                if result.stderr:
-                    self.stderr.write(f'  stderr: {result.stderr[:500]}')
-        except subprocess.TimeoutExpired:
-            self.stderr.write(self.style.ERROR(f'  Claude timed out after 600s'))
-        except Exception as e:
-            self.stderr.write(self.style.ERROR(f'  Error invoking Claude: {e}'))
+        self._run_claude(
+            prompt=full_prompt,
+            model_flag=model_flag,
+            product=product,
+        )
 
     def _invoke_with_skill(self, product, skill_name, count):
         """Invoke Claude CLI with a hardcoded skill file (fallback)."""
         self.stdout.write(f'  Using skill fallback: {skill_name}')
-
-        try:
-            result = subprocess.run(
-                [
-                    CLAUDE_CLI,
-                    '--model', 'sonnet',
-                    '--allowedTools', 'Bash,Read,Write,Edit,Glob,Grep',
-                    '--max-turns', '30',
-                    '--output-format', 'text',
-                    '-p', skill_name,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=600,
-                cwd=os.getenv('PAPERCLIP_REPO_DIR', '/app'),
-            )
-            if result.returncode == 0:
-                self.stdout.write(self.style.SUCCESS(f'  Claude finished successfully'))
-            else:
-                self.stderr.write(self.style.ERROR(f'  Claude exited with code {result.returncode}'))
-        except subprocess.TimeoutExpired:
-            self.stderr.write(self.style.ERROR(f'  Claude timed out after 600s'))
-        except Exception as e:
-            self.stderr.write(self.style.ERROR(f'  Error invoking Claude: {e}'))
+        self._run_claude(
+            prompt=skill_name,
+            model_flag='sonnet',
+            product=product,
+        )
