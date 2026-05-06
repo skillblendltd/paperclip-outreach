@@ -137,6 +137,41 @@ print(f'Skipped {inbound.from_email}: <REASON>')
 
 ---
 
+## Subject Line Rules (when generating new outbound subjects)
+
+When writing subject lines for outbound emails or follow-ups, NEVER use generic vendor framing. The subject is the single biggest determinant of whether the email gets opened. Apply these rules:
+
+### Banned phrases (do not use)
+- `update`, `news`, `following up`, `checking in`, `picking up the conversation`
+- `[Company] update`, `quick update`, `news from [company]`
+- `your invitation`, `exclusive offer`, `limited time`
+- Anything that signals "this is a vendor email" before the prospect reads the body
+
+### What works (combine 2+ of these)
+1. **Specific number** — `4 hours back every Tuesday`, `quoted in 47 seconds`, `25 minutes to 60 seconds`
+2. **AI in the subject** — most prospects don't recognise specific AI brand names (Claude, ChatGPT, etc). Use "AI" generically. Examples: `I gave AI my supplier list`, `AI quoted ABC Ltd in 47 seconds`
+3. **Implied story / curiosity gap** — `I gave AI my supplier list` (what happened?), `the shops doing this in 60 seconds` (which shops?)
+4. **Anti-pitch framing** — `for shops too busy to add another tool` reverses the objection into the hook
+5. **Lowercase / conversational** — title case feels corporate. Lowercase first word reads peer-to-peer.
+6. **Personalisation only when natural** — `{{FNAME}}, 4 hours back every Tuesday` works because the benefit follows. Don't force `{{FNAME}}` into every subject.
+7. **Built-for-busy framing** — busy operators feel seen by `for shops too busy to...`, `if you are drowning in quotes...`, `built for the busy version of you`
+
+### Examples of strong subjects
+- `I gave AI my supplier list` (story + AI + curiosity)
+- `AI quoted ABC Ltd in 47 seconds` (AI + specific number + implied action)
+- `{{FNAME}}, 4 hours back every Tuesday` (productivity + specificity + name)
+- `for shops too busy to add another tool` (anti-pitch + built-for-busy)
+- `the shops using AI to quote in seconds` (peer FOMO + AI + benefit)
+
+### Examples of weak subjects (DO NOT use)
+- `TaggIQ update` (vendor-broadcast vibe)
+- `What's changed at TaggIQ` (vendor-centric)
+- `Quick check-in, {{FNAME}}` (vendor-pitch signal)
+- `Following up on our conversation` (passive-aggressive)
+- `See how TaggIQ saves time` (vague benefit, sales pitch)
+
+---
+
 ## Email Craft Principles (from email-creator)
 
 Before writing any reply, apply these universal email principles:
