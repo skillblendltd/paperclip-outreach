@@ -69,24 +69,32 @@ echo "    SQS ARN: $SQS_ARN"
 # 3. Allow SNS to publish to SQS
 # ---------------------------------------------------------------
 echo "[3/8] Granting SNS → SQS publish permission..."
-SQS_POLICY=$(cat <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Sid": "AllowSNSPublish",
-    "Effect": "Allow",
-    "Principal": {"Service": "sns.amazonaws.com"},
-    "Action": "sqs:SendMessage",
-    "Resource": "$SQS_ARN",
-    "Condition": {"ArnEquals": {"aws:SourceArn": "$SNS_ARN"}}
-  }]
+ATTRS_FILE=$(mktemp)
+trap 'rm -f "$ATTRS_FILE"' EXIT
+
+python3 - "$SQS_ARN" "$SNS_ARN" "$ATTRS_FILE" <<'PYTHON'
+import json, sys
+sqs_arn, sns_arn, attrs_file = sys.argv[1], sys.argv[2], sys.argv[3]
+policy = {
+    "Version": "2012-10-17",
+    "Statement": [{
+        "Sid": "AllowSNSPublish",
+        "Effect": "Allow",
+        "Principal": {"Service": "sns.amazonaws.com"},
+        "Action": "sqs:SendMessage",
+        "Resource": sqs_arn,
+        "Condition": {"ArnEquals": {"aws:SourceArn": sns_arn}}
+    }]
 }
-EOF
-)
+# Attributes value 'Policy' must be a JSON-stringified policy
+with open(attrs_file, 'w') as f:
+    json.dump({"Policy": json.dumps(policy)}, f)
+PYTHON
+
 aws sqs set-queue-attributes \
   --region "$REGION" \
   --queue-url "$SQS_URL" \
-  --attributes "Policy=$(echo "$SQS_POLICY" | tr -d '\n' | sed 's/"/\\"/g' | xargs -0 printf '%s')" \
+  --attributes "file://$ATTRS_FILE" \
   >/dev/null
 echo "    Granted."
 
