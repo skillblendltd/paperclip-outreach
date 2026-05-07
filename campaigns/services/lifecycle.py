@@ -39,20 +39,22 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
-    'new':             {'contacted'},
-    'contacted':       {'interested', 'engaged', 'not_interested', 'opted_out', 'follow_up_later'},
+    'new':             {'contacted', 'bounced'},
+    'contacted':       {'interested', 'engaged', 'not_interested', 'opted_out',
+                        'follow_up_later', 'bounced'},
     'engaged':         {'interested', 'not_interested', 'opted_out', 'demo_scheduled',
-                        'follow_up_later', 'engaged'},
+                        'follow_up_later', 'engaged', 'bounced'},
     'interested':      {'demo_scheduled', 'not_interested', 'opted_out',
-                        'follow_up_later', 'engaged'},
-    'demo_scheduled':  {'customer', 'design_partner', 'not_interested', 'follow_up_later'},
-    'follow_up_later': {'contacted', 'interested', 'not_interested', 'opted_out'},
-    'design_partner':  {'customer', 'demo_scheduled'},
-    # opted_out, not_interested, customer — terminal for outbound, no transitions out
+                        'follow_up_later', 'engaged', 'bounced'},
+    'demo_scheduled':  {'customer', 'design_partner', 'not_interested', 'follow_up_later',
+                        'bounced'},
+    'follow_up_later': {'contacted', 'interested', 'not_interested', 'opted_out', 'bounced'},
+    'design_partner':  {'customer', 'demo_scheduled', 'bounced'},
+    # opted_out, not_interested, customer, bounced — terminal for outbound, no transitions out
 }
 
 # Statuses where send_enabled should be forced off
-SUPPRESS_ON_ENTER = {'opted_out', 'not_interested'}
+SUPPRESS_ON_ENTER = {'opted_out', 'not_interested', 'bounced'}
 
 
 # ---------------------------------------------------------------------------

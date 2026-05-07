@@ -192,6 +192,7 @@ class Prospect(BaseModel):
         ('not_interested', 'Not Interested'),
         ('opted_out', 'Opted Out'),
         ('follow_up_later', 'Follow Up Later'),
+        ('bounced', 'Bounced (undeliverable email)'),
     ]
 
     TIER_CHOICES = [

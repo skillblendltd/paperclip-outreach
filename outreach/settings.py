@@ -67,6 +67,24 @@ AWS_SMTP_USERNAME = os.getenv('AWS_SMTP_USERNAME', '')
 AWS_SMTP_PASSWORD = os.getenv('AWS_SMTP_PASSWORD', '')
 AWS_SES_FROM_EMAIL = os.getenv('AWS_SES_FROM_EMAIL', 'noreply@example.com')
 
+# SES bounce pipeline (SES → SNS → SQS → process_ses_bounces command)
+AWS_SES_CONFIGURATION_SET = os.getenv('AWS_SES_CONFIGURATION_SET', '')
+AWS_SES_BOUNCES_SQS_URL = os.getenv('AWS_SES_BOUNCES_SQS_URL', '')
+
+# Bounce whitelist — emails that produce bounce notifications but actually
+# DO receive mail (e.g. forwarding rules that misreport delivery as a bounce).
+# Per CLAUDE.md: hello@printrft.co.uk has a forwarding rule that generates
+# Undeliverable notices but Paul Rivers (design partner) DOES receive emails.
+# Emails in this set are NOT auto-suppressed by check_replies or process_ses_bounces.
+BOUNCE_WHITELIST_EMAILS = {
+    e.strip().lower()
+    for e in os.getenv(
+        'BOUNCE_WHITELIST_EMAILS',
+        'hello@printrft.co.uk',
+    ).split(',')
+    if e.strip()
+}
+
 # Zoho IMAP (reading replies)
 ZOHO_IMAP_HOST = os.getenv('ZOHO_IMAP_HOST', 'imappro.zoho.eu')
 ZOHO_IMAP_PORT = int(os.getenv('ZOHO_IMAP_PORT', '993'))

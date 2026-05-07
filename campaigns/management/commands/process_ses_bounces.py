@@ -275,8 +275,17 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     def _suppress(self, email, reason, notes, stats):
         """Create Suppression rows (one per product the address has been emailed from)
-        and disable matching Prospect rows across all campaigns.
+        and disable matching Prospect rows across all campaigns. Also transitions
+        prospect status to 'bounced' for hard bounces (terminal state).
+
+        Honors settings.BOUNCE_WHITELIST_EMAILS — known false-positive sources
+        (e.g. forwarding rules that report Undeliverable but actually deliver).
         """
+        whitelist = getattr(settings, 'BOUNCE_WHITELIST_EMAILS', set())
+        if email.lower() in whitelist:
+            logger.info('Bounce whitelist hit, skipping suppression: %s', email)
+            return
+
         # Find products this address has been targeted in
         product_ids = set(Prospect.objects.filter(
             email__iexact=email
@@ -309,6 +318,35 @@ class Command(BaseCommand):
         ).update(send_enabled=False)
         if n:
             stats['prospects_disabled'] += n
+
+        # Transition prospect status to 'bounced' (terminal state).
+        # Use lifecycle.transition where it's a legal transition; for prospects
+        # already in terminal status (opted_out, customer, etc.) skip — they're
+        # already off the outbound list and we don't want to overwrite history.
+        if reason == 'bounce':
+            try:
+                from campaigns.services.lifecycle import transition, ALLOWED_TRANSITIONS
+            except ImportError:
+                logger.error('lifecycle module unavailable; skipping status transition')
+                return
+            for p in Prospect.objects.filter(email__iexact=email):
+                if p.status == 'bounced':
+                    continue
+                allowed = ALLOWED_TRANSITIONS.get(p.status or 'new', set())
+                if 'bounced' not in allowed:
+                    logger.info(
+                        'Skipping bounced transition for prospect=%s (current=%s, no allowed path)',
+                        p.id, p.status
+                    )
+                    continue
+                try:
+                    transition(
+                        p, 'bounced',
+                        reason=f'ses_bounce:{notes[:60]}',
+                        triggered_by='process_ses_bounces',
+                    )
+                except ValueError as exc:
+                    logger.warning('lifecycle.transition failed for %s: %s', p.email, exc)
 
     # ------------------------------------------------------------------
     def _extract_domain(self, source_email):

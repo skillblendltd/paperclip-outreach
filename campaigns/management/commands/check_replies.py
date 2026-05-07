@@ -1113,18 +1113,40 @@ class Command(BaseCommand):
             ))
 
         elif classification == 'bounce':
-            prospect.send_enabled = False
-            prospect.save(update_fields=['send_enabled', 'updated_at'])
-            # Bounces are product-scoped too (email may work for other products)
-            product_ref = prospect.campaign.product_ref if prospect.campaign else None
-            Suppression.objects.get_or_create(
-                email=prospect.email,
-                product=product_ref,
-                defaults={'reason': 'bounce', 'notes': f'Bounce detected from reply: {inbound.subject[:100]}'}
-            )
-            inbound.status_updated = True
-            inbound.save(update_fields=['status_updated', 'updated_at'])
-            self.stdout.write(self.style.SUCCESS('    -> Suppressed (bounce), sending disabled'))
+            # Bounce whitelist check — some addresses bounce-back due to forwarding
+            # rules but actually receive mail (e.g. Paul Rivers per CLAUDE.md).
+            from django.conf import settings as _settings
+            whitelist = getattr(_settings, 'BOUNCE_WHITELIST_EMAILS', set())
+            if prospect.email.lower() in whitelist:
+                inbound.status_updated = True
+                inbound.save(update_fields=['status_updated', 'updated_at'])
+                self.stdout.write(self.style.WARNING(
+                    f'    -> Bounce ignored (whitelist): {prospect.email}'
+                ))
+            else:
+                prospect.send_enabled = False
+                prospect.save(update_fields=['send_enabled', 'updated_at'])
+                # Bounces are product-scoped too (email may work for other products)
+                product_ref = prospect.campaign.product_ref if prospect.campaign else None
+                Suppression.objects.get_or_create(
+                    email=prospect.email,
+                    product=product_ref,
+                    defaults={'reason': 'bounce', 'notes': f'Bounce detected from reply: {inbound.subject[:100]}'}
+                )
+                # Transition status to 'bounced' (terminal) where allowed
+                try:
+                    from campaigns.services.lifecycle import transition, ALLOWED_TRANSITIONS
+                    if 'bounced' in ALLOWED_TRANSITIONS.get(prospect.status or 'new', set()):
+                        transition(
+                            prospect, 'bounced',
+                            reason=f'reply:bounce subject={inbound.subject[:60]}',
+                            triggered_by='check_replies',
+                        )
+                except (ImportError, ValueError) as exc:
+                    logger.warning('Bounce transition skipped for %s: %s', prospect.email, exc)
+                inbound.status_updated = True
+                inbound.save(update_fields=['status_updated', 'updated_at'])
+                self.stdout.write(self.style.SUCCESS('    -> Suppressed (bounce), sending disabled, status=bounced'))
 
         elif classification == 'not_interested':
             # lifecycle.transition handles send_enabled=False as side effect
