@@ -37,10 +37,50 @@ def fetch_existing_emails(campaign_ids):
     return existing
 
 
+import re
+
+# Strict email validation. Rejects scraper artifacts:
+# - URL-encoded chars (%20, %e2%80%9c)
+# - HTML markup leaks (target=, ", ', <, >)
+# - Whitespace, trailing slashes
+# - Wix Sentry placeholder hashes (32-char hex IDs)
+VALID_EMAIL_RE = re.compile(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+WIX_SENTRY_RE = re.compile(r'^[a-f0-9]{32}@(sentry|sentry-next)\.', re.IGNORECASE)
+SCRAPER_ARTIFACT_DOMAINS = {
+    'sentry.wixpress.com', 'sentry-next.wixpress.com', 'sentry.io', 'sentry.zipify.com',
+    'example.com', 'yourdomain.com',
+}
+
+
+def is_valid_email(email):
+    """Return True if email is a real-looking address, not a scraper artifact."""
+    if not email:
+        return False
+    e = email.strip()
+    # Reject anything with whitespace, URL-encoding, HTML chars
+    if re.search(r'\s|%[0-9a-fA-F]{2}|[<>"\'`\\]', e):
+        return False
+    # Reject HTML attribute leaks
+    if any(s in e.lower() for s in ('target=', 'alt=', 'src=', 'href=', 'class=')):
+        return False
+    # Reject trailing punctuation
+    if e.endswith(('/', '.', ';', ',', ':')):
+        return False
+    # Reject Wix Sentry placeholder hashes
+    if WIX_SENTRY_RE.match(e):
+        return False
+    # Reject known artifact domains
+    domain = e.split('@', 1)[1].lower() if '@' in e else ''
+    if domain in SCRAPER_ARTIFACT_DOMAINS:
+        return False
+    # Strict regex check
+    return bool(VALID_EMAIL_RE.match(e))
+
+
 def build_prospect(row):
     """Convert a CSV row into a prospect dict for the import API."""
     email = row.get("email", "").strip()
-    if not email or "@" not in email:
+    if not is_valid_email(email):
         return None
 
     business_name = row.get("business_name", "").strip()
