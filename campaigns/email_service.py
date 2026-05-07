@@ -73,6 +73,12 @@ class EmailService:
                 if reply_to:
                     msg['Reply-To'] = reply_to
 
+                # Tag with SES Configuration Set so async bounce/complaint events
+                # are published to SNS → SQS → process_ses_bounces command.
+                ses_config_set = getattr(settings, 'AWS_SES_CONFIGURATION_SET', '')
+                if ses_config_set:
+                    msg['X-SES-CONFIGURATION-SET'] = ses_config_set
+
                 full_html = EmailService._wrap_html(body_html)
 
                 msg_body = MIMEMultipart('alternative')

@@ -46,6 +46,15 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # via the configured call provider (Vapi today; provider-agnostic boundary).
 */5 * * * * root . /app/docker/.env.cron && cd /app && python manage.py process_call_queue >> /tmp/outreach_call_queue.log 2>&1
 
+# Poll SES bounce SQS queue every 15 minutes.
+# Receives Bounce/Complaint/Reject events from the paperclip-bounces config set,
+# auto-creates Suppressions and disables matching Prospects.
+*/15 * * * * root . /app/docker/.env.cron && cd /app && python manage.py process_ses_bounces >> /tmp/outreach_bounces.log 2>&1
+
+# Daily bounce-rate audit at 8:15am (15 min after brain_doctor).
+# Reports bounce/complaint rates per sending domain, alerts on threshold breach.
+15 8 * * * root . /app/docker/.env.cron && cd /app && python manage.py bounce_audit >> /tmp/outreach_bounces_audit.log 2>&1
+
 # Nightly backup at 23:00
 0 23 * * * root . /app/docker/.env.cron && cd /app && /app/backup_to_gdrive.sh >> /tmp/outreach_backup.log 2>&1
 
