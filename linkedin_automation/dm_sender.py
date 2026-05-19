@@ -130,23 +130,85 @@ def _type_and_send(br: Browser, message: str) -> bool:
 # Entry point 1: send from profile page
 # ---------------------------------------------------------------------------
 
-MESSAGE_BUTTON_SELECTORS = [
-    "button[aria-label^='Message']",
-    "a[href*='/messaging/'][data-control-name='message']",
-    "button.artdeco-button[aria-label*='Message']",
-]
+def _find_message_button(driver):
+    """
+    Find the Message button on a LinkedIn profile page.
+    Tries multiple strategies since LinkedIn changes its DOM frequently.
+    Returns the button element or None.
+    """
+    # Strategy 1: wait for any button with aria-label containing 'Message' to appear
+    try:
+        btn = WebDriverWait(driver, 8).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "button[aria-label*='Message']"))
+        )
+        if btn and btn.is_displayed():
+            return btn
+    except TimeoutException:
+        pass
+
+    # Strategy 2: scroll down a bit (action buttons sometimes below the fold) then retry
+    try:
+        driver.execute_script("window.scrollBy(0, 200)")
+        time.sleep(1)
+        for btn in driver.find_elements(By.CSS_SELECTOR, "button[aria-label*='Message']"):
+            if btn.is_displayed():
+                return btn
+    except Exception:
+        pass
+
+    # Strategy 3: text-based search across all buttons
+    try:
+        for btn in driver.find_elements(By.TAG_NAME, "button"):
+            txt = (btn.text or "").strip()
+            aria = (btn.get_attribute("aria-label") or "").strip()
+            if "Message" in txt or "Message" in aria:
+                if btn.is_displayed():
+                    return btn
+    except Exception:
+        pass
+
+    # Strategy 4: LinkedIn sometimes wraps Message in an <a> tag or a span
+    try:
+        for sel in [
+            "a[data-control-name='message']",
+            "a[href*='/messaging/thread/']",
+            "span[aria-label*='Message']",
+        ]:
+            els = driver.find_elements(By.CSS_SELECTOR, sel)
+            for el in els:
+                if el.is_displayed():
+                    return el
+    except Exception:
+        pass
+
+    # Strategy 5: check if 'Message' appears in a "More" dropdown menu
+    try:
+        more_btns = driver.find_elements(By.CSS_SELECTOR, "button[aria-label*='More']")
+        for more_btn in more_btns:
+            if more_btn.is_displayed():
+                more_btn.click()
+                time.sleep(1)
+                for item in driver.find_elements(By.CSS_SELECTOR, "[role='menuitem'], li"):
+                    if "Message" in (item.text or ""):
+                        return item
+    except Exception:
+        pass
+
+    return None
 
 
 def send_dm_from_profile(
     br: Browser,
     profile_url: str,
     message: str,
+    person_name: str = "",
 ) -> SendDmResult:
     """
     Navigate to a LinkedIn profile, click Message, type, send.
 
     Works for 1st-degree connections (Message button is always visible).
     For existing threads, LinkedIn opens the thread automatically.
+    Falls back to messaging inbox search if Message button not found.
     """
     # Normalise URL
     if not profile_url.startswith("http"):
@@ -155,7 +217,13 @@ def send_dm_from_profile(
     logger.info(f"Navigating to profile: {profile_url}")
     br.driver.get(profile_url)
     human.page_load_pause()
-    human.random_scroll(br.driver)
+
+    # Scroll back to top - Message button is in the profile header
+    try:
+        br.driver.execute_script("window.scrollTo(0, 0)")
+        time.sleep(0.5)
+    except Exception:
+        pass
 
     # Check for hard-stop
     blocked, reason = br.is_blocked()
@@ -167,33 +235,28 @@ def send_dm_from_profile(
     if "/404" in current_url or "unavailable" in current_url.lower():
         return SendDmResult(status="error", error="Profile not found or unavailable")
 
-    # Find Message button
-    msg_btn = None
-    for sel in MESSAGE_BUTTON_SELECTORS:
+    # Extract name from h1 if not provided (used for fallback)
+    if not person_name:
         try:
-            candidates = br.driver.find_elements(By.CSS_SELECTOR, sel)
-            for c in candidates:
-                if c.is_displayed() and "Message" in (c.get_attribute("aria-label") or c.text or ""):
-                    msg_btn = c
-                    break
-            if msg_btn:
-                break
-        except StaleElementReferenceException:
-            continue
-
-    if not msg_btn:
-        # Try text-based button search
-        try:
-            for btn in br.driver.find_elements(By.TAG_NAME, "button"):
-                txt = (btn.text or "").strip()
-                aria = (btn.get_attribute("aria-label") or "").strip()
-                if txt == "Message" or aria == "Message":
-                    msg_btn = btn
-                    break
+            person_name = br.driver.find_element(By.CSS_SELECTOR, "h1").text.strip()
         except Exception:
             pass
 
+    # Find Message button
+    msg_btn = _find_message_button(br.driver)
+
     if not msg_btn:
+        # Log visible buttons for debugging
+        try:
+            btns = br.driver.find_elements(By.TAG_NAME, "button")
+            btn_texts = [(b.get_attribute("aria-label") or b.text or "").strip() for b in btns[:15] if b.is_displayed()]
+            logger.warning(f"No Message button on profile. Visible buttons: {btn_texts}")
+        except Exception:
+            pass
+        # Fallback: try messaging inbox search
+        if person_name:
+            logger.info(f"Falling back to messaging inbox search for: {person_name}")
+            return send_dm_via_messaging(br, person_name, message)
         screenshot = br.screenshot("dm_no_message_button")
         return SendDmResult(
             status="not_connected",

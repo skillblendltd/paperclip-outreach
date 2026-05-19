@@ -738,6 +738,7 @@ def dm_batch(connections_json, limit, stage, exclude, generate_only, send_ids):
         "sharon bates", "linda prudden",
         "cian gleeson", "shah jamal", "mark basquille",
         "walter miska", "andrew titus", "jon lambert",
+        "tuomas karppinen",
     }
     excluded |= always_skip
     # URL slugs to skip (catches profiles where name shows as "• 1st" etc.)
@@ -888,6 +889,94 @@ def dm_batch(connections_json, limit, stage, exclude, generate_only, send_ids):
                 failed += 1
 
             # Pause between messages - look human
+            if d != to_send[-1]:
+                import random, time
+                delay = random.uniform(45, 90)
+                click.echo(f"  Pausing {delay:.0f}s...")
+                time.sleep(delay)
+
+    click.echo(f"\nDone. Sent: {sent}  Failed: {failed}")
+
+
+@cli.command(name="dm-send")
+@click.argument("ids", nargs=-1, type=int, required=True)
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip confirmation prompt")
+def dm_send(ids, yes):
+    """
+    Send previously generated DMs by their DB IDs.
+
+    Looks up each ID in the database and sends via Chrome.
+    Use this after dm-batch --generate-only to send specific approved messages.
+
+    Example: cli dm-send 38 39 40
+    """
+    db.init_db()
+
+    to_send = []
+    for dm_id in ids:
+        row = db.get_dm(dm_id)
+        if not row:
+            click.secho(f"DM {dm_id} not found in database", fg="red")
+            continue
+        if row["status"] == "sent":
+            click.secho(f"DM {dm_id} already sent to {row['linkedin_person_name']} - skipping", fg="yellow")
+            continue
+        to_send.append({
+            "id": row["id"],
+            "name": row["linkedin_person_name"],
+            "company": row.get("company", ""),
+            "url": row.get("linkedin_person_url", ""),
+            "message": row["generated_message"],
+        })
+
+    if not to_send:
+        click.echo("No valid DMs to send.")
+        return
+
+    click.echo(f"\nPreparing to send {len(to_send)} message(s):")
+    for d in to_send:
+        click.echo(f"  [{d['id']}] {d['name']}" + (f" at {d['company']}" if d["company"] else ""))
+        click.echo(f"  {d['message'][:120]}...")
+        click.echo()
+
+    if not yes:
+        click.confirm("Send these messages?", default=True, abort=True)
+
+    for d in to_send:
+        db.approve_dm(d["id"])
+
+    from .browser import Browser
+    from .dm_sender import send_dm_from_profile, send_dm_via_messaging
+
+    click.echo(f"\nOpening Chrome...")
+    sent = 0
+    failed = 0
+
+    with Browser() as br:
+        if not br.is_logged_in():
+            click.secho("Not logged into LinkedIn. Run: cli login", fg="red")
+            sys.exit(1)
+
+        for d in to_send:
+            click.echo(f"  Sending to {d['name']}...")
+            if d["url"]:
+                result = send_dm_from_profile(br, d["url"], d["message"], person_name=d["name"])
+            else:
+                result = send_dm_via_messaging(br, d["name"], d["message"])
+
+            if result.status == "sent":
+                db.update_dm_sent(d["id"], screenshot_path=result.screenshot_path)
+                click.secho(f"  Sent to {d['name']}", fg="green")
+                sent += 1
+            elif result.status == "blocked":
+                db.update_dm_error(d["id"], result.error)
+                click.secho(f"  BLOCKED by LinkedIn. Stopping.", fg="red", bold=True)
+                break
+            else:
+                db.update_dm_error(d["id"], result.error, screenshot_path=result.screenshot_path)
+                click.secho(f"  Failed ({d['name']}): {result.error}", fg="red")
+                failed += 1
+
             if d != to_send[-1]:
                 import random, time
                 delay = random.uniform(45, 90)

@@ -164,6 +164,9 @@ def _build_generation_prompt(
         - If the recipient is clearly NOT in print/promo/signage/apparel/branded merch - start output with "NOT A FIT:" and explain briefly. Do not write a fake message.
         - Do not mention TaggIQ by name in M1 or M2.
         - End with something that invites a reply - a genuine question or easy open door.
+        - ALWAYS end the message with a sign-off on a new line: "Prakash - taggiq.com"
+          This is non-negotiable. The recipient gets the message in their inbox with no other context.
+          The sign-off tells them who sent it and gives them a place to look us up.
     """).strip()
 
     return prompt
