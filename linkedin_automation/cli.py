@@ -734,7 +734,8 @@ def dm_batch(connections_json, limit, stage, exclude):
     always_skip = {
         "damien behan", "paul rivers", "declan power",
         "sharon bates", "linda prudden",
-        "cian gleeson", "jamal",
+        "cian gleeson", "shah jamal", "mark basquille",
+        "walter miska", "andrew titus", "jon lambert",
     }
     excluded |= always_skip
 

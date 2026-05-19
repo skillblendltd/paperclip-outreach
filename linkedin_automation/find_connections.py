@@ -340,9 +340,10 @@ def find_print_promo_connections(
         for c in all_candidates.values():
             c.relevance_score = _score_candidate(c)
 
-        # Sort by pre-score, visit top N profiles only
+        # Sort by pre-score, visit top N profiles only.
+        # Phase 1 titles are often empty so scores are 0 - just take top N by whatever score exists.
         ranked = sorted(all_candidates.values(), key=lambda c: c.relevance_score, reverse=True)
-        to_enrich = [c for c in ranked if c.relevance_score >= 2][:limit]
+        to_enrich = ranked[:limit]
 
         logger.info(f"Phase 2: Enriching top {len(to_enrich)} candidates...")
         for i, candidate in enumerate(to_enrich, 1):
@@ -352,9 +353,9 @@ def find_print_promo_connections(
             if i < len(to_enrich):
                 human.sleep_range(4.0, 8.0)
 
-    # Final rank and filter
+    # Final rank - keep all enriched candidates, dm-batch handles exclusions
     final = sorted(to_enrich, key=lambda c: c.relevance_score, reverse=True)
-    top = [c for c in final if c.relevance_score >= 4][:limit]
+    top = final[:limit]
 
     # Serialise to JSON
     output = []
