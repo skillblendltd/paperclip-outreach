@@ -700,6 +700,180 @@ def dm_status(limit):
         click.echo()
 
 
+@cli.command(name="dm-batch")
+@click.option("--connections-json", default="/tmp/linkedin_print_connections.json",
+              type=click.Path(exists=True),
+              help="JSON output from find_connections command")
+@click.option("--limit", default=10, help="Max DMs to generate and send today")
+@click.option("--stage", default="m1",
+              type=click.Choice(["m1", "m2", "m3", "m4", "m5", "followup"]),
+              help="Sequence stage for all messages")
+@click.option("--exclude", default="", help="Comma-separated names to skip (e.g. 'Damien Behan,Warren Fox')")
+def dm_batch(connections_json, limit, stage, exclude):
+    """
+    Generate contextual DMs for print/promo connections found by find_connections.
+
+    Workflow:
+      1. Reads the JSON produced by: python -m linkedin_automation.find_connections
+      2. Filters out excluded names
+      3. Generates a personalised message per person using linkedin-gtm-director
+      4. Shows ALL drafts in one review pass
+      5. You pick which ones to send (IDs or 'all')
+      6. Opens Chrome once and sends selected messages back-to-back
+    """
+    import json as _json
+    db.init_db()
+
+    # Load connections
+    with open(connections_json) as f:
+        connections = _json.load(f)
+
+    # Build exclusion set (lowercase)
+    excluded = {n.strip().lower() for n in exclude.split(",") if n.strip()}
+    # Always skip known design partners / hot leads already in TaggIQ pipeline
+    always_skip = {
+        "damien behan", "warren fox", "paul rivers", "declan power",
+        "sharon bates", "linda prudden",
+    }
+    excluded |= always_skip
+
+    # Filter
+    candidates = [
+        c for c in connections
+        if c.get("name", "").lower() not in excluded
+    ][:limit]
+
+    if not candidates:
+        click.echo("No candidates after filtering. Run find_connections first.")
+        return
+
+    click.echo(f"\nGenerating messages for {len(candidates)} connections (stage={stage})...")
+    click.echo("This takes ~10 seconds per person.\n")
+
+    from .dm_generator import generate_dm
+
+    drafts = []
+    for i, c in enumerate(candidates, 1):
+        name = c.get("name", "Unknown")
+        company = c.get("company", "")
+        title = c.get("title", "")
+        snapshot = c.get("profile_snapshot", "")[:2000]
+        about = c.get("about_snippet", "")
+        recent_post = c.get("recent_post_snippet", "")
+
+        profile_context = f"Title: {title}\nCompany: {company}\nAbout: {about}\nRecent post: {recent_post}"
+
+        click.echo(f"  [{i}/{len(candidates)}] Generating for {name} ({title} at {company})...")
+
+        msg = generate_dm(
+            person_name=name,
+            company=company,
+            title=title,
+            profile_snapshot=snapshot,
+            sequence_stage=stage,
+            extra_context=f"1st-degree LinkedIn connection in print/promo industry.",
+        )
+
+        if not msg:
+            click.secho(f"    Generation failed for {name} - skipping", fg="yellow")
+            continue
+
+        dm_id = db.create_dm(
+            linkedin_person_name=name,
+            generated_message=msg,
+            linkedin_person_url=c.get("url", ""),
+            company=company,
+            title=title,
+            profile_context=profile_context,
+            sequence_stage=stage,
+        )
+        drafts.append({"id": dm_id, "name": name, "company": company, "url": c.get("url", ""), "message": msg})
+
+    if not drafts:
+        click.echo("No messages generated.")
+        return
+
+    # Show all drafts for one review pass
+    click.echo(f"\n{'='*65}")
+    click.echo(f"REVIEW - {len(drafts)} messages generated")
+    click.echo(f"{'='*65}\n")
+    for d in drafts:
+        click.echo(click.style(f"[{d['id']}] {d['name']}", bold=True) +
+                   (f" - {d['company']}" if d["company"] else ""))
+        click.echo(f"{d['message']}")
+        click.echo()
+
+    click.echo(f"{'='*65}")
+    raw = click.prompt(
+        "\nWhich to send? Enter IDs comma-separated, 'all', or 'none'",
+        default="all",
+    ).strip().lower()
+
+    if raw == "none":
+        click.echo("Nothing sent. All drafts saved for later.")
+        return
+
+    if raw == "all":
+        to_send = drafts
+    else:
+        try:
+            ids = {int(x.strip()) for x in raw.split(",")}
+            to_send = [d for d in drafts if d["id"] in ids]
+        except ValueError:
+            click.echo("Invalid input. Nothing sent.")
+            return
+
+    if not to_send:
+        click.echo("No valid IDs selected.")
+        return
+
+    # Approve selected
+    for d in to_send:
+        db.approve_dm(d["id"])
+
+    # Send in one Chrome session
+    from .browser import Browser
+    from .dm_sender import send_dm_from_profile, send_dm_via_messaging
+
+    click.echo(f"\nOpening Chrome to send {len(to_send)} messages...")
+    sent = 0
+    failed = 0
+
+    with Browser() as br:
+        if not br.is_logged_in():
+            click.secho("Not logged into LinkedIn. Run: cli login", fg="red")
+            sys.exit(1)
+
+        for d in to_send:
+            click.echo(f"  Sending to {d['name']}...")
+            if d["url"]:
+                result = send_dm_from_profile(br, d["url"], d["message"])
+            else:
+                result = send_dm_via_messaging(br, d["name"], d["message"])
+
+            if result.status == "sent":
+                db.update_dm_sent(d["id"], screenshot_path=result.screenshot_path)
+                click.secho(f"  Sent to {d['name']}", fg="green")
+                sent += 1
+            elif result.status == "blocked":
+                db.update_dm_error(d["id"], result.error)
+                click.secho(f"  BLOCKED by LinkedIn. Stopping.", fg="red", bold=True)
+                break
+            else:
+                db.update_dm_error(d["id"], result.error, screenshot_path=result.screenshot_path)
+                click.secho(f"  Failed ({d['name']}): {result.error}", fg="red")
+                failed += 1
+
+            # Pause between messages - look human
+            if d != to_send[-1]:
+                import random, time
+                delay = random.uniform(45, 90)
+                click.echo(f"  Pausing {delay:.0f}s...")
+                time.sleep(delay)
+
+    click.echo(f"\nDone. Sent: {sent}  Failed: {failed}")
+
+
 def main():
     cli()
 
