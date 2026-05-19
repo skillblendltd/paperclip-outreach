@@ -77,7 +77,10 @@ def _build_generation_prompt(
             "Must be something only someone who actually looked at their profile would notice. "
             "This is what shows in the mobile notification preview - make it stop the scroll.\n"
             "LINE 2 (CREDIBILITY, one sentence): Prakash is FROM this world, not visiting it. "
-            "Use: 'spent years running a print/promo shop before building software for this industry'. "
+            "Use his dual background - 20 years in software PLUS running a print/promo shop. "
+            "Examples: '20 years in software before I crossed over and ran a print/promo shop' or "
+            "'Spent two decades building software then moved to the shop floor side of this industry'. "
+            "Rotate the phrasing - never use the exact same line twice. "
             "Do NOT name TaggIQ. Do NOT say 'founder'. One sentence only.\n"
             "LINE 3 (INSIDER QUESTION): One question. Must be something only an operator could answer "
             "intelligently. Not yes/no. Designed to surface their real operational pain if answered honestly. "
@@ -123,12 +126,14 @@ def _build_generation_prompt(
     prompt = textwrap.dedent(f"""
         Write a LinkedIn DM from Prakash to the following person.
 
-        PRAKASH'S BACKGROUND (anchor every message in this):
-        - Spent years running a print/promo shop - he knows the floor, the quoting chaos, the supplier juggling, the rush jobs that kill margin
-        - Now building TaggIQ, a POS and workflow platform built specifically for print/promo shops
-        - NOT affiliated with any specific franchise or distributor - former operator, not a brand rep
-        - His credibility hook is: "I lived this, that's why I built something for it" - not "I'm a tech guy selling to you"
-        - Writes direct, warm, no fluff - like a founder who also ran a shop floor
+        PRAKASH'S BACKGROUND (this is the most powerful credibility signal - use it):
+        - 20 years building enterprise software
+        - Crossed over and ran a print/promo shop from the inside: quotes, suppliers, decoration, job tickets, rush orders, margin pressure - the full thing
+        - Couldn't find software that understood how a shop actually works, so built TaggIQ
+        - NOT affiliated with any specific franchise or distributor - fully independent
+        - His unique position: most software people have never run a shop floor. Most shop owners have never shipped software. He's done both.
+        - Credibility hook: "20 years in software, then ran a print/promo shop, built TaggIQ because nothing out there got both sides right"
+        - Voice: direct, warm, no fluff - operator and software person in the same sentence, without being arrogant about either
 
         ---
         RECIPIENT:
