@@ -709,7 +709,9 @@ def dm_status(limit):
               type=click.Choice(["m1", "m2", "m3", "m4", "m5", "followup"]),
               help="Sequence stage for all messages")
 @click.option("--exclude", default="", help="Comma-separated names to skip (e.g. 'Damien Behan,Warren Fox')")
-def dm_batch(connections_json, limit, stage, exclude):
+@click.option("--generate-only", is_flag=True, default=False, help="Generate and print messages, don't send (no Chrome)")
+@click.option("--send-ids", default="", help="Comma-separated DM IDs to send (skips review prompt)")
+def dm_batch(connections_json, limit, stage, exclude, generate_only, send_ids):
     """
     Generate contextual DMs for print/promo connections found by find_connections.
 
@@ -738,11 +740,14 @@ def dm_batch(connections_json, limit, stage, exclude):
         "walter miska", "andrew titus", "jon lambert",
     }
     excluded |= always_skip
+    # URL slugs to skip (catches profiles where name shows as "• 1st" etc.)
+    excluded_slugs = {"damienbehan"}
 
     # Filter
     candidates = [
         c for c in connections
-        if c.get("name", "").lower() not in excluded
+        if c.get("name", "").strip().lower() not in excluded
+        and not any(slug in (c.get("url") or "") for slug in excluded_slugs)
     ][:limit]
 
     if not candidates:
@@ -759,7 +764,7 @@ def dm_batch(connections_json, limit, stage, exclude):
         name = c.get("name", "Unknown")
         company = c.get("company", "")
         title = c.get("title", "")
-        snapshot = c.get("profile_snapshot", "")[:2000]
+        snapshot = c.get("profile_snapshot", "")[:3000]
         about = c.get("about_snippet", "")
         recent_post = c.get("recent_post_snippet", "")
 
@@ -773,11 +778,19 @@ def dm_batch(connections_json, limit, stage, exclude):
             title=title,
             profile_snapshot=snapshot,
             sequence_stage=stage,
-            extra_context=f"1st-degree LinkedIn connection in print/promo industry.",
+            extra_context=(
+                f"This person appeared in a search for print/promo connections but may or may not be in the industry. "
+                f"Use the profile snapshot to determine if they are genuinely in print, promo, signage, apparel, "
+                f"or branded merchandise. If not, output 'NOT A FIT:' instead of a message."
+            ),
         )
 
         if not msg:
             click.secho(f"    Generation failed for {name} - skipping", fg="yellow")
+            continue
+
+        if msg.startswith("NOT A FIT:"):
+            click.secho(f"    {name}: {msg[:120]}", fg="yellow")
             continue
 
         dm_id = db.create_dm(
@@ -806,10 +819,18 @@ def dm_batch(connections_json, limit, stage, exclude):
         click.echo()
 
     click.echo(f"{'='*65}")
-    raw = click.prompt(
-        "\nWhich to send? Enter IDs comma-separated, 'all', or 'none'",
-        default="all",
-    ).strip().lower()
+
+    if generate_only:
+        click.echo("\nGenerate-only mode. Use --send-ids <comma-separated IDs> to send.")
+        return
+
+    if send_ids:
+        raw = send_ids.strip().lower()
+    else:
+        raw = click.prompt(
+            "\nWhich to send? Enter IDs comma-separated, 'all', or 'none'",
+            default="all",
+        ).strip().lower()
 
     if raw == "none":
         click.echo("Nothing sent. All drafts saved for later.")

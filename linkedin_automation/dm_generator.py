@@ -71,16 +71,64 @@ def _build_generation_prompt(
     Build the user-turn prompt that asks Claude to write the DM.
     """
     stage_guide = {
-        "m1": "This is a FIRST MESSAGE (M1 opener) to a cold prospect you just connected with. Warm, curious, no product pitch.",
-        "m2": "This is M2 - a value drop / insight share. Still no ask. Generous, peer-level.",
-        "m3": "This is M3 - a soft probe. Ask one genuine question about their operation.",
-        "m4": "This is M4 - a natural pivot. Only if they've engaged. Offer to share more or show something, low pressure.",
-        "m5": "This is M5 - a demo invite. Only because context makes it obvious. Conversational, specific.",
-        "followup": "This is a follow-up to an existing thread. Continue the natural conversation. Do NOT re-introduce yourself or re-explain anything from prior messages.",
+        "m1": (
+            "This is M1. Use the THREE-LINE FORMULA exactly:\n"
+            "LINE 1 (HOOK, ~80 chars): One specific observation about their business, post, or situation. "
+            "Must be something only someone who actually looked at their profile would notice. "
+            "This is what shows in the mobile notification preview - make it stop the scroll.\n"
+            "LINE 2 (CREDIBILITY, one sentence): Prakash is FROM this world, not visiting it. "
+            "Use: 'spent years running a print/promo shop before building software for this industry'. "
+            "Do NOT name TaggIQ. Do NOT say 'founder'. One sentence only.\n"
+            "LINE 3 (INSIDER QUESTION): One question. Must be something only an operator could answer "
+            "intelligently. Not yes/no. Designed to surface their real operational pain if answered honestly. "
+            "Examples: 'How do you handle rush surcharges when a job lands mid-week and you're already at capacity?' "
+            "or 'When a quote goes to order, how many times do those numbers get re-entered before the invoice?' "
+            "or 'What does your quote flow look like when a customer wants three different products decorated differently?'\n"
+            "TOTAL LENGTH: 300-400 characters maximum. Mobile first - if it's longer, cut it."
+        ),
+        "m2": (
+            "This is M2. They replied to M1. Pick up ONE specific thing they said - reflect it back "
+            "with an operator-level observation, then ask one follow-up that goes one layer deeper. "
+            "Mirror their energy (short reply = short M2). Do NOT pivot to product yet. 250-350 chars."
+        ),
+        "m2_cold": (
+            "M1 went unanswered. Send a standalone value drop - a short field-level observation about their "
+            "world that would resonate with anyone who has lived this. No reference to the unanswered message. "
+            "No ask. Just genuine industry insight. 150-200 chars."
+        ),
+        "m3": (
+            "This is M3. Soft probe. Ask one specific question about a pain that TaggIQ directly addresses, "
+            "framed as genuine curiosity not a pitch setup. 200-300 chars."
+        ),
+        "m4": (
+            "This is M4. They've engaged and described a real pain. Natural pivot - offer to show something "
+            "specific and relevant to what they've described. No product name in the first sentence. "
+            "Say things like 'happy to walk you through what we built if it'd be useful - 20 mins, no deck'. 200-280 chars."
+        ),
+        "m5": (
+            "This is M5. Demo invite. Context makes it obvious. Never say 'book a demo' or 'schedule a call'. "
+            "Keep it conversational and low-pressure. 150-220 chars."
+        ),
+        "followup": (
+            "Follow-up to an existing thread. Continue naturally. Do NOT re-introduce yourself. "
+            "Pick up one specific thing from earlier in the conversation. 150-250 chars."
+        ),
+        "breakup": (
+            "M3 went unanswered. One final message. No guilt, no pressure. Leaves the door open warmly. "
+            "Example tone: 'No worries if timing is off - happy to pick this up whenever it makes sense.' "
+            "100-150 chars max."
+        ),
     }.get(sequence_stage, "Write an appropriate message given the context.")
 
     prompt = textwrap.dedent(f"""
         Write a LinkedIn DM from Prakash to the following person.
+
+        PRAKASH'S BACKGROUND (anchor every message in this):
+        - Spent years running a print/promo shop - he knows the floor, the quoting chaos, the supplier juggling, the rush jobs that kill margin
+        - Now building TaggIQ, a POS and workflow platform built specifically for print/promo shops
+        - NOT affiliated with any specific franchise or distributor - former operator, not a brand rep
+        - His credibility hook is: "I lived this, that's why I built something for it" - not "I'm a tech guy selling to you"
+        - Writes direct, warm, no fluff - like a founder who also ran a shop floor
 
         ---
         RECIPIENT:
@@ -88,7 +136,7 @@ def _build_generation_prompt(
         Title: {title}
         Company: {company}
 
-        PROFILE CONTEXT:
+        PROFILE CONTEXT (raw LinkedIn page text - extract what's relevant):
         {profile_snapshot or "(not available)"}
 
         CONVERSATION HISTORY (most recent last):
@@ -103,13 +151,14 @@ def _build_generation_prompt(
 
         ---
         OUTPUT RULES:
-        - Output ONLY the message body. No subject line. No "Here is the message". No commentary.
+        - Output ONLY the message body. No subject line. No preamble like "Here is the message". No commentary.
         - Write exactly what Prakash would type into the LinkedIn message box.
-        - Short. 3-5 sentences maximum for openers. Even shorter for follow-ups.
+        - Short. 3-5 sentences max for M1/M2/M3. Even shorter for follow-ups.
         - Never use em dashes. Use hyphens with spaces instead.
         - No bullet points. No headers. Plain conversational prose.
-        - Do not mention TaggIQ by name in M1 or M2 unless the profile makes it obvious.
-        - End with something that invites a reply naturally - a question or an easy open door.
+        - If the recipient is clearly NOT in print/promo/signage/apparel/branded merch - start output with "NOT A FIT:" and explain briefly. Do not write a fake message.
+        - Do not mention TaggIQ by name in M1 or M2.
+        - End with something that invites a reply - a genuine question or easy open door.
     """).strip()
 
     return prompt
