@@ -1,0 +1,7 @@
+# Core (required)
+undetected-chromedriver>=3.5.4
+selenium>=4.15.0
+click>=8.1.7
+
+# Dashboard (optional)
+flask>=3.0.0

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LinkedIn Automation - Dashboard</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 24px;
+            background: #f5f5f7; color: #1d1d1f;
+        }
+        h1 { margin: 0 0 8px; font-size: 28px; }
+        .subtitle { color: #86868b; margin-bottom: 24px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .card h2 { font-size: 14px; color: #86868b; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card .num { font-size: 32px; font-weight: 600; margin-bottom: 4px; }
+        .card .label { color: #86868b; font-size: 13px; }
+
+        .bar {
+            height: 8px;
+            background: #e8e8ed;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+        .bar-fill {
+            height: 100%;
+            background: #007aff;
+            transition: width 0.3s;
+        }
+        .bar-fill.warn { background: #ff9500; }
+        .bar-fill.danger { background: #ff3b30; }
+
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border-collapse: collapse;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f0f0f3; }
+        th { background: #fafafa; font-size: 12px; color: #86868b; text-transform: uppercase; letter-spacing: 0.5px; }
+        tr:last-child td { border-bottom: none; }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .pill-pending { background: #f0f0f3; color: #6e6e73; }
+        .pill-done    { background: #d1f4d3; color: #006908; }
+        .pill-sent    { background: #d1e9ff; color: #0040a1; }
+        .pill-error   { background: #ffe0d6; color: #b30000; }
+        .pill-blocked { background: #ffd1d1; color: #b30000; }
+        .pill-already { background: #e8e8ed; color: #6e6e73; }
+
+        .events {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 0;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .event {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f3;
+            font-size: 13px;
+        }
+        .event-time { color: #86868b; font-size: 11px; }
+        .event-type { font-weight: 500; }
+
+        button.refresh {
+            padding: 8px 16px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>LinkedIn Automation</h1>
+    <p class="subtitle">Connection request pipeline — read-only view</p>
+
+    <div class="grid" id="cap-cards"></div>
+
+    <h2 style="margin-top: 24px;">Countries</h2>
+    <table id="country-table">
+        <thead>
+            <tr>
+                <th>Country</th>
+                <th>Total</th>
+                <th>Discovery</th>
+                <th>Connections Sent</th>
+                <th>Pending Connect</th>
+                <th>Already Connected</th>
+                <th>Errors</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Recent Events</h2>
+    <div class="events" id="events-list"></div>
+
+    <p style="margin-top: 24px;">
+        <button class="refresh" onclick="loadAll()">Refresh</button>
+        <span style="margin-left: 12px; color: #86868b; font-size: 13px;" id="last-update"></span>
+    </p>
+
+    <script>
+    async function loadStatus() {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        // Cap cards
+        const capPct = (data.weekly_sent / data.weekly_cap) * 100;
+        const capClass = capPct > 90 ? 'danger' : capPct > 70 ? 'warn' : '';
+
+        document.getElementById('cap-cards').innerHTML = `
+            <div class="card">
+                <h2>Today</h2>
+                <div class="num">${data.daily_sent}</div>
+                <div class="label">connections sent today (cap ${data.daily_cap_default})</div>
+            </div>
+            <div class="card">
+                <h2>Weekly Usage</h2>
+                <div class="num">${data.weekly_sent} / ${data.weekly_cap}</div>
+                <div class="label">connections in last 7 days</div>
+                <div class="bar"><div class="bar-fill ${capClass}" style="width: ${Math.min(100, capPct)}%"></div></div>
+            </div>
+            <div class="card">
+                <h2>Total Sent</h2>
+                <div class="num">${data.countries.reduce((s, c) => s + c.connection_sent, 0)}</div>
+                <div class="label">across all countries</div>
+            </div>
+            <div class="card">
+                <h2>Pending</h2>
+                <div class="num">${data.countries.reduce((s, c) => s + c.connection_pending, 0)}</div>
+                <div class="label">connections still to send</div>
+            </div>
+        `;
+
+        // Country table
+        const tbody = document.querySelector('#country-table tbody');
+        tbody.innerHTML = data.countries.map(c => `
+            <tr>
+                <td><strong>${c.country}</strong></td>
+                <td>${c.total}</td>
+                <td>
+                    <span class="pill pill-done">${c.discovery_done} done</span>
+                    <span class="pill pill-pending">${c.discovery_pending} pending</span>
+                </td>
+                <td><span class="pill pill-sent">${c.connection_sent}</span></td>
+                <td><span class="pill pill-pending">${c.connection_pending}</span></td>
+                <td><span class="pill pill-already">${c.connection_already_connected}</span></td>
+                <td><span class="pill pill-error">${c.connection_error}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadEvents() {
+        const res = await fetch('/api/events');
+        const events = await res.json();
+        const html = events.map(e => `
+            <div class="event">
+                <span class="event-time">${e.created_at}</span> &middot;
+                <span class="event-type">${e.type}</span> &middot;
+                ${e.prospect || 'system'} <small>(${e.country || ''})</small>
+                ${e.detail ? `<div style="color: #6e6e73; margin-top: 4px;">${e.detail}</div>` : ''}
+            </div>
+        `).join('');
+        document.getElementById('events-list').innerHTML = html || '<div class="event">No events yet.</div>';
+    }
+
+    async function loadAll() {
+        await Promise.all([loadStatus(), loadEvents()]);
+        document.getElementById('last-update').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+    }
+
+    loadAll();
+    setInterval(loadAll, 10000);  // auto-refresh every 10s
+    </script>
+</body>
+</html>
