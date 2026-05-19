@@ -278,43 +278,77 @@ def send_dm_via_messaging(
             screenshot_path=screenshot,
         )
 
-    # Search for the person
+    # Search for the person - type then press Enter to trigger search
     human.human_click(br.driver, search_box)
     human.short_pause()
     human.human_type(search_box, person_name)
-    human.sleep_range(1.5, 2.5)
+    human.sleep_range(2.0, 3.0)
+    search_box.send_keys(Keys.RETURN)
+    human.sleep_range(2.0, 3.5)  # wait for search results to load
 
-    # Find the matching conversation
-    thread_link = None
     first_name = person_name.split()[0].lower()
+    full_name_lower = person_name.lower()
 
-    for sel in CONVERSATION_ITEM_SELECTORS:
-        try:
-            items = br.driver.find_elements(By.CSS_SELECTOR, sel)
-            for item in items:
-                item_text = (item.text or "").lower()
-                if first_name in item_text or person_name.lower() in item_text:
-                    thread_link = item
-                    break
-            if thread_link:
-                break
-        except (NoSuchElementException, StaleElementReferenceException):
-            continue
+    def _find_thread_link():
+        # 1. Standard conversation list items
+        for sel in CONVERSATION_ITEM_SELECTORS:
+            try:
+                items = br.driver.find_elements(By.CSS_SELECTOR, sel)
+                for item in items:
+                    if full_name_lower in (item.text or "").lower() or first_name in (item.text or "").lower():
+                        return item
+            except (NoSuchElementException, StaleElementReferenceException):
+                continue
 
-    if not thread_link:
-        # Try broader: any visible list item containing the name
+        # 2. Search result items (LinkedIn shows these differently after a search)
+        search_result_selectors = [
+            "a[href*='/messaging/thread/']",
+            ".msg-search-results__list-item a",
+            ".msg-search-results a",
+            "ul.msg-search-results__list li a",
+        ]
+        for sel in search_result_selectors:
+            try:
+                items = br.driver.find_elements(By.CSS_SELECTOR, sel)
+                for item in items:
+                    if full_name_lower in (item.text or "").lower() or first_name in (item.text or "").lower():
+                        return item
+            except (NoSuchElementException, StaleElementReferenceException):
+                continue
+
+        # 3. Any anchor whose text contains the name anywhere on the page
         try:
-            for li in br.driver.find_elements(By.CSS_SELECTOR, "li"):
-                if first_name in (li.text or "").lower():
-                    link = li.find_element(By.TAG_NAME, "a")
-                    if link:
-                        thread_link = link
-                        break
+            for a in br.driver.find_elements(By.TAG_NAME, "a"):
+                txt = (a.text or "").lower()
+                if full_name_lower in txt or (first_name in txt and len(txt) < 80):
+                    href = a.get_attribute("href") or ""
+                    if "messaging" in href or "in/" in href:
+                        return a
         except Exception:
             pass
 
+        # 4. Any li containing the name
+        try:
+            for li in br.driver.find_elements(By.CSS_SELECTOR, "li"):
+                if full_name_lower in (li.text or "").lower():
+                    links = li.find_elements(By.TAG_NAME, "a")
+                    if links:
+                        return links[0]
+        except Exception:
+            pass
+
+        return None
+
+    thread_link = _find_thread_link()
+
     if not thread_link:
         screenshot = br.screenshot("dm_thread_not_found")
+        # Log all visible text for debugging
+        try:
+            page_text = br.driver.find_element(By.TAG_NAME, "body").text[:1000]
+            logger.warning(f"Page text after search: {page_text}")
+        except Exception:
+            pass
         return SendDmResult(
             status="thread_not_found",
             error=f"Could not find messaging thread for '{person_name}'",
