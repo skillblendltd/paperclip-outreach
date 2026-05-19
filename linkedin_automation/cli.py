@@ -732,8 +732,9 @@ def dm_batch(connections_json, limit, stage, exclude):
     excluded = {n.strip().lower() for n in exclude.split(",") if n.strip()}
     # Always skip known design partners / hot leads already in TaggIQ pipeline
     always_skip = {
-        "damien behan", "warren fox", "paul rivers", "declan power",
+        "damien behan", "paul rivers", "declan power",
         "sharon bates", "linda prudden",
+        "cian gleeson", "jamal",
     }
     excluded |= always_skip
 

@@ -128,21 +128,17 @@ def _search_1st_degree_connections(br: Browser, query: str, limit: int = 20) -> 
     human.page_load_pause()
     human.random_scroll(br.driver)
 
+    # Wait for any /in/ profile links - more resilient than waiting for a specific container
     try:
-        # Wait for results container
-        WebDriverWait(br.driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "ul.reusable-search__entity-result-list, div[data-view-name='search-entity-result-universal-template']"))
+        WebDriverWait(br.driver, 12).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/in/']"))
         )
     except TimeoutException:
         logger.warning(f"No results for query: {query}")
         return []
 
-    anchors = br.driver.find_elements(
-        By.CSS_SELECTOR,
-        "a[href*='/in/'][data-test-app-aware-link],"
-        "a.app-aware-link[href*='/in/'],"
-        "span.entity-result__title-text a[href*='/in/']"
-    )
+    # Broader anchor selection - catch all current LinkedIn result link formats
+    anchors = br.driver.find_elements(By.CSS_SELECTOR, "a[href*='/in/']")
 
     seen_urls = set()
     for anchor in anchors[:limit]:
