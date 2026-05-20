@@ -136,61 +136,57 @@ def _find_message_button(driver):
     Tries multiple strategies since LinkedIn changes its DOM frequently.
     Returns the button element or None.
     """
-    # Strategy 1: wait for any button with aria-label containing 'Message' to appear
+    # Strategy 1: wait up to 12s for Message button to appear (profile header loads async)
     try:
-        btn = WebDriverWait(driver, 8).until(
+        btn = WebDriverWait(driver, 12).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "button[aria-label*='Message']"))
         )
-        if btn and btn.is_displayed():
+        if btn:
+            # Scroll element into view and return it even if not "displayed" in viewport
+            try:
+                driver.execute_script("arguments[0].scrollIntoView({block:'center'})", btn)
+                time.sleep(0.5)
+            except Exception:
+                pass
             return btn
     except TimeoutException:
         pass
 
-    # Strategy 2: scroll down a bit (action buttons sometimes below the fold) then retry
-    try:
-        driver.execute_script("window.scrollBy(0, 200)")
-        time.sleep(1)
-        for btn in driver.find_elements(By.CSS_SELECTOR, "button[aria-label*='Message']"):
-            if btn.is_displayed():
-                return btn
-    except Exception:
-        pass
-
-    # Strategy 3: text-based search across all buttons
+    # Strategy 2: text-based search - look for any button whose text or aria-label says Message
     try:
         for btn in driver.find_elements(By.TAG_NAME, "button"):
             txt = (btn.text or "").strip()
             aria = (btn.get_attribute("aria-label") or "").strip()
-            if "Message" in txt or "Message" in aria:
-                if btn.is_displayed():
-                    return btn
+            if txt == "Message" or aria == "Message" or aria.startswith("Message "):
+                return btn
     except Exception:
         pass
 
-    # Strategy 4: LinkedIn sometimes wraps Message in an <a> tag or a span
+    # Strategy 3: check the "More" actions dropdown - Message sometimes hides there
     try:
-        for sel in [
-            "a[data-control-name='message']",
-            "a[href*='/messaging/thread/']",
-            "span[aria-label*='Message']",
-        ]:
+        for more_btn in driver.find_elements(By.CSS_SELECTOR, "button[aria-label*='More actions']"):
+            if more_btn.is_displayed():
+                more_btn.click()
+                time.sleep(1.0)
+                for item in driver.find_elements(By.CSS_SELECTOR, "[role='menuitem']"):
+                    if "Message" in (item.text or ""):
+                        return item
+                # Close the dropdown if Message wasn't there
+                try:
+                    driver.find_element(By.TAG_NAME, "body").click()
+                except Exception:
+                    pass
+                break
+    except Exception:
+        pass
+
+    # Strategy 4: any link/anchor that goes to messaging
+    try:
+        for sel in ["a[href*='/messaging/thread/']", "a[data-control-name='message']"]:
             els = driver.find_elements(By.CSS_SELECTOR, sel)
             for el in els:
                 if el.is_displayed():
                     return el
-    except Exception:
-        pass
-
-    # Strategy 5: check if 'Message' appears in a "More" dropdown menu
-    try:
-        more_btns = driver.find_elements(By.CSS_SELECTOR, "button[aria-label*='More']")
-        for more_btn in more_btns:
-            if more_btn.is_displayed():
-                more_btn.click()
-                time.sleep(1)
-                for item in driver.find_elements(By.CSS_SELECTOR, "[role='menuitem'], li"):
-                    if "Message" in (item.text or ""):
-                        return item
     except Exception:
         pass
 
@@ -404,23 +400,134 @@ def send_dm_via_messaging(
 
     thread_link = _find_thread_link()
 
-    if not thread_link:
-        screenshot = br.screenshot("dm_thread_not_found")
-        # Log all visible text for debugging
+    if thread_link:
+        logger.info(f"Found thread for '{person_name}' - clicking")
+        human.human_click(br.driver, thread_link)
+        human.sleep_range(1.5, 2.5)
+    else:
+        # No existing thread - try composing a new message via "Compose" button
+        logger.info(f"No existing thread for '{person_name}' - trying Compose new message")
+        # First clear the search so compose button is visible again
         try:
-            page_text = br.driver.find_element(By.TAG_NAME, "body").text[:1000]
-            logger.warning(f"Page text after search: {page_text}")
+            cancel_btns = br.driver.find_elements(By.CSS_SELECTOR, "button[aria-label*='Cancel'], button[aria-label*='cancel']")
+            for b in cancel_btns:
+                if b.is_displayed():
+                    b.click()
+                    human.sleep_range(1.0, 1.5)
+                    break
         except Exception:
             pass
-        return SendDmResult(
-            status="thread_not_found",
-            error=f"Could not find messaging thread for '{person_name}'",
-            screenshot_path=screenshot,
-        )
 
-    logger.info(f"Found thread for '{person_name}' - clicking")
-    human.human_click(br.driver, thread_link)
-    human.sleep_range(1.5, 2.5)
+        compose_btn = None
+        for sel in [
+            "button[aria-label='Compose a new message']",
+            "button[aria-label*='Compose']",
+            "button[data-control-name='compose']",
+        ]:
+            try:
+                compose_btn = br.driver.find_element(By.CSS_SELECTOR, sel)
+                if compose_btn.is_displayed():
+                    break
+                compose_btn = None
+            except NoSuchElementException:
+                continue
+
+        if not compose_btn:
+            # Try by text / aria-label substring
+            try:
+                for btn in br.driver.find_elements(By.TAG_NAME, "button"):
+                    label = (btn.get_attribute("aria-label") or "").lower()
+                    txt = (btn.text or "").lower()
+                    if "compose" in label or "new message" in label or "compose" in txt:
+                        compose_btn = btn
+                        break
+            except Exception:
+                pass
+
+        if not compose_btn:
+            screenshot = br.screenshot("dm_no_compose_button")
+            try:
+                page_text = br.driver.find_element(By.TAG_NAME, "body").text[:1000]
+                logger.warning(f"Page text after search: {page_text}")
+            except Exception:
+                pass
+            return SendDmResult(
+                status="thread_not_found",
+                error=f"No thread or compose button found for '{person_name}'",
+                screenshot_path=screenshot,
+            )
+
+        human.human_click(br.driver, compose_btn)
+        human.sleep_range(1.5, 2.5)
+
+        # Type recipient name in the "To:" field of the compose modal
+        to_field = None
+        for sel in [
+            "input[placeholder*='Type a name']",
+            "input[aria-label*='recipient']",
+            "input[aria-label*='Search']",
+            ".compose-form__input--search input",
+            "input[role='combobox']",
+        ]:
+            try:
+                to_field = WebDriverWait(br.driver, 6).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, sel))
+                )
+                if to_field.is_displayed():
+                    break
+                to_field = None
+            except TimeoutException:
+                continue
+
+        if not to_field:
+            # Broader fallback - any visible input
+            try:
+                for inp in br.driver.find_elements(By.TAG_NAME, "input"):
+                    if inp.is_displayed():
+                        to_field = inp
+                        break
+            except Exception:
+                pass
+
+        if not to_field:
+            screenshot = br.screenshot("dm_no_to_field")
+            return SendDmResult(
+                status="error",
+                error="Could not find 'To:' field in compose modal",
+                screenshot_path=screenshot,
+            )
+
+        human.human_click(br.driver, to_field)
+        human.short_pause()
+        human.human_type(to_field, person_name)
+        human.sleep_range(2.0, 3.0)
+
+        # Select the first suggestion that matches the name
+        suggestion = None
+        for sel in [
+            "li[data-test-autocomplete-item]",
+            ".autocomplete-result",
+            "[role='option']",
+            "li.msg-form__hovercard-list-item",
+        ]:
+            try:
+                items = br.driver.find_elements(By.CSS_SELECTOR, sel)
+                for item in items:
+                    if first_name in (item.text or "").lower():
+                        suggestion = item
+                        break
+                if suggestion:
+                    break
+            except Exception:
+                continue
+
+        if not suggestion:
+            # Press Enter and hope first result is selected
+            to_field.send_keys(Keys.RETURN)
+            human.sleep_range(1.0, 2.0)
+        else:
+            human.human_click(br.driver, suggestion)
+            human.sleep_range(1.0, 1.5)
 
     success = _type_and_send(br, message)
     if not success:
