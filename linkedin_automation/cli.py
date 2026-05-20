@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -25,6 +26,25 @@ import click
 
 from . import config, db, runner
 from .importer import import_csv
+
+# ---------------------------------------------------------------------------
+# KILL SWITCH (2026-05-20)
+#
+# LinkedIn issued a warning on the automation activity. ALL browser-based
+# automation is paused until we move to a non-browser path (Unipile API,
+# LinkedIn Marketing/Sales Navigator API, or manual sending). Do NOT remove
+# this guard without explicit go-ahead from Prakash.
+#
+# To re-enable for a one-off (e.g. testing a non-browser path that still
+# imports this module), set LINKEDIN_AUTOMATION_FORCE=1 in the environment.
+# ---------------------------------------------------------------------------
+_AUTOMATION_DISABLED = os.environ.get("LINKEDIN_AUTOMATION_FORCE") != "1"
+_DISABLED_REASON = (
+    "LinkedIn automation is DISABLED (LinkedIn issued a warning 2026-05-20). "
+    "Browser automation must not run until a non-browser path is in place. "
+    "If you genuinely need to run a command here, set LINKEDIN_AUTOMATION_FORCE=1 - "
+    "but check with Prakash first."
+)
 
 # Configure logging once at CLI entry
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -44,9 +64,18 @@ def _configure_logging(verbose: bool):
 
 @click.group()
 @click.option("--verbose", is_flag=True, help="Verbose logging")
-def cli(verbose):
+@click.pass_context
+def cli(ctx, verbose):
     """LinkedIn Connection Automation."""
     _configure_logging(verbose)
+    if _AUTOMATION_DISABLED:
+        click.echo("", err=True)
+        click.echo("=" * 72, err=True)
+        click.echo("LinkedIn automation DISABLED", err=True)
+        click.echo("=" * 72, err=True)
+        click.echo(_DISABLED_REASON, err=True)
+        click.echo("=" * 72, err=True)
+        ctx.exit(1)
 
 
 # ---------------------------------------------------------------------------
