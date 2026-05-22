@@ -1,4 +1,4 @@
-# EC2 Deployment Runbook — Paperclip Outreach (eu-west-1)
+# EC2 Deployment Runbook — Paperklip (eu-west-1)
 
 **Goal:** Move the autonomous outreach pipeline from Prakash's laptop to a production EC2 instance in `eu-west-1` (Ireland). Postgres in Docker, Claude CLI baked into the cron image, OAuth token persisted in a Docker named volume.
 

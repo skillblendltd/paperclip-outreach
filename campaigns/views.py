@@ -1,6 +1,6 @@
 """
 Outreach API endpoints.
-Called by Paperclip AI agents to send personalised outreach emails.
+Called by Paperklip AI agents to send personalised outreach emails.
 All endpoints are local-only (no auth required).
 """
 import json
@@ -727,7 +727,7 @@ def call_webhook(request, provider_slug: str = 'vapi'):
 
     Routed via /api/webhooks/calls/<provider_slug>/. Adapter-specific parsing
     happens inside `parse_webhook(provider_slug, raw)` which returns a
-    normalized CallEvent. This view does ALL the Paperclip-side work
+    normalized CallEvent. This view does ALL the Paperklip-side work
     (CallLog write, lifecycle transition, post-call email queue) using ONLY
     the normalized event — provider vocabulary stops at the adapter line.
     """

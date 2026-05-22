@@ -268,7 +268,7 @@ class ProcessCallQueueDispatchTests(TestCase):
         self.assertEqual(len(mock.calls), 1)
         prompt = mock.calls[0]['prompt']
         self.assertIsInstance(prompt, CallPrompt)
-        # No `{{vars}}` in the rendered first_message — Paperclip rule.
+        # No `{{vars}}` in the rendered first_message — Paperklip rule.
         self.assertNotIn('{{', prompt.first_message)
         self.assertNotIn('{{', prompt.system_prompt)
         # CallLog row written with the provider_call_id (named vapi_call_id).

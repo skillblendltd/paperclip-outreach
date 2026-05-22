@@ -1,8 +1,8 @@
-# Paperclip Outreach - Autonomous B2B Sales Pipeline
+# Paperklip - Autonomous B2B Sales Pipeline
 
 ## Project Objective
 
-Paperclip Outreach is a fully autonomous, multi-tenant B2B sales pipeline that takes a prospect from cold lead to booked demo with zero human intervention. It combines email outreach, AI-powered voice calling (via Vapi), intelligent reply handling (via Claude), and CRM-level prospect management into a single Django-based engine.
+Paperklip is a fully autonomous, multi-tenant B2B sales pipeline that takes a prospect from cold lead to booked demo with zero human intervention. It combines email outreach, AI-powered voice calling (via Vapi), intelligent reply handling (via Claude), and CRM-level prospect management into a single Django-based engine.
 
 **The complete pipeline:**
 ```
@@ -21,7 +21,7 @@ Scrape leads (Google Maps / BNI Connect)
 
 **Key differentiator:** This is not a tool that helps you send emails. It IS the sales team. Once configured, it runs the full outbound pipeline autonomously - scraping, emailing, calling, replying, learning, and booking demos while you sleep.
 
-**The bigger vision (Sprint 6+):** Paperclip is evolving from "a GTM engine Prakash uses for his three products" into a **contextual autonomous marketing system** — the first outbound engine that actually reads the prospect's conversation history before every touch, so email + call + reply feel like one continuous relationship instead of disjointed blasts. See `docs/contextual-autonomous-marketing.md` for the architectural vision and phased plan. The TaggIQ Warm Re-engagement campaign (`docs/taggiq-warm-reengagement-plan.md`) is the Phase 1 prove-it case.
+**The bigger vision (Sprint 6+):** Paperklip is evolving from "a GTM engine Prakash uses for his three products" into a **contextual autonomous marketing system** — the first outbound engine that actually reads the prospect's conversation history before every touch, so email + call + reply feel like one continuous relationship instead of disjointed blasts. See `docs/contextual-autonomous-marketing.md` for the architectural vision and phased plan. The TaggIQ Warm Re-engagement campaign (`docs/taggiq-warm-reengagement-plan.md`) is the Phase 1 prove-it case.
 
 ## Who This Serves
 
@@ -32,7 +32,7 @@ Scrape leads (Google Maps / BNI Connect)
 | **TaggIQ** | POS platform for print & promo shops | Get shop owners to try the platform | Prove that 3 new capabilities (supplier order submission, decoration options from supplier catalogs, branded webstores) move cold BNI contacts to paid customers. 3-minute quote is the canonical narrative hook. First contextual campaign is `TaggIQ Warm Re-engagement Apr 2026`. |
 | **Fully Promoted Ireland** | Master franchise (300+ locations worldwide) | Recruit franchise partners across Ireland | Two personas in play: Prakash (franchise recruitment, prakash@fullypromoted.ie) and Lisa (FP Dublin B2B corporate sales, office@fullypromoted.ie). Lisa already runs fully autonomous on EC2 with v5 reply pipeline. Prakash voice still pending port to DB PromptTemplate. |
 | **Kritno** | Creative production platform (future) | Not active yet | Greenfield. When it launches, it'll be the third persona in the contextual marketing system — voice rules + Conversation context from day 1, no retrofit needed. |
-| **Paperclip Outreach** | The platform itself | Internal GTM tooling today | Phase 3 goal: productize into a standalone offering for design partners (Print RFT, Promotex.ie, etc). Two-product story — TaggIQ sells POS, Paperclip sells autonomous outbound. Natural cross-sell. |
+| **Paperklip** | The platform itself | Internal GTM tooling today | Phase 3 goal: productize into a standalone offering for design partners (Print RFT, Promotex.ie, etc). Two-product story — TaggIQ sells POS, Paperklip sells autonomous outbound. Natural cross-sell. |
 
 **Future:** Design partners (e.g., Print RFT, Promotex.ie) will use the system as their own outreach engine via the multi-tenant architecture.
 
@@ -174,7 +174,7 @@ new -> [Seq 1] -> contacted -> [Seq 2-5] -> ...
 - BNI contacts: "fellow BNI member in print and promo, spent 20 years in software"
 - Ireland cold leads: "spent 20 years in software before moving into this industry" - NEVER mention Fully Promoted (conflict of interest)
 - Offer: 3 months free for BNI, free trial for cold leads
-- Demo: `https://calendar.app.google/fzQ5iQLGHakimfjv7`
+- Demo: `https://calendar.app.google/3iTEpucdJpaJ8wp1A`
 - Self-trial: `https://taggiq.com/signup`
 
 ### Fully Promoted (3 campaigns, ~430 prospects)
@@ -387,6 +387,8 @@ When Prakash shares a demo request (name, company, email, phone, country, date):
 | Sprint 7 Progress | `docs/sprint-7-progress.md` | Live execution tracker for Sprint 7 — update after every merge, read at session start |
 | Sprint 8 Implementation Plan | `docs/sprint-8-implementation-plan.md` | Call pipeline fixes + lifecycle state machine + ProspectEvent audit + nudge logic |
 | Sprint 8 Progress | `docs/sprint-8-progress.md` | Live execution tracker for Sprint 8 — update after every task, read at session start |
+| LinkedIn Automation Plan | `docs/linkedin-automation-plan.md` | Connection-request automation system (browser, stealth, pacing). 1,007 IE + 4,000+ UK over 4-6 months |
+| LinkedIn DM Follow-up Plan | `docs/linkedin-dm-followup-plan.md` | Post-acceptance DM automation. Provider-agnostic schema (browser/Unipile/official API), reuses PromptTemplate + handle_replies. API choice deferred. |
 
 **v2 Status (as of 2026-04-13):**
 - Sprint 1 DONE: Multi-tenant models (Organization, Product, EmailTemplate, CallScript, PromptTemplate, AIUsageLog)

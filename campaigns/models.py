@@ -980,7 +980,7 @@ class CallTask(BaseModel):
 # ---------------------------------------------------------------------------
 
 class MCPServer(BaseModel):
-    """Registry of MCP server types Paperclip can connect to.
+    """Registry of MCP server types Paperklip can connect to.
 
     One row per server *type* (e.g. 'taggiq', 'canva'). An Organization with
     a TaggIQ tenant gets one OrgMCPConnection pointing at this row.

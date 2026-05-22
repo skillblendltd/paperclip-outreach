@@ -1,12 +1,12 @@
 """Provider-agnostic call dispatch boundary.
 
-Paperclip's call code uses ONLY the artefacts in `base.py`:
-  - `CallPrompt`     — fully-rendered prompt + facts produced by Paperclip
+Paperklip's call code uses ONLY the artefacts in `base.py`:
+  - `CallPrompt`     — fully-rendered prompt + facts produced by Paperklip
   - `CallProvider`   — Protocol every provider adapter conforms to
   - `CallEvent`      — normalized webhook outcome (provider-agnostic)
   - `place(prospect, prompt)` / `parse_webhook(slug, raw)` — entry points
 
-Providers live as siblings (e.g. `vapi.py`). They translate Paperclip's
+Providers live as siblings (e.g. `vapi.py`). They translate Paperklip's
 artefacts into the provider's wire format and translate the provider's
 webhook events back into `CallEvent`. Provider-specific vocabulary
 (`assistantOverrides`, `firstMessage`, etc.) MUST stay inside the adapter

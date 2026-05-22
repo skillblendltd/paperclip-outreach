@@ -12,7 +12,7 @@ from django.core.management.base import BaseCommand
 from campaigns.models import Campaign, ReplyTemplate
 
 
-SCHEDULING_LINK = 'https://calendar.app.google/fzQ5iQLGHakimfjv7'
+SCHEDULING_LINK = 'https://calendar.app.google/3iTEpucdJpaJ8wp1A'
 SCHEDULING_CTA = (
     '<p>If it\'s easier, you can book a time that suits you here:</p>'
     '<p><a href="' + SCHEDULING_LINK + '">Schedule TaggIQ Demo with Prakash</a></p>'

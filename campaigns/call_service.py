@@ -1,5 +1,5 @@
 """
-Call Service for Paperclip Outreach
+Call Service for Paperklip
 Places outbound calls via Vapi.ai API
 """
 import logging

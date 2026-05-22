@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Import Fully Promoted Ireland franchise prospects from Synuma CSV export
-into the Paperclip Outreach campaign system.
+into the Paperklip campaign system.
 
 Data source: synuma-lead-list.csv (exported from Synuma CRM with emails)
 

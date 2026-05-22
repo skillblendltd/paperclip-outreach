@@ -10,7 +10,7 @@
 
 ## 1. Platform framing
 
-Paperclip is a sales automation platform with three independently shippable modules:
+Paperklip is a sales automation platform with three independently shippable modules:
 
 ```
 paperclip-outreach/

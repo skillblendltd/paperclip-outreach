@@ -7,9 +7,9 @@
 
 ## What this is
 
-Paperclip Outreach is evolving from "a GTM engine Prakash uses for his three products" into a **contextual autonomous marketing system**: the first outbound engine that actually reads the prospect's conversation history before every touch, so email + call + reply feel like one continuous relationship instead of disjointed blasts.
+Paperklip is evolving from "a GTM engine Prakash uses for his three products" into a **contextual autonomous marketing system**: the first outbound engine that actually reads the prospect's conversation history before every touch, so email + call + reply feel like one continuous relationship instead of disjointed blasts.
 
-**The test case:** The TaggIQ Warm Re-engagement campaign (Sprint 6, Phase 1). 15 prospects, 4 emails, 1 Vapi call, all driven by per-prospect context and persona-parameterized voice. If this works end-to-end, it becomes the template for TaggIQ × all campaigns, FP Ireland, Kritno, and eventually a standalone Paperclip product offering for design partners.
+**The test case:** The TaggIQ Warm Re-engagement campaign (Sprint 6, Phase 1). 15 prospects, 4 emails, 1 Vapi call, all driven by per-prospect context and persona-parameterized voice. If this works end-to-end, it becomes the template for TaggIQ × all campaigns, FP Ireland, Kritno, and eventually a standalone Paperklip product offering for design partners.
 
 ## Why this is different from existing tools
 
@@ -134,7 +134,7 @@ From Sprints 1–5, we've accidentally built ~70% of the foundation:
 
 ### Phase 3 — Productize + hardening (3–6 weeks)
 
-**Goal:** Turn the system into something that can be sold as a product, either as Paperclip-as-a-service to design partners or as "powered by" technology inside TaggIQ.
+**Goal:** Turn the system into something that can be sold as a product, either as Paperklip-as-a-service to design partners or as "powered by" technology inside TaggIQ.
 
 **Scope:**
 - Org-level isolation audit (not just convention — middleware-enforced)
@@ -148,8 +148,8 @@ From Sprints 1–5, we've accidentally built ~70% of the foundation:
 - Multi-language voice rules (PromptTemplate already supports it, needs UI)
 
 **Go-to-market:**
-- Existing TaggIQ design partners (Print RFT, Promotex.ie, Keynote, Embroidered Horse, Hämeen Mainostuote) become Paperclip design partners
-- Two-product story: TaggIQ = POS platform, Paperclip = autonomous outbound engine. Natural cross-sell.
+- Existing TaggIQ design partners (Print RFT, Promotex.ie, Keynote, Embroidered Horse, Hämeen Mainostuote) become Paperklip design partners
+- Two-product story: TaggIQ = POS platform, Paperklip = autonomous outbound engine. Natural cross-sell.
 - Pricing: usage-based on AIUsageLog cost + markup, or flat per-seat
 
 ## Known risks
@@ -177,7 +177,7 @@ From Sprints 1–5, we've accidentally built ~70% of the foundation:
 | **TaggIQ** | The first product to fully use this system (Phase 1 = TaggIQ Warm Re-engagement). TaggIQ sales is the prove-it case. |
 | **Fully Promoted Ireland** | Already uses the system for Lisa (print-promo) replies via v5 pipeline. Needs Prakash voice ported to DB PromptTemplate to close the autonomy loop for FP Franchise + BNI. |
 | **Kritno** | Future product. Will be the third persona in the system. Greenfield for a new voice + campaign structure from day 1. |
-| **Paperclip Outreach** | The platform itself. Eventually sellable as a standalone product to design partners. Today it's internal GTM tooling. |
+| **Paperklip** | The platform itself. Eventually sellable as a standalone product to design partners. Today it's internal GTM tooling. |
 
 ## Open questions (revisit after Phase 1)
 

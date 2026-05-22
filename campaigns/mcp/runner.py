@@ -1,4 +1,4 @@
-"""Reusable Claude-with-MCP runner. The single entry point any Paperclip
+"""Reusable Claude-with-MCP runner. The single entry point any Paperklip
 code uses to invoke Claude with MCP tools available.
 
 Phase A scope:

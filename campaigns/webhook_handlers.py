@@ -1,5 +1,5 @@
 """
-TaggIQ -> Paperclip webhook handler.
+TaggIQ -> Paperklip webhook handler.
 Receives lifecycle events (trial_started, supplier_connected, etc.)
 and creates/updates prospects in lifecycle campaigns.
 """

@@ -1,5 +1,5 @@
 """
-Django Admin for Paperclip Outreach.
+Django Admin for Paperklip.
 Multi-product outreach pipeline: TaggIQ, Fully Promoted, Kritno.
 """
 import csv

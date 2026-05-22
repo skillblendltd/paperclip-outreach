@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prakash Inani - BNI Presentation 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --fp-blue-dark: #003B73;
+    --fp-blue: #0067B1;
+    --fp-blue-mid: #0080D0;
+    --fp-blue-light: #00A3E0;
+    --fp-cyan: #00BCD4;
+    --fp-white: #FFFFFF;
+    --fp-gray-light: #E8F4FD;
+    --fp-gray: #B0C4DE;
+    --fp-accent-gold: #F5A623;
+    --fp-accent-green: #12B488;
+    --fp-accent-red: #E74C3C;
+    --taggiq-violet: #7C3AED;
+    --kritno-purple: #6366F1;
+    --paperklip-teal: #0D9488;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #1a1a2e;
+    color: var(--fp-white);
+    overflow-x: hidden;
+  }
+
+  .slide {
+    width: 960px;
+    height: 540px;
+    margin: 40px auto;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    border-radius: 4px;
+    page-break-after: always;
+  }
+
+  h1 { font-family: 'Poppins', sans-serif; font-weight: 800; }
+  h2 { font-family: 'Poppins', sans-serif; font-weight: 700; }
+  h3 { font-family: 'Poppins', sans-serif; font-weight: 600; }
+
+  .slide-number {
+    position: absolute;
+    bottom: 12px;
+    right: 20px;
+    font-size: 11px;
+    opacity: 0.5;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* ============================================ */
+  /* SLIDE 1: TITLE                               */
+  /* ============================================ */
+  .slide-title {
+    background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 50%, var(--fp-blue-mid) 100%);
+  }
+  .slide-title .hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: 40px;
+  }
+  .slide-title .fp-logo-circle {
+    width: 120px;
+    height: 120px;
+    background: var(--fp-white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .slide-title .fp-logo-circle span {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 900;
+    font-size: 48px;
+    color: var(--fp-blue);
+  }
+  .slide-title h1 {
+    font-size: 44px;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+  .slide-title .subtitle {
+    font-size: 20px;
+    color: var(--fp-gray-light);
+    font-weight: 400;
+    margin-bottom: 32px;
+    opacity: 0.9;
+  }
+  .slide-title .tagline {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: var(--fp-cyan);
+    font-weight: 600;
+  }
+
+  /* ============================================ */
+  /* SLIDE 2: TAGGIQ                              */
+  /* ============================================ */
+  .slide-product {
+    background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%);
+    display: flex;
+  }
+  .slide-product .left-panel {
+    flex: 1;
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .slide-product .right-panel {
+    width: 400px;
+    background: rgba(255,255,255,0.08);
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .product-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 20px;
+    width: fit-content;
+  }
+  .badge-violet { background: rgba(124, 58, 237, 0.25); color: #C4B5FD; border: 1px solid rgba(124, 58, 237, 0.4); }
+  .badge-indigo { background: rgba(99, 102, 241, 0.25); color: #A5B4FC; border: 1px solid rgba(99, 102, 241, 0.4); }
+  .badge-teal { background: rgba(13, 148, 136, 0.25); color: #5EEAD4; border: 1px solid rgba(13, 148, 136, 0.4); }
+
+  .slide-product h2 {
+    font-size: 36px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .slide-product .product-desc {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--fp-gray-light);
+    opacity: 0.85;
+    margin-bottom: 24px;
+  }
+  .feature-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--fp-gray-light);
+  }
+  .feature-list li .icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .icon-violet { background: rgba(124, 58, 237, 0.3); color: #C4B5FD; }
+  .icon-indigo { background: rgba(99, 102, 241, 0.3); color: #A5B4FC; }
+  .icon-teal { background: rgba(13, 148, 136, 0.3); color: #5EEAD4; }
+  .icon-blue { background: rgba(0, 163, 224, 0.3); color: var(--fp-cyan); }
+
+  .stat-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+  .stat-card .stat-number {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--fp-white);
+  }
+  .stat-card .stat-label {
+    font-size: 12px;
+    color: var(--fp-gray);
+    margin-top: 2px;
+  }
+
+  /* ============================================ */
+  /* JOURNEY SLIDES                               */
+  /* ============================================ */
+  .slide-journey {
+    background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%);
+    padding: 48px 56px;
+  }
+  .slide-journey h2 {
+    font-size: 32px;
+    margin-bottom: 40px;
+  }
+  .timeline {
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    gap: 0;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--fp-cyan), var(--fp-blue-light), var(--fp-cyan));
+    opacity: 0.4;
+  }
+  .timeline-item {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .timeline-dot {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--fp-blue-mid);
+    border: 3px solid var(--fp-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 11px;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+  }
+  .timeline-dot.active {
+    background: var(--fp-cyan);
+    color: var(--fp-blue-dark);
+    box-shadow: 0 0 20px rgba(0, 188, 212, 0.4);
+  }
+  .timeline-label {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  .timeline-sublabel {
+    font-size: 11px;
+    color: var(--fp-gray);
+    line-height: 1.4;
+  }
+  .timeline-year {
+    font-size: 10px;
+    color: var(--fp-cyan);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  /* ============================================ */
+  /* EDUCATION SLIDES                             */
+  /* ============================================ */
+  .slide-education {
+    background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%);
+    display: flex;
+  }
+  .slide-education .image-half {
+    width: 440px;
+    background: rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide-education .image-half .placeholder {
+    width: 320px;
+    height: 320px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.08);
+    border: 2px dashed rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .placeholder-icon {
+    font-size: 48px;
+    opacity: 0.5;
+  }
+  .placeholder-text {
+    font-size: 12px;
+    color: var(--fp-gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .slide-education .content-half {
+    flex: 1;
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .technique-badge {
+    display: inline-flex;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    width: fit-content;
+    background: rgba(0, 188, 212, 0.2);
+    color: var(--fp-cyan);
+    border: 1px solid rgba(0, 188, 212, 0.3);
+  }
+  .slide-education h2 {
+    font-size: 36px;
+    margin-bottom: 12px;
+    line-height: 1.1;
+  }
+  .slide-education .edu-subtitle {
+    font-size: 14px;
+    color: var(--fp-gray);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  .edu-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .edu-detail-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .edu-detail-card h4 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fp-cyan);
+    margin-bottom: 4px;
+  }
+  .edu-detail-card p {
+    font-size: 11px;
+    color: var(--fp-gray-light);
+    line-height: 1.4;
+    opacity: 0.8;
+  }
+
+  /* ============================================ */
+  /* STATS / FP SLIDES                            */
+  /* ============================================ */
+  .slide-stats {
+    background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%);
+    padding: 48px 56px;
+  }
+  .slide-stats h2 {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+  .slide-stats .stats-subtitle {
+    font-size: 14px;
+    color: var(--fp-gray);
+    margin-bottom: 36px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .big-stat {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+  .big-stat .number {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    color: var(--fp-cyan);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .big-stat .label {
+    font-size: 12px;
+    color: var(--fp-gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .comparison-row {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .comparison-card {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-align: center;
+  }
+  .comparison-card .duration-bar {
+    height: 80px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  .duration-bar .bar {
+    width: 48px;
+    border-radius: 4px 4px 0 0;
+    background: var(--fp-accent-gold);
+    opacity: 0.6;
+  }
+  .duration-bar .bar.tall { height: 80px; opacity: 1; background: var(--fp-accent-gold); }
+  .comparison-card .duration-value {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+  .comparison-card .duration-type {
+    font-size: 12px;
+    color: var(--fp-gray);
+  }
+
+  /* ============================================ */
+  /* SPLIT SLIDE (services, referrals)            */
+  /* ============================================ */
+  .slide-split {
+    background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%);
+    display: flex;
+  }
+  .slide-split .panel {
+    flex: 1;
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .slide-split .panel-divider {
+    width: 1px;
+    background: rgba(255,255,255,0.1);
+    margin: 48px 0;
+  }
+  .slide-split h2 {
+    font-size: 28px;
+    margin-bottom: 24px;
+  }
+  .service-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .service-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(0, 188, 212, 0.15);
+    border: 1px solid rgba(0, 188, 212, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  .service-item h4 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .service-item p {
+    font-size: 12px;
+    color: var(--fp-gray);
+    line-height: 1.4;
+  }
+
+  /* ============================================ */
+  /* GALLERY SLIDES                               */
+  /* ============================================ */
+  .slide-gallery {
+    background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%);
+    padding: 48px 56px;
+  }
+  .slide-gallery h2 {
+    font-size: 32px;
+    margin-bottom: 32px;
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 12px;
+    height: 340px;
+  }
+  .gallery-item {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .gallery-item.wide { grid-column: span 2; }
+  .gallery-item .gallery-placeholder {
+    font-size: 12px;
+    color: var(--fp-gray);
+    text-align: center;
+    padding: 16px;
+  }
+
+  /* Logo grid */
+  .logo-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 16px;
+    height: 280px;
+  }
+  .logo-item {
+    background: rgba(255,255,255,0.92);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .logo-item span {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #333;
+    text-align: center;
+  }
+
+  /* ============================================ */
+  /* CLOSE / THANK YOU                            */
+  /* ============================================ */
+  .slide-close {
+    background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 50%, var(--fp-blue-mid) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 48px;
+  }
+  .slide-close .fp-logo-large {
+    width: 100px;
+    height: 100px;
+    background: var(--fp-white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .slide-close .fp-logo-large span {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 900;
+    font-size: 40px;
+    color: var(--fp-blue);
+  }
+  .slide-close h1 {
+    font-size: 48px;
+    margin-bottom: 24px;
+  }
+  .contact-row {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 32px;
+  }
+  .contact-item {
+    font-size: 14px;
+    color: var(--fp-gray-light);
+  }
+  .contact-item strong {
+    color: var(--fp-white);
+  }
+  .cta-button {
+    display: inline-flex;
+    padding: 14px 36px;
+    background: var(--fp-cyan);
+    color: var(--fp-blue-dark);
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  /* Decorative elements */
+  .corner-accent {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    opacity: 0.06;
+    background: var(--fp-cyan);
+  }
+  .corner-accent.top-right { top: -80px; right: -80px; }
+  .corner-accent.bottom-left { bottom: -80px; left: -80px; }
+
+  .fp-watermark {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 1px;
+  }
+
+  /* ============================================ */
+  /* PRINT INSTRUCTIONS                           */
+  /* ============================================ */
+  .instructions {
+    max-width: 960px;
+    margin: 60px auto 20px;
+    padding: 32px;
+    background: #2a2a3e;
+    border-radius: 12px;
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .instructions h2 {
+    color: var(--fp-cyan);
+    margin-bottom: 16px;
+    font-size: 20px;
+  }
+  .instructions code {
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .instructions .note {
+    background: rgba(245, 166, 35, 0.1);
+    border-left: 3px solid var(--fp-accent-gold);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== INSTRUCTIONS ==================== -->
+<div class="instructions">
+  <h2>BNI Presentation 2026 - Redesigned Slide Deck</h2>
+  <p><strong>28 slides</strong> - FP Blue background throughout. All placeholder images marked with dashed borders - replace with your photos.</p>
+  <p><strong>Structure:</strong></p>
+  <ol>
+    <li>Title slide</li>
+    <li>TaggIQ product slide</li>
+    <li>Kritno product slide</li>
+    <li>Paperklip product slide</li>
+    <li-6>Career journey (Vodafone - Symantec - Toast - VMware - Own ventures - FP)</li>
+    <li>7. From Code to Cotton transition</li>
+    <li>8-9. FP overview + UFG</li>
+    <li>10. Why promo products (tangible referrals)</li>
+    <li>11. Stats slide</li>
+    <li>12-18. Educational: Embroidery, Screen Print, Heat Transfer, DTG, Pad Print, Sublimation, Laser Engraving</li>
+    <li>19. Services overview</li>
+    <li>20-22. Product galleries</li>
+    <li>23. Global customers</li>
+    <li>24. Webstores</li>
+    <li>25-26. Case studies</li>
+    <li>27. Ideal referrals</li>
+    <li>28. Thank you / contact</li>
+  </ol>
+  <div class="note">
+    <strong>Image placeholders:</strong> Every dashed-border box needs your photo. For the 7 educational slides, provide one hero image per technique showing the process or result.
+  </div>
+</div>
+
+<!-- ==================== SLIDE 1: TITLE ==================== -->
+<div class="slide slide-title">
+  <div class="corner-accent top-right"></div>
+  <div class="corner-accent bottom-left"></div>
+  <div class="hero-content">
+    <div class="fp-logo-circle">
+      <span>FP</span>
+    </div>
+    <h1>Prakash Inani</h1>
+    <div class="subtitle">Ireland Master Partner - Fully Promoted</div>
+    <div class="tagline">From Code to Cotton</div>
+  </div>
+  <div class="slide-number">1 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 2: TAGGIQ ==================== -->
+<div class="slide slide-product">
+  <div class="corner-accent top-right"></div>
+  <div class="left-panel">
+    <div class="product-badge badge-violet">
+      <span>01</span> TaggIQ
+    </div>
+    <h2>POS Platform for<br>Print & Promo Shops</h2>
+    <p class="product-desc">
+      Built from 20 years of software engineering. Streamlines quoting, ordering, invoicing, and webstores for the promotional products industry.
+    </p>
+    <ul class="feature-list">
+      <li><span class="icon icon-violet">&#10003;</span> Quotes in under 3 minutes - not 30</li>
+      <li><span class="icon icon-violet">&#10003;</span> Supplier catalogs with live pricing</li>
+      <li><span class="icon icon-violet">&#10003;</span> Branded webstores for your clients</li>
+      <li><span class="icon icon-violet">&#10003;</span> Leads, orders, invoices - one platform</li>
+    </ul>
+  </div>
+  <div class="right-panel">
+    <div class="stat-card">
+      <div class="stat-number" style="color: #C4B5FD;">500+</div>
+      <div class="stat-label">Supplier catalogs integrated</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: #C4B5FD;">3 min</div>
+      <div class="stat-label">Average quote creation time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: #C4B5FD;">24/7</div>
+      <div class="stat-label">Webstores always open for orders</div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">2 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 3: KRITNO ==================== -->
+<div class="slide slide-product">
+  <div class="corner-accent top-right"></div>
+  <div class="left-panel">
+    <div class="product-badge badge-indigo">
+      <span>02</span> Kritno
+    </div>
+    <h2>Creative Production<br>Platform</h2>
+    <p class="product-desc">
+      Accessibility-first development tools. Catches issues in PRs and sites early, guides fixes, and gives compliance teams audit-ready evidence.
+    </p>
+    <ul class="feature-list">
+      <li><span class="icon icon-indigo">&#10003;</span> Plugs into your PRs and CI pipeline</li>
+      <li><span class="icon icon-indigo">&#10003;</span> Real-time accessibility monitoring</li>
+      <li><span class="icon icon-indigo">&#10003;</span> Compliance-ready audit reports</li>
+      <li><span class="icon icon-indigo">&#10003;</span> Fix guidance - not just error flags</li>
+    </ul>
+  </div>
+  <div class="right-panel">
+    <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+      <div style="text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.3;">K</div>
+        <div style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 24px; color: #A5B4FC; margin-bottom: 8px;">kritno</div>
+        <div style="font-size: 12px; color: var(--fp-gray);">Screenshot placeholder<br>Replace with Kritno UI</div>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">3 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 4: PAPERKLIP ==================== -->
+<div class="slide slide-product">
+  <div class="corner-accent top-right"></div>
+  <div class="left-panel">
+    <div class="product-badge badge-teal">
+      <span>03</span> Paperklip
+    </div>
+    <h2>Autonomous<br>Outreach Engine</h2>
+    <p class="product-desc">
+      AI-powered sales pipeline that runs 24/7. Scrapes leads, sends email sequences, handles replies with AI, places voice calls - all while you sleep.
+    </p>
+    <ul class="feature-list">
+      <li><span class="icon icon-teal">&#10003;</span> Lead scraping to booked demo - zero manual work</li>
+      <li><span class="icon icon-teal">&#10003;</span> AI-generated replies in your voice</li>
+      <li><span class="icon icon-teal">&#10003;</span> Multi-campaign, multi-product, multi-tenant</li>
+      <li><span class="icon icon-teal">&#10003;</span> AI voice calling with real-time learning</li>
+    </ul>
+  </div>
+  <div class="right-panel">
+    <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+      <div style="text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.3;">&#128206;</div>
+        <div style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px; color: #5EEAD4; margin-bottom: 8px;">Paperklip Outreach</div>
+        <div style="font-size: 12px; color: var(--fp-gray);">The AI sales team<br>that never sleeps</div>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">4 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 5: CAREER JOURNEY ==================== -->
+<div class="slide slide-journey">
+  <div class="corner-accent top-right"></div>
+  <h2>My Journey</h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-year">2005</div>
+      <div class="timeline-dot">V</div>
+      <div class="timeline-label">Vodafone</div>
+      <div class="timeline-sublabel">Telecoms<br>engineering</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2010</div>
+      <div class="timeline-dot">N</div>
+      <div class="timeline-label">Symantec / Norton</div>
+      <div class="timeline-sublabel">Cybersecurity<br>platforms</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2015</div>
+      <div class="timeline-dot">T</div>
+      <div class="timeline-label">Toast POS</div>
+      <div class="timeline-sublabel">Restaurant<br>point of sale</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2018</div>
+      <div class="timeline-dot">VM</div>
+      <div class="timeline-label">VMware / Broadcom</div>
+      <div class="timeline-sublabel">Enterprise<br>cloud infra</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2022</div>
+      <div class="timeline-dot" style="font-size: 9px;">AI</div>
+      <div class="timeline-label" style="font-size: 12px;">Kritno / TaggIQ / Paperklip</div>
+      <div class="timeline-sublabel">Own SaaS<br>ventures</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2024</div>
+      <div class="timeline-dot active">FP</div>
+      <div class="timeline-label">Fully Promoted</div>
+      <div class="timeline-sublabel">Ireland Master<br>Partner</div>
+    </div>
+  </div>
+  <div style="margin-top: 32px; text-align: center;">
+    <div style="font-size: 13px; color: var(--fp-gray-light); opacity: 0.7;">
+      20 years building software for global companies - now building Ireland's branded products business
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">5 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 6: CAREER DETAIL (optional photo strip) ==================== -->
+<div class="slide slide-journey">
+  <div class="corner-accent top-right"></div>
+  <h2>20 Years of Building</h2>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 8px;">
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px;">
+      <div style="font-size: 11px; color: var(--fp-cyan); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; font-weight: 600;">Enterprise Scale</div>
+      <h3 style="font-size: 18px; margin-bottom: 8px;">Global Platforms</h3>
+      <p style="font-size: 12px; color: var(--fp-gray); line-height: 1.5;">
+        Vodafone telecoms infrastructure. Norton/Symantec security serving millions. VMware cloud powering enterprise data centers.
+      </p>
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 24px; color: var(--fp-cyan);">Billions</div>
+        <div style="font-size: 11px; color: var(--fp-gray);">of users served</div>
+      </div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px;">
+      <div style="font-size: 11px; color: var(--fp-accent-gold); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; font-weight: 600;">Industry POS</div>
+      <h3 style="font-size: 18px; margin-bottom: 8px;">Toast POS</h3>
+      <p style="font-size: 12px; color: var(--fp-gray); line-height: 1.5;">
+        Helped build the restaurant POS that now powers 100,000+ locations. Learned what makes a great point-of-sale system from the inside.
+      </p>
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 24px; color: var(--fp-accent-gold);">100K+</div>
+        <div style="font-size: 11px; color: var(--fp-gray);">restaurant locations</div>
+      </div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px;">
+      <div style="font-size: 11px; color: var(--fp-accent-green); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; font-weight: 600;">Entrepreneurship</div>
+      <h3 style="font-size: 18px; margin-bottom: 8px;">Own Ventures</h3>
+      <p style="font-size: 12px; color: var(--fp-gray); line-height: 1.5;">
+        Built TaggIQ (POS for promo), Kritno (creative production), and Paperklip (AI outreach). Applied enterprise engineering to solve real problems.
+      </p>
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 24px; color: var(--fp-accent-green);">3</div>
+        <div style="font-size: 11px; color: var(--fp-gray);">SaaS products launched</div>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">6 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 7: FROM CODE TO COTTON ==================== -->
+<div class="slide" style="background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%); display: flex; align-items: center; justify-content: center; text-align: center;">
+  <div class="corner-accent top-right"></div>
+  <div class="corner-accent bottom-left"></div>
+  <div style="padding: 48px;">
+    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 4px; color: var(--fp-cyan); margin-bottom: 24px; font-weight: 600;">Chapter Two</div>
+    <h1 style="font-size: 56px; line-height: 1.1; margin-bottom: 16px;">From Code<br>to Cotton</h1>
+    <div style="width: 60px; height: 3px; background: var(--fp-cyan); margin: 0 auto 24px;"></div>
+    <p style="font-size: 18px; color: var(--fp-gray-light); max-width: 600px; margin: 0 auto; line-height: 1.6; opacity: 0.85;">
+      Branded Apparel & Promotional Products
+    </p>
+    <div style="margin-top: 40px;">
+      <div class="fp-logo-circle" style="width: 80px; height: 80px; margin: 0 auto;">
+        <span style="font-size: 32px; font-family: 'Poppins', sans-serif; font-weight: 900; color: var(--fp-blue);">FP</span>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">7 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 8: FP OVERVIEW ==================== -->
+<div class="slide slide-stats">
+  <div class="corner-accent top-right"></div>
+  <h2>Fully Promoted - A Brief History</h2>
+  <div class="stats-subtitle">World's largest branded products franchise</div>
+  <div class="stats-grid">
+    <div class="big-stat">
+      <div class="number">40+</div>
+      <div class="label">Years in Business</div>
+    </div>
+    <div class="big-stat">
+      <div class="number">10</div>
+      <div class="label">Brands</div>
+    </div>
+    <div class="big-stat">
+      <div class="number">60+</div>
+      <div class="label">Countries</div>
+    </div>
+    <div class="big-stat">
+      <div class="number">1800+</div>
+      <div class="label">Locations</div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 24px; align-items: center;">
+    <div style="flex: 1;">
+      <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
+        <li style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fp-gray-light);">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--fp-cyan); flex-shrink: 0;"></span>
+          Started in 2000 as EmbroidMe - rebranded to Fully Promoted in 2017
+        </li>
+        <li style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fp-gray-light);">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--fp-cyan); flex-shrink: 0;"></span>
+          US, Australia, Canada, New Zealand, UK - and now Ireland
+        </li>
+        <li style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fp-gray-light);">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--fp-cyan); flex-shrink: 0;"></span>
+          Part of United Franchise Group (Starpoint Brands)
+        </li>
+        <li style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fp-gray-light);">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--fp-cyan); flex-shrink: 0;"></span>
+          Expanding to France, Spain, India and more
+        </li>
+      </ul>
+    </div>
+    <div style="width: 280px; height: 160px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+      <div style="text-align: center; font-size: 12px; color: var(--fp-gray);">
+        <div style="font-size: 32px; margin-bottom: 8px;">&#127970;</div>
+        UFG HQ Photo<br>Placeholder
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">8 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 9: WHAT WE DO ==================== -->
+<div class="slide" style="background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%); padding: 48px 56px;">
+  <div class="corner-accent top-right"></div>
+  <h2 style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 32px; margin-bottom: 8px;">Your Single Source Partner</h2>
+  <p style="font-size: 14px; color: var(--fp-gray); margin-bottom: 32px;">Everything from concept to delivery under one roof</p>
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; display: flex; gap: 16px; align-items: flex-start;">
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(0, 188, 212, 0.15); border: 1px solid rgba(0, 188, 212, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 20px;">&#128085;</div>
+      <div>
+        <h3 style="font-size: 16px; margin-bottom: 4px;">Branded Apparel & Uniforms</h3>
+        <p style="font-size: 12px; color: var(--fp-gray); line-height: 1.5;">Polo shirts, jackets, high-vis - everything to present a cohesive, professional team</p>
+      </div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; display: flex; gap: 16px; align-items: flex-start;">
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 166, 35, 0.15); border: 1px solid rgba(245, 166, 35, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 20px;">&#127873;</div>
+      <div>
+        <h3 style="font-size: 16px; margin-bottom: 4px;">Corporate Gifts & Merchandise</h3>
+        <p style="font-size: 12px; color: var(--fp-gray); line-height: 1.5;">From high-end executive gifts to affordable promotional items for clients and staff</p>
+      </div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; display: flex; gap: 16px; align-items: flex-start;">
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(18, 180, 136, 0.15); border: 1px solid rgba(18, 180, 136, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 20px;">&#127915;</div>
+      <div>
+        <h3 style="font-size: 16px; margin-bottom: 4px;">Trade Show Swag</h3>
+        <p style="font-size: 12px; color: var(--fp-gray); line-height: 1.5;">Signage, banners, booth construction, giveaways - everything for your next event</p>
+      </div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; display: flex; gap: 16px; align-items: flex-start;">
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 20px;">&#127912;</div>
+      <div>
+        <h3 style="font-size: 16px; margin-bottom: 4px;">Graphic to Print Services</h3>
+        <p style="font-size: 12px; color: var(--fp-gray); line-height: 1.5;">Logo design, branding, business cards, flyers, brochures - concept to final print</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">9 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 10: TANGIBLE REFERRALS ==================== -->
+<div class="slide slide-stats">
+  <div class="corner-accent top-right"></div>
+  <h2>Why Promo Products Are Tangible Referrals</h2>
+  <div class="stats-subtitle">Your brand, in their hands - for months</div>
+  <div class="comparison-row" style="margin-bottom: 24px;">
+    <div class="comparison-card">
+      <div class="duration-bar"><div class="bar" style="height: 12px;"></div></div>
+      <div class="duration-value">30 Seconds</div>
+      <div class="duration-type">Radio Ad</div>
+    </div>
+    <div class="comparison-card">
+      <div class="duration-bar"><div class="bar" style="height: 28px;"></div></div>
+      <div class="duration-value">1 Week</div>
+      <div class="duration-type">LinkedIn Post</div>
+    </div>
+    <div class="comparison-card" style="border-color: var(--fp-accent-gold);">
+      <div class="duration-bar"><div class="bar tall"></div></div>
+      <div class="duration-value" style="color: var(--fp-accent-gold);">12 - 18 Months</div>
+      <div class="duration-type">Branded Product</div>
+    </div>
+  </div>
+  <div style="text-align: center; font-size: 13px; color: var(--fp-gray-light); opacity: 0.8; padding: 16px 40px; background: rgba(255,255,255,0.04); border-radius: 8px;">
+    Promotional products turn one-time viewers into long-term advocates - at less than $0.01 per impression
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">10 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 11: STATS ==================== -->
+<div class="slide" style="background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%); padding: 48px 56px;">
+  <div class="corner-accent top-right"></div>
+  <h2 style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 28px; margin-bottom: 32px;">The Numbers Behind Branded Products</h2>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center;">
+      <div style="font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 36px; color: var(--fp-cyan); margin-bottom: 8px;">5,700</div>
+      <div style="font-size: 13px; color: var(--fp-gray-light);">Impressions per tote bag over its lifetime</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center;">
+      <div style="font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 36px; color: var(--fp-cyan); margin-bottom: 8px;">5,000</div>
+      <div style="font-size: 13px; color: var(--fp-gray-light);">Impressions per branded t-shirt</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center;">
+      <div style="font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 36px; color: var(--fp-accent-gold); margin-bottom: 8px;">90%</div>
+      <div style="font-size: 13px; color: var(--fp-gray-light);">Brand recall after receiving a promo item</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center;">
+      <div style="font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 36px; color: var(--fp-accent-green); margin-bottom: 8px;">500%</div>
+      <div style="font-size: 13px; color: var(--fp-gray-light);">More referrals vs other advertising</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center;">
+      <div style="font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 36px; color: var(--fp-accent-gold); margin-bottom: 8px;">73%</div>
+      <div style="font-size: 13px; color: var(--fp-gray-light);">More likely to do business after receiving a promo item</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center;">
+      <div style="font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 36px; color: var(--fp-cyan); margin-bottom: 8px;">&lt;$0.01</div>
+      <div style="font-size: 13px; color: var(--fp-gray-light);">Cost per impression - most effective ROI</div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">11 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 12: EMBROIDERY ==================== -->
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#129525;</div>
+      <div class="placeholder-text">Your embroidery photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Decoration Technique 01</div>
+    <h2>Embroidery</h2>
+    <p class="edu-subtitle">Thread stitched directly into fabric. The gold standard for professional, long-lasting branding.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Best For</h4>
+        <p>Polos, jackets, caps, bags - anything that needs to look premium</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Durability</h4>
+        <p>Outlasts the garment itself. Won't fade, crack or peel with washing</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>How It Works</h4>
+        <p>Digital file converted to stitch pattern. Machine stitches thread into fabric at high speed</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Stitch Count</h4>
+        <p>Pricing based on stitch count. Typical logo: 5,000 - 15,000 stitches</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">12 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 13: SCREEN PRINTING ==================== -->
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#127912;</div>
+      <div class="placeholder-text">Your screen print photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Decoration Technique 02</div>
+    <h2>Screen Printing</h2>
+    <p class="edu-subtitle">Ink pushed through a mesh screen onto fabric. The go-to method for bulk t-shirt and apparel orders.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Best For</h4>
+        <p>T-shirts, hoodies, tote bags - large runs at low per-unit cost</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Volume Sweet Spot</h4>
+        <p>50+ pieces. Setup cost spread across the run makes bulk orders very economical</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>How It Works</h4>
+        <p>One screen per color. Ink applied through stencil. Each color = one pass through the press</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Colors</h4>
+        <p>1-6 spot colors typical. Each extra color = extra screen = extra cost</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">13 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 14: HEAT TRANSFER ==================== -->
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#128293;</div>
+      <div class="placeholder-text">Your heat transfer photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Decoration Technique 03</div>
+    <h2>Heat Transfer</h2>
+    <p class="edu-subtitle">Design printed onto transfer paper, then heat-pressed onto fabric. Great for full-color, detailed graphics.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Best For</h4>
+        <p>Full-color logos, photo-realistic prints, small-to-medium runs</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Versatility</h4>
+        <p>Works on cotton, polyester, blends. No color limits - full CMYK printing</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>How It Works</h4>
+        <p>Design printed on special paper, then transferred using a heat press at 350-400 degrees F</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Types</h4>
+        <p>Vinyl cut (simple), digital transfer (detailed), DTF (direct to film - newest)</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">14 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 15: DTG ==================== -->
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#128424;</div>
+      <div class="placeholder-text">Your DTG photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Decoration Technique 04</div>
+    <h2>Direct to Garment<br><span style="font-size: 20px; color: var(--fp-cyan);">(DTG)</span></h2>
+    <p class="edu-subtitle">Inkjet printing directly onto fabric. Think of it as a printer for t-shirts - unlimited colors, zero setup.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Best For</h4>
+        <p>Complex artwork, photos, gradients. One-offs and small runs (1-50 pieces)</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>No Setup Cost</h4>
+        <p>No screens, no plates. Print one shirt or one hundred at the same per-unit quality</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>How It Works</h4>
+        <p>Garment pre-treated, loaded into printer. Water-based inks sprayed directly onto fabric</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Fabric</h4>
+        <p>Best on 100% cotton. Polyester and dark garments need special pre-treatment</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">15 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 16: PAD PRINTING ==================== -->
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#128736;</div>
+      <div class="placeholder-text">Your pad print photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Decoration Technique 05</div>
+    <h2>Pad Printing</h2>
+    <p class="edu-subtitle">A silicone pad picks up ink from an etched plate and transfers it onto irregular surfaces. The secret behind branded pens and mugs.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Best For</h4>
+        <p>Pens, golf balls, USB drives, bottles - hard, curved, or uneven surfaces</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Precision</h4>
+        <p>Extremely fine detail on small areas. Sharp logos even on tiny products</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>How It Works</h4>
+        <p>Ink sits in etched plate. Silicone pad lifts ink, conforms to product shape, deposits cleanly</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Colors</h4>
+        <p>1-4 spot colors typical. Each color requires a separate plate and pass</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">16 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 17: SUBLIMATION ==================== -->
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#127752;</div>
+      <div class="placeholder-text">Your sublimation photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Decoration Technique 06</div>
+    <h2>Sublimation</h2>
+    <p class="edu-subtitle">Ink turns to gas under heat and bonds permanently with polyester fibers. Edge-to-edge, all-over printing with zero texture.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Best For</h4>
+        <p>All-over prints, sports jerseys, mugs, mousepads, phone cases</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Feel</h4>
+        <p>No hand feel at all - ink becomes part of the fabric. Won't crack, peel, or fade</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>How It Works</h4>
+        <p>Printed on transfer paper with sublimation ink. Heat converts ink to gas, bonds to polyester</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Limitation</h4>
+        <p>Polyester or poly-coated surfaces only. Won't work on 100% cotton or dark fabrics</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">17 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 18: LASER ENGRAVING ==================== -->
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#9889;</div>
+      <div class="placeholder-text">Your laser engraving photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Decoration Technique 07</div>
+    <h2>Laser Engraving</h2>
+    <p class="edu-subtitle">A focused laser beam etches your design permanently into metal, wood, leather, or glass. The ultimate in premium branding.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Best For</h4>
+        <p>Executive gifts, awards, drinkware, metal pens, leather goods</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Permanence</h4>
+        <p>Cannot fade, wash off, or wear away. Lasts the lifetime of the product</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>How It Works</h4>
+        <p>CO2 or fiber laser burns away surface material, creating a permanent mark at microscopic precision</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Premium Feel</h4>
+        <p>Single-color only, but the tactile depth and precision conveys quality like nothing else</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">18 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 19: PRODUCT GALLERY - APPAREL ==================== -->
+<div class="slide slide-gallery">
+  <div class="corner-accent top-right"></div>
+  <h2>Corporate Apparel</h2>
+  <div class="gallery-grid">
+    <div class="gallery-item wide"><div class="gallery-placeholder">Polo shirts group photo<br>&#128085;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Jacket<br>&#129509;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">High-vis<br>&#129509;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Golf shirt<br>&#128085;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Oxford shirt<br>&#128085;</div></div>
+    <div class="gallery-item wide"><div class="gallery-placeholder">Team uniforms photo<br>&#128101;</div></div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">19 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 20: PRODUCT GALLERY - PROMO ==================== -->
+<div class="slide slide-gallery">
+  <div class="corner-accent top-right"></div>
+  <h2>Promotional Products</h2>
+  <div class="gallery-grid">
+    <div class="gallery-item"><div class="gallery-placeholder">Branded cap<br>&#129506;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Tumbler<br>&#129371;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Power bank<br>&#128267;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Pen<br>&#128394;</div></div>
+    <div class="gallery-item wide"><div class="gallery-placeholder">Branded merchandise spread - caps, bags, bottles, pens<br>&#127873;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Lanyard<br>&#128179;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Cutting board<br>&#129476;</div></div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">20 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 21: COMMUNITY / SPORTS ==================== -->
+<div class="slide slide-gallery">
+  <div class="corner-accent top-right"></div>
+  <h2>Community & Sports Apparel</h2>
+  <div class="gallery-grid">
+    <div class="gallery-item wide"><div class="gallery-placeholder">Sports teams photo<br>&#127936;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">School wear<br>&#127891;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Club jerseys<br>&#9917;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Golf day gear<br>&#9971;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Charity run<br>&#127939;</div></div>
+    <div class="gallery-item wide"><div class="gallery-placeholder">Community event group photo<br>&#127881;</div></div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">21 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 22: WEBSTORES ==================== -->
+<div class="slide" style="background: linear-gradient(135deg, var(--fp-blue-dark) 0%, var(--fp-blue) 100%); padding: 48px 56px;">
+  <div class="corner-accent top-right"></div>
+  <h2 style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 32px; margin-bottom: 8px;">Company Webstores</h2>
+  <p style="font-size: 14px; color: var(--fp-gray); margin-bottom: 32px;">Your brand, your store - we build and manage it for you</p>
+  <div style="display: flex; gap: 24px; align-items: center;">
+    <div style="flex: 1;">
+      <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; margin-bottom: 12px;">How It Works</h3>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
+          <li style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--fp-gray-light);">
+            <span style="width: 24px; height: 24px; border-radius: 50%; background: rgba(0, 188, 212, 0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--fp-cyan);">1</span>
+            We curate your branded catalog - your logo, your products, your prices
+          </li>
+          <li style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--fp-gray-light);">
+            <span style="width: 24px; height: 24px; border-radius: 50%; background: rgba(0, 188, 212, 0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--fp-cyan);">2</span>
+            Employees or members order directly - no spreadsheets or email chains
+          </li>
+          <li style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--fp-gray-light);">
+            <span style="width: 24px; height: 24px; border-radius: 50%; background: rgba(0, 188, 212, 0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--fp-cyan);">3</span>
+            We fulfill, decorate, and ship - you just approve
+          </li>
+        </ul>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <div style="flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; text-align: center;">
+          <div style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px; color: var(--fp-cyan);">24/7</div>
+          <div style="font-size: 11px; color: var(--fp-gray);">Always open</div>
+        </div>
+        <div style="flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; text-align: center;">
+          <div style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px; color: var(--fp-cyan);">0</div>
+          <div style="font-size: 11px; color: var(--fp-gray);">Admin for you</div>
+        </div>
+        <div style="flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; text-align: center;">
+          <div style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px; color: var(--fp-cyan);">&#8734;</div>
+          <div style="font-size: 11px; color: var(--fp-gray);">Products available</div>
+        </div>
+      </div>
+    </div>
+    <div style="width: 320px; height: 360px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+      <div style="text-align: center; font-size: 12px; color: var(--fp-gray);">
+        <div style="font-size: 48px; margin-bottom: 8px;">&#128187;</div>
+        Webstore screenshot<br>(laptop + mobile mockup)
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">22 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 23: GLOBAL CUSTOMERS ==================== -->
+<div class="slide slide-stats">
+  <div class="corner-accent top-right"></div>
+  <h2>Global Customers</h2>
+  <div class="stats-subtitle">Trusted by brands you know</div>
+  <div class="logo-grid">
+    <div class="logo-item"><span>Dunkin'</span></div>
+    <div class="logo-item"><span>Amazon</span></div>
+    <div class="logo-item"><span>YMCA</span></div>
+    <div class="logo-item"><span>Starbucks</span></div>
+    <div class="logo-item"><span>Holiday Inn</span></div>
+    <div class="logo-item"><span>AT&T</span></div>
+    <div class="logo-item"><span>Advance Auto Parts</span></div>
+    <div class="logo-item"><span>ESPN</span></div>
+    <div class="logo-item"><span>ADP</span></div>
+    <div class="logo-item"><span>PGA</span></div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">23 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 24-25: CASE STUDIES ==================== -->
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#129509;</div>
+      <div class="placeholder-text">Protech hi-vis jacket photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Case Study</div>
+    <h2>Protech Solar &<br>EV Chargers</h2>
+    <p class="edu-subtitle">Branded hi-vis workwear with logo front and full back print including QR code for instant contact.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Product</h4>
+        <p>Hi-vis waterproof jacket with reflective strips</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Decoration</h4>
+        <p>Embroidered logo (front), heat transfer (back - logo, text, QR)</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Result</h4>
+        <p>Every site visit = walking billboard. QR code drives direct enquiries</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>ROI</h4>
+        <p>Brand visibility on every job site, every day, for 2+ years per jacket</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">24 / 28</div>
+</div>
+
+<div class="slide slide-education">
+  <div class="image-half">
+    <div class="placeholder">
+      <div class="placeholder-icon">&#129509;</div>
+      <div class="placeholder-text">VW Electrical jacket photo</div>
+    </div>
+  </div>
+  <div class="content-half">
+    <div class="technique-badge">Case Study</div>
+    <h2>VW Electrical</h2>
+    <p class="edu-subtitle">Professional navy jackets with subtle front embroidery and large reflective back print for site visibility.</p>
+    <div class="edu-details">
+      <div class="edu-detail-card">
+        <h4>Product</h4>
+        <p>Regatta professional waterproof jacket - navy</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Decoration</h4>
+        <p>Small embroidered logo (left chest), large reflective transfer (back)</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Result</h4>
+        <p>Clean, professional look that builds trust with residential and commercial clients</p>
+      </div>
+      <div class="edu-detail-card">
+        <h4>Brand Impact</h4>
+        <p>Consistent team appearance = perceived professionalism and reliability</p>
+      </div>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">25 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 26: DSM / REAL WORK ==================== -->
+<div class="slide slide-gallery">
+  <div class="corner-accent top-right"></div>
+  <h2>Recent Work</h2>
+  <div class="gallery-grid">
+    <div class="gallery-item"><div class="gallery-placeholder">DSM bib<br>&#128085;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">DSM power bank<br>&#128267;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">DSM/Huawei cap<br>&#129506;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">DSM tumbler<br>&#129371;</div></div>
+    <div class="gallery-item wide"><div class="gallery-placeholder">DSM pen + lanyard spread<br>&#128394;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">It'seeze bib<br>&#128085;</div></div>
+    <div class="gallery-item"><div class="gallery-placeholder">Quanta lanyard<br>&#128179;</div></div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">26 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 27: IDEAL REFERRALS ==================== -->
+<div class="slide slide-split">
+  <div class="corner-accent top-right"></div>
+  <div class="panel">
+    <h2>Our Ideal Clients</h2>
+    <div class="service-item">
+      <div class="service-icon">&#127970;</div>
+      <div>
+        <h4>Businesses with 10+ Employees</h4>
+        <p>Need consistent branded uniforms and corporate gifts</p>
+      </div>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#128640;</div>
+      <div>
+        <h4>Marketing Agencies</h4>
+        <p>Fulfillment partner for client merchandise campaigns</p>
+      </div>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#127915;</div>
+      <div>
+        <h4>Trade Show Exhibitors</h4>
+        <p>Need everything from booth to giveaways under one roof</p>
+      </div>
+    </div>
+    <div style="margin-top: 16px; padding: 12px 16px; background: rgba(0, 188, 212, 0.08); border-radius: 8px; border: 1px solid rgba(0, 188, 212, 0.15);">
+      <p style="font-size: 12px; color: var(--fp-gray-light); font-style: italic;">Any business that needs to be <strong>seen</strong> and <strong>memorable</strong></p>
+    </div>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel">
+    <h2>Our Ideal Franchise Partner</h2>
+    <div class="service-item">
+      <div class="service-icon">&#127942;</div>
+      <div>
+        <h4>Motivated Entrepreneurs</h4>
+        <p>Ready to build something with a proven system behind them</p>
+      </div>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#128188;</div>
+      <div>
+        <h4>Strong Management Experience</h4>
+        <p>Know how to lead teams and grow a local business</p>
+      </div>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#128176;</div>
+      <div>
+        <h4>Capital to Invest</h4>
+        <p>Looking for a business, not a job - and want a proven model</p>
+      </div>
+    </div>
+    <div style="margin-top: 16px; padding: 12px 16px; background: rgba(245, 166, 35, 0.08); border-radius: 8px; border: 1px solid rgba(245, 166, 35, 0.15);">
+      <p style="font-size: 12px; color: var(--fp-gray-light); font-style: italic;">A <strong>proven system</strong> instead of a start-up gamble</p>
+    </div>
+  </div>
+  <div class="fp-watermark">FULLY PROMOTED</div>
+  <div class="slide-number">27 / 28</div>
+</div>
+
+<!-- ==================== SLIDE 28: THANK YOU ==================== -->
+<div class="slide slide-close">
+  <div class="corner-accent top-right"></div>
+  <div class="corner-accent bottom-left"></div>
+  <div class="fp-logo-large">
+    <span>FP</span>
+  </div>
+  <h1>Let's Grow Together</h1>
+  <div class="contact-row">
+    <div class="contact-item"><strong>T:</strong> 01 485 1205</div>
+    <div class="contact-item"><strong>M:</strong> 089 478 1643</div>
+    <div class="contact-item"><strong>E:</strong> prakash@fullypromoted.ie</div>
+  </div>
+  <div class="contact-row" style="margin-top: -16px;">
+    <div class="contact-item"><strong>W:</strong> www.fullypromoted.ie</div>
+  </div>
+  <div style="margin-top: 8px; font-size: 13px; color: var(--fp-gray); margin-bottom: 24px;">
+    Prakash Inani - Ireland Master Partner
+  </div>
+  <div class="cta-button">GET A QUOTE TODAY</div>
+  <div class="slide-number">28 / 28</div>
+</div>
+
+</body>
+</html>

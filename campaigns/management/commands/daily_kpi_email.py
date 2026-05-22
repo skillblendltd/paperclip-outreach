@@ -97,7 +97,7 @@ def _build_html(ctx):
 <body style="font-family: monospace; font-size: 13px; line-height: 1.6; color: #333; max-width: 700px;">
 {html_body}
 <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-<p style="color: #999; font-size: 11px;">Paperclip Outreach - Daily KPI Report</p>
+<p style="color: #999; font-size: 11px;">Paperklip - Daily KPI Report</p>
 </body>
 </html>"""
 
@@ -141,7 +141,7 @@ class Command(BaseCommand):
                 subject=subject,
                 body_html=html_body,
                 from_email='noreply@mail.taggiq.com',
-                from_name='Paperclip Outreach',
+                from_name='Paperklip',
             )
             if result.get('success', True):
                 self.stdout.write(self.style.SUCCESS(f'KPI email sent to {recipient}'))

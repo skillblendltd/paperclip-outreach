@@ -1,4 +1,4 @@
-"""Vapi adapter — translates Paperclip's CallPrompt / CallEvent into Vapi's
+"""Vapi adapter — translates Paperklip's CallPrompt / CallEvent into Vapi's
 wire format and back.
 
 This is the ONLY file that should know about Vapi's vocabulary
@@ -32,7 +32,7 @@ class VapiProvider:
     slug = 'vapi'
 
     # ------------------------------------------------------------------
-    # Outbound: Paperclip → Vapi
+    # Outbound: Paperklip → Vapi
     # ------------------------------------------------------------------
 
     def place_call(self, prospect, prompt: CallPrompt) -> CallResult:
@@ -91,7 +91,7 @@ class VapiProvider:
                                   (overrides whatever's in the dashboard)
         - `variableValues`      ← prompt.structured_facts (so any `{{var}}`
                                   remaining in the assistant's config gets
-                                  filled, though Paperclip-rendered strings
+                                  filled, though Paperklip-rendered strings
                                   contain none)
         - `metadata`            ← correlation_id + a few key facts so they
                                   echo back via webhook
@@ -111,14 +111,14 @@ class VapiProvider:
 
         if prompt.structured_facts:
             # Vapi templates `{{key}}` in the assistant's config from this map.
-            # Paperclip's rendered strings contain no `{{}}`, so this is purely
+            # Paperklip's rendered strings contain no `{{}}`, so this is purely
             # a belt-and-braces signal for any provider-side templates.
             assistant_overrides['variableValues'] = dict(prompt.structured_facts)
 
         if prompt.system_prompt:
             # Override the system prompt for THIS call only. Lets us keep the
             # Vapi dashboard assistant a thin shell — all prompt content lives
-            # in Paperclip and travels per-call.
+            # in Paperklip and travels per-call.
             assistant_overrides['model'] = {
                 'messages': [
                     {'role': 'system', 'content': prompt.system_prompt},

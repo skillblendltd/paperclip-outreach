@@ -1,6 +1,6 @@
 """Build a fully-rendered CallPrompt from a Prospect.
 
-This is the boundary between Paperclip's domain knowledge and the
+This is the boundary between Paperklip's domain knowledge and the
 provider-agnostic call dispatch surface. Every string returned here is
 already rendered — no `{{vars}}`, no provider-specific markers — so adapters
 can ship them straight to whatever API is on the other side.
@@ -183,7 +183,7 @@ def _resolve_history_block(prospect) -> str:
 
 def _build_structured_facts(prospect) -> dict[str, str]:
     """Short key/value pairs that adapters MAY use for variable injection.
-    Paperclip-rendered strings already contain no `{{vars}}`, so this is a
+    Paperklip-rendered strings already contain no `{{vars}}`, so this is a
     secondary signal — useful for any provider-side templates a future
     adapter might rely on.
     """
@@ -227,8 +227,8 @@ def _build_guardrails(prospect) -> dict[str, object]:
 
 
 def _render_no_provider_vars(template: str, prospect) -> str:
-    """Render Paperclip-side template variables in a PromptTemplate string.
-    No `{{}}` tokens leave Paperclip — adapters never see un-rendered text.
+    """Render Paperklip-side template variables in a PromptTemplate string.
+    No `{{}}` tokens leave Paperklip — adapters never see un-rendered text.
     """
     name = getattr(prospect, 'decision_maker_name', '') or 'there'
     company = getattr(prospect, 'business_name', '') or ''

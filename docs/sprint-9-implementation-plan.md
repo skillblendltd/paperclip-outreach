@@ -9,7 +9,7 @@
 
 ## Problem Statement
 
-Paperclip Outreach runs a fully autonomous sales pipeline (email sequences, AI replies, calls, nudges) but has no way to see how it's performing without running Django shell commands. A "24/7 zero headcount" system that fails silently is worse than a manual one. Prakash needs:
+Paperklip runs a fully autonomous sales pipeline (email sequences, AI replies, calls, nudges) but has no way to see how it's performing without running Django shell commands. A "24/7 zero headcount" system that fails silently is worse than a manual one. Prakash needs:
 
 1. A single page that answers "how's the pipeline?" in 10 seconds
 2. A morning email that tells him what to act on today
@@ -17,7 +17,7 @@ Paperclip Outreach runs a fully autonomous sales pipeline (email sequences, AI r
 
 ## Design Principles
 
-1. **API-first** - Build analytics endpoints that the dashboard consumes. These endpoints are reusable when Paperclip is productized.
+1. **API-first** - Build analytics endpoints that the dashboard consumes. These endpoints are reusable when Paperklip is productized.
 2. **Zero new models** - All data already exists in EmailLog, CallLog, InboundEmail, ProspectEvent, AIUsageLog, Prospect. This is a read/aggregation problem.
 3. **Django templates, not SPA** - No npm, no build step, no frontend framework. One HTML template + Chart.js CDN + Tailwind CDN.
 4. **Action-oriented** - Show names not just numbers. "Sharon Bates waiting 3hrs" not "1 pending reply."

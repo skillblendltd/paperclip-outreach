@@ -1,5 +1,5 @@
 """
-Email Service for Paperclip Outreach
+Email Service for Paperklip
 Handles email sending with AWS SES SMTP integration
 """
 import logging

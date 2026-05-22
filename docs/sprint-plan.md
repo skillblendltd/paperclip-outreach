@@ -1,4 +1,4 @@
-# Paperclip Outreach v2 - Sprint Implementation Plan
+# Paperklip v2 - Sprint Implementation Plan
 
 **Date:** 2026-04-08
 **Last updated:** 2026-04-08
@@ -343,4 +343,4 @@ Summary:
 | Seed PromptTemplate from skill files | First design partner | They need their own reply voice |
 | Wire AI tracking into analyze_calls | Calling goes active | Need cost observability |
 | Seed CallScript records | Calling campaigns activated | DB-driven call scripts |
-| Paperclip as SME/BNI product | After 50 TaggIQ customers | Validated pipeline + demand from BNI members |
+| Paperklip as SME/BNI product | After 50 TaggIQ customers | Validated pipeline + demand from BNI members |

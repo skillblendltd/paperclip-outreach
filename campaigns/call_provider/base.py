@@ -1,12 +1,12 @@
 """Provider-agnostic call dispatch contract.
 
-This module defines the boundary between Paperclip (which owns conversation
+This module defines the boundary between Paperklip (which owns conversation
 logic, prompts, scheduling, idempotency, lifecycle) and the underlying voice
 provider (Vapi today, possibly Retell/Bland/Twilio+OpenAI tomorrow).
 
 Architectural rule (CTO-enforced):
     No provider vocabulary above this line. The dataclasses below speak
-    Paperclip's language. Each adapter (e.g. `vapi.py`) translates these
+    Paperklip's language. Each adapter (e.g. `vapi.py`) translates these
     into the provider's wire format.
 """
 from __future__ import annotations
@@ -16,15 +16,15 @@ from typing import Optional, Protocol
 
 
 # ---------------------------------------------------------------------------
-# Paperclip-native artefacts (provider speaks these, never the reverse)
+# Paperklip-native artefacts (provider speaks these, never the reverse)
 # ---------------------------------------------------------------------------
 
 @dataclass
 class CallPrompt:
     """Fully-formed instructions for one outbound call.
 
-    All fields are rendered server-side by Paperclip. No template syntax
-    (e.g. `{{fname}}`) is allowed to leave Paperclip — adapters receive
+    All fields are rendered server-side by Paperklip. No template syntax
+    (e.g. `{{fname}}`) is allowed to leave Paperklip — adapters receive
     finished strings. `structured_facts` is the exception: short key/value
     pairs that an adapter MAY use for variable injection if the provider
     supports it. Whether or not the adapter uses structured_facts, the
@@ -53,7 +53,7 @@ class CallPrompt:
     """
 
     correlation_id: str = ''
-    """Paperclip's CallTask UUID (or similar). Echoed back via webhook so we
+    """Paperklip's CallTask UUID (or similar). Echoed back via webhook so we
     can tie events to the originating task."""
 
 
@@ -86,7 +86,7 @@ class CallEvent:
     """Provider-generated short summary if available. Optional."""
 
     disposition: str = ''
-    """Provider's intent classification mapped to Paperclip vocabulary:
+    """Provider's intent classification mapped to Paperklip vocabulary:
        'interested' | 'demo_booked' | 'not_interested' | 'voicemail_left'
        | 'no_answer' | 'failed' | ''. May be empty when not derivable."""
 

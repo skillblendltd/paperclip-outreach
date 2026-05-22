@@ -184,7 +184,7 @@ Every layer enforces the org/product boundary:
 
 ## How to add a new persona (TaggIQ example)
 
-1. **Write the voice rules.** Open the Paperclip UI → Prompt Templates → New. Set `product=TaggIQ`, `feature=email_reply`, write the system_prompt as voice/intent/rules only (no Django shell, no execution recipe). Set `from_name="Prakash from TaggIQ"`, `signature_name="Prakash"`, `max_reply_words=180`, `warn_reply_words=130`.
+1. **Write the voice rules.** Open the Paperklip UI → Prompt Templates → New. Set `product=TaggIQ`, `feature=email_reply`, write the system_prompt as voice/intent/rules only (no Django shell, no execution recipe). Set `from_name="Prakash from TaggIQ"`, `signature_name="Prakash"`, `max_reply_words=180`, `warn_reply_words=130`.
 
 2. **Verify mailboxes exist.** Each TaggIQ campaign should already have a MailboxConfig. If any are missing, the sibling fallback kicks in.
 

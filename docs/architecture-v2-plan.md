@@ -1,4 +1,4 @@
-# Paperclip Outreach v2 - Architecture Refactoring Plan
+# Paperklip v2 - Architecture Refactoring Plan
 
 **Date:** 2026-04-08
 **Author:** Prakash Inani + Claude (CTO Architect + AI Architect)

@@ -1,6 +1,6 @@
 """Multi-MCP integration boundary.
 
-Paperclip's reply pipeline talks to MCP servers exclusively through this
+Paperklip's reply pipeline talks to MCP servers exclusively through this
 package. Direct subprocess invocations of `claude --mcp-config` from any
 other module are a BLOCKER at review.
 

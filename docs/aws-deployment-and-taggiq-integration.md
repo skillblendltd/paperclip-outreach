@@ -12,10 +12,10 @@
 
 Two connected workstreams:
 
-1. **Deploy Paperclip Outreach to AWS** - move from Prakash's local Mac to an EC2 instance in the same VPC as TaggIQ
-2. **Build the TaggIQ <-> Paperclip webhook bridge** - so TaggIQ trial lifecycle events trigger automated nurture sequences in Paperclip
+1. **Deploy Paperklip to AWS** - move from Prakash's local Mac to an EC2 instance in the same VPC as TaggIQ
+2. **Build the TaggIQ <-> Paperklip webhook bridge** - so TaggIQ trial lifecycle events trigger automated nurture sequences in Paperklip
 
-**Why now:** The 100-customer plan depends on converting trials at 25%. Without lifecycle automation between TaggIQ (where trials happen) and Paperclip (where email sequences run), there's zero automated touchpoints between signup and payment. This bridge closes that gap.
+**Why now:** The 100-customer plan depends on converting trials at 25%. Without lifecycle automation between TaggIQ (where trials happen) and Paperklip (where email sequences run), there's zero automated touchpoints between signup and payment. This bridge closes that gap.
 
 **Why AWS:** Both systems in the same VPC means private-IP communication, no tunnels, no ngrok, no split-brain. The Docker stack already works locally - same `docker-compose.yml` runs on EC2.
 
@@ -64,13 +64,13 @@ Two connected workstreams:
 
 ### Target state
 
-Paperclip is just another integration for TaggIQ - same as Stripe or Xero. No public domain needed. TaggIQ talks to Paperclip via private IP within the VPC. Vapi talks via Elastic IP.
+Paperklip is just another integration for TaggIQ - same as Stripe or Xero. No public domain needed. TaggIQ talks to Paperklip via private IP within the VPC. Vapi talks via Elastic IP.
 
 ```
                           AWS eu-west-1 (same VPC)
                           
  ┌──────────────────────────────────┐    ┌─────────────────────────────────────┐
- │  TaggIQ EC2 (t3.small)          │    │  Paperclip EC2 (t3.micro)          │
+ │  TaggIQ EC2 (t3.small)          │    │  Paperklip EC2 (t3.micro)          │
  │  Private IP: 172.31.48.72       │    │  Private IP: 172.31.x.x (new)     │
  │                                  │    │  Elastic IP: x.x.x.x (for Vapi)  │
  │  Django + Celery + Redis         │    │                                     │
@@ -99,10 +99,10 @@ No Nginx, no SSL, no domain. HMAC signature verification secures the webhook end
 ### External services (unchanged)
 
 ```
-AWS SES (us-east-1)         <- Paperclip sends campaign emails
-Zoho IMAP (imappro.zoho.eu) <- Paperclip monitors TaggIQ replies
-Google IMAP                  <- Paperclip monitors FP replies
-Vapi.ai                      <- Paperclip places/receives calls
+AWS SES (us-east-1)         <- Paperklip sends campaign emails
+Zoho IMAP (imappro.zoho.eu) <- Paperklip monitors TaggIQ replies
+Google IMAP                  <- Paperklip monitors FP replies
+Vapi.ai                      <- Paperklip places/receives calls
 Google Drive (rclone)        <- Nightly backups
 ```
 
@@ -110,7 +110,7 @@ Google Drive (rclone)        <- Nightly backups
 
 | Resource | Monthly |
 |---|---|
-| EC2 t3.micro (Paperclip) | ~$8.50 |
+| EC2 t3.micro (Paperklip) | ~$8.50 |
 | EBS 20GB gp3 (root volume) | ~$1.60 |
 | Elastic IP (attached to running instance) | $0 |
 | Data transfer (same VPC, private IP) | $0 |
@@ -120,7 +120,7 @@ Google Drive (rclone)        <- Nightly backups
 
 ## Sprint 5: AWS Deployment (After Sprint 4)
 
-**Prerequisite:** Sprint 4 complete - Paperclip running in Docker with PostgreSQL locally, verified for 2+ business days.
+**Prerequisite:** Sprint 4 complete - Paperklip running in Docker with PostgreSQL locally, verified for 2+ business days.
 
 ### Phase 5A: Provision AWS Infrastructure
 
@@ -141,7 +141,7 @@ Google Drive (rclone)        <- Nightly backups
 | HTTPS | 443 | Prakash's IP | Admin/API access |
 | All outbound | All | 0.0.0.0/0 | SES, IMAP, Vapi API, Google Drive |
 
-### Phase 5B: Deploy Paperclip to AWS
+### Phase 5B: Deploy Paperklip to AWS
 
 | # | Task | Size | Notes |
 |---|---|---|---|
@@ -169,7 +169,7 @@ Timeline:
 
 | # | Task | Size | Notes |
 |---|---|---|---|
-| 5C.1 | **STOP local cron** | S | `crontab -e` - comment out all 3 Paperclip jobs. This is the point of no return for the old system. |
+| 5C.1 | **STOP local cron** | S | `crontab -e` - comment out all 3 Paperklip jobs. This is the point of no return for the old system. |
 | 5C.2 | Wait for any running jobs to finish | S | Check lock files: `/tmp/campaigns_daily.lock`, `/tmp/outreach_reply_monitor.lock` |
 | 5C.3 | Dump local PostgreSQL | S | `docker exec outreach_db pg_dump -U outreach -d outreach > outreach_migration.sql` |
 | 5C.4 | Transfer dump to AWS | S | `scp outreach_migration.sql ec2-user@<ELASTIC_IP>:~/` |
@@ -236,9 +236,9 @@ The local PostgreSQL database is untouched during migration (we dump, not move).
 
 ## Sprint 6: TaggIQ Webhook Bridge
 
-**Prerequisite:** Sprint 5 complete - Paperclip running on AWS, verified for 2+ business days.
+**Prerequisite:** Sprint 5 complete - Paperklip running on AWS, verified for 2+ business days.
 
-### Phase 6A: Paperclip Side (Receive Webhooks)
+### Phase 6A: Paperklip Side (Receive Webhooks)
 
 #### New model: WebhookEvent
 
@@ -382,7 +382,7 @@ def _handle_taggiq_event(event):
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def fire_outreach_webhook(self, event_type, data):
-    """Fire lifecycle webhook to Paperclip Outreach."""
+    """Fire lifecycle webhook to Paperklip."""
     import hmac, hashlib, json, uuid
     from django.conf import settings
     from django.utils.timezone import now
@@ -567,7 +567,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 ```
 
-### Phase 6C: Lifecycle Campaigns in Paperclip
+### Phase 6C: Lifecycle Campaigns in Paperklip
 
 Create 4 new campaigns with email templates. These are triggered by webhook events, not by the daily cron scrape-and-send cycle. They use the same `send_sequences` infrastructure - the webhook creates the prospect, and the next cron run picks them up.
 
@@ -623,10 +623,10 @@ Create 4 new campaigns with email templates. These are triggered by webhook even
 
 | # | Task | Size | Notes |
 |---|---|---|---|
-| 6D.1 | Add `TAGGIQ_WEBHOOK_SECRET` to Paperclip .env | S | Same value as TaggIQ's `OUTREACH_WEBHOOK_SECRET` |
-| 6D.2 | Add `TAGGIQ_WEBHOOK_SECRET` to Paperclip settings.py | S | `settings.TAGGIQ_WEBHOOK_SECRET` |
-| 6D.3 | Restrict `ALLOWED_HOSTS` in Paperclip settings | S | `['outreach.taggiq.com', 'localhost']` - no more wildcard |
-| 6D.4 | Add API key auth to existing Paperclip endpoints | M | Simple `X-API-Key` header check for non-webhook endpoints |
+| 6D.1 | Add `TAGGIQ_WEBHOOK_SECRET` to Paperklip .env | S | Same value as TaggIQ's `OUTREACH_WEBHOOK_SECRET` |
+| 6D.2 | Add `TAGGIQ_WEBHOOK_SECRET` to Paperklip settings.py | S | `settings.TAGGIQ_WEBHOOK_SECRET` |
+| 6D.3 | Restrict `ALLOWED_HOSTS` in Paperklip settings | S | `['outreach.taggiq.com', 'localhost']` - no more wildcard |
+| 6D.4 | Add API key auth to existing Paperklip endpoints | M | Simple `X-API-Key` header check for non-webhook endpoints |
 | 6D.5 | Add rate limiting to webhook endpoint | S | Max 100 requests/minute (generous, but prevents abuse) |
 
 ---
@@ -650,7 +650,7 @@ The backup script's fallback logic (Docker pg_dump -> SQLite if container down) 
 
 ## Webhook Payload Contract
 
-### Request format (TaggIQ -> Paperclip)
+### Request format (TaggIQ -> Paperklip)
 
 ```
 POST /api/webhooks/taggiq/
@@ -794,9 +794,9 @@ X-TaggIQ-Delivery: <uuid>
 
 | # | Task | Phase | Size | Dependencies | Status |
 |---|---|---|---|---|---|
-| 6A.1 | WebhookEvent model + migration (Paperclip) | 6A | S | Sprint 5 | Pending |
+| 6A.1 | WebhookEvent model + migration (Paperklip) | 6A | S | Sprint 5 | Pending |
 | 6A.2 | Add Prospect fields: taggiq_user_id, trial dates | 6A | S | None | Pending |
-| 6A.3 | POST /api/webhooks/taggiq/ endpoint (Paperclip) | 6A | M | 6A.1, 6A.2 | Pending |
+| 6A.3 | POST /api/webhooks/taggiq/ endpoint (Paperklip) | 6A | M | 6A.1, 6A.2 | Pending |
 | 6A.4 | Event handler logic: 6 event types | 6A | M | 6A.3 | Pending |
 | 6A.5 | URL routing for webhook endpoint | 6A | S | 6A.3 | Pending |
 | 6B.1 | fire_outreach_webhook Celery task (TaggIQ) | 6B | S | None | Pending |
@@ -808,7 +808,7 @@ X-TaggIQ-Delivery: <uuid>
 | 6C.2 | Create Trial Conversion campaign + 6 templates | 6C | S | 6A.4 | Pending |
 | 6C.3 | Create Trial Expiry campaign + 4 templates | 6C | S | 6A.4 | Pending |
 | 6C.4 | Create Win-Back campaign + 6 templates | 6C | S | 6A.4 | Pending |
-| 6D.1 | Add TAGGIQ_WEBHOOK_SECRET to Paperclip .env | 6D | S | 6A.3 | Pending |
+| 6D.1 | Add TAGGIQ_WEBHOOK_SECRET to Paperklip .env | 6D | S | 6A.3 | Pending |
 | 6D.2 | Restrict ALLOWED_HOSTS | 6D | S | Sprint 5 | Pending |
 | 6D.3 | Rate limiting on webhook endpoint | 6D | S | 6A.3 | Pending |
 | 6E.1 | End-to-end test: manual webhook fire -> verify prospect created | 6E | M | All above | Pending |
@@ -842,7 +842,7 @@ X-TaggIQ-Delivery: <uuid>
 | API: `localhost:8002/api/dashboard/` | `http://<ELASTIC_IP>:8002/api/dashboard/` |
 | Claude skills run locally via `venv/bin/python` | Skills SSH into EC2 and run commands remotely |
 | Reply monitor uses macOS notifications | No desktop notifications (check logs or build Slack alert) |
-| TaggIQ has no connection to Paperclip | TaggIQ fires webhooks to `http://<PRIVATE_IP>:8002` (same VPC, like Stripe) |
+| TaggIQ has no connection to Paperklip | TaggIQ fires webhooks to `http://<PRIVATE_IP>:8002` (same VPC, like Stripe) |
 
 ### Claude skill adaptation
 
