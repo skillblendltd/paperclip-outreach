@@ -581,8 +581,11 @@ class MailboxConfig(BaseModel):
 class Suppression(BaseModel):
     REASON_CHOICES = [
         ('opt_out', 'Opted Out'),
-        ('bounce', 'Bounced'),
-        ('complaint', 'Complaint'),
+        ('hard_bounce', 'Hard Bounce (permanent)'),
+        ('soft_bounce', 'Soft Bounce (transient)'),
+        ('complained', 'User Complained / Spam'),
+        ('test_address', 'Test Address'),
+        ('role_account', 'Role Account (noreply, postmaster, etc)'),
         ('manual', 'Manually Added'),
     ]
 
@@ -591,8 +594,12 @@ class Suppression(BaseModel):
         Product, null=True, blank=True, on_delete=models.CASCADE, related_name='suppressions',
         help_text='Product scope. Null = global suppression across all products.',
     )
-    reason = models.CharField(max_length=20, choices=REASON_CHOICES)
-    notes = models.TextField(blank=True, default='')
+    reason = models.CharField(max_length=30, choices=REASON_CHOICES)
+    notes = models.TextField(blank=True, default='', help_text='Bounce type, complaint category, or other context')
+    soft_bounce_count = models.IntegerField(
+        default=0,
+        help_text='Number of soft bounces before suppression. Suppressed when >= 3.',
+    )
 
     class Meta:
         db_table = 'suppressions'
