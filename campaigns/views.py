@@ -14,6 +14,7 @@ from django.db.models import Q, Count
 
 from campaigns.models import Campaign, Product, Prospect, EmailLog, EmailQueue, Suppression, CallLog, ScriptInsight
 from campaigns.email_service import EmailService
+from campaigns.utils import clean_email
 
 logger = logging.getLogger(__name__)
 
@@ -666,11 +667,20 @@ def outreach_import_prospects(request):
     created = 0
     updated = 0
     skipped = 0
+    rejected_emails = 0
 
     for p in prospects_data:
-        email = (p.get('email') or '').strip()
+        raw_email = p.get('email') or ''
         name = (p.get('business_name') or '').strip()
         if not name:
+            skipped += 1
+            continue
+
+        # Validate and clean email
+        email = clean_email(raw_email) if raw_email else None
+        if raw_email and not email:
+            logger.warning(f'Import rejected bad email: {raw_email} for {name}')
+            rejected_emails += 1
             skipped += 1
             continue
 
@@ -694,7 +704,7 @@ def outreach_import_prospects(request):
             Prospect.objects.create(
                 campaign=campaign,
                 business_name=name,
-                email=email,
+                email=email or '',
                 website=p.get('website') or '',
                 phone=p.get('phone') or '',
                 city=p.get('city') or '',
@@ -717,6 +727,7 @@ def outreach_import_prospects(request):
         'created': created,
         'updated': updated,
         'skipped': skipped,
+        'rejected_emails': rejected_emails,
         'total': Prospect.objects.filter(campaign=campaign).count(),
     })
 

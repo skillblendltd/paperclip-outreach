@@ -89,6 +89,10 @@ class Campaign(BaseModel):
     # Safeguards
     sending_enabled = models.BooleanField(default=False, help_text='Master switch for this campaign')
     max_emails_per_day = models.IntegerField(default=15)
+    domain_daily_limit = models.IntegerField(
+        null=True, blank=True,
+        help_text='Per-domain daily limit (for warmup). Leave blank for no limit. Set to 50 (week 1), 100 (week 2), 200 (week 3), then unset after warmup.',
+    )
     min_gap_minutes = models.IntegerField(default=15)
     max_emails_per_prospect = models.IntegerField(default=5)
     require_sequence_order = models.BooleanField(default=True)

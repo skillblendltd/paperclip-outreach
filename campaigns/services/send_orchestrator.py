@@ -9,6 +9,7 @@ from django.utils import timezone
 from campaigns.models import EmailLog
 from campaigns.email_service import EmailService
 from campaigns.services.template_resolver import render, determine_variant
+from campaigns.utils import is_likely_test_email
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,20 @@ def send_one(campaign, prospect, template, sequence_number, dry_run=False):
     """
     subject, body_html = render(template, prospect, campaign)
     ab_variant = determine_variant(prospect)
+
+    # Safeguard: block test/placeholder emails before SES
+    if is_likely_test_email(prospect.email):
+        logger.warning(f'Blocked test email at send time: {prospect.email}')
+        return {
+            'status': 'blocked',
+            'log_id': None,
+            'error': 'Test email address blocked',
+            'subject': subject,
+            'prospect': prospect.business_name,
+            'email': prospect.email,
+            'sequence': sequence_number,
+            'variant': ab_variant,
+        }
 
     if dry_run:
         return {

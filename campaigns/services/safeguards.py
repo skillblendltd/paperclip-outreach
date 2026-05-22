@@ -12,12 +12,25 @@ from campaigns.services.eligibility import is_suppressed
 
 
 def daily_remaining(campaign):
-    """How many more emails can this campaign send today."""
+    """How many more emails can this campaign send today.
+
+    Returns the minimum of:
+    - Campaign daily limit (max_emails_per_day)
+    - Domain warmup limit (domain_daily_limit, if set)
+    """
     today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
     sent_today = EmailLog.objects.filter(
         campaign=campaign, created_at__gte=today_start, status='sent'
     ).count()
-    return max(0, campaign.max_emails_per_day - sent_today)
+
+    campaign_remaining = max(0, campaign.max_emails_per_day - sent_today)
+
+    # Check domain limit if set
+    if campaign.domain_daily_limit:
+        domain_remaining = max(0, campaign.domain_daily_limit - sent_today)
+        return min(campaign_remaining, domain_remaining)
+
+    return campaign_remaining
 
 
 def check_min_gap(campaign):
