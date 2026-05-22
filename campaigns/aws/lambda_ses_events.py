@@ -175,10 +175,13 @@ def increment_soft_bounce(cur, email, diagnostic=''):
                 ''', ('soft_bounce', f'Reached 3 soft bounces: {diagnostic}', email))
                 logger.warning(f'Email {email} suppressed after 3 soft bounces')
         else:
-            # New suppression for this email
+            # New suppression for this email (or concurrent insert - handled by ON CONFLICT)
             cur.execute('''
                 INSERT INTO suppressions (id, email, product_id, reason, soft_bounce_count, notes, created_at, updated_at)
                 VALUES (gen_random_uuid(), %s, NULL, %s, %s, %s, NOW(), NOW())
+                ON CONFLICT (email, product_id) DO UPDATE SET
+                    soft_bounce_count = soft_bounce_count + 1,
+                    updated_at = NOW()
             ''', (email, 'soft_bounce', 1, diagnostic))
 
             logger.info(f'Created soft bounce suppression for {email} (count: 1)')
