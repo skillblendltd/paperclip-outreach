@@ -39,10 +39,9 @@ class Command(BaseCommand):
             defaults={
                 'from_email': 'jamal@fullypromoted.co.uk',
                 'from_name': 'Jamal Shah',
-                'description': 'Fully Promoted UK franchise partner recruitment autonomous pipeline',
                 'sending_enabled': False,
                 'max_emails_per_day': 15,
-                'min_email_gap_hours': 24,
+                'min_gap_minutes': 1440,  # 24 hours
                 'max_emails_per_prospect': 5,
             }
         )
