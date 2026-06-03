@@ -193,6 +193,12 @@ class Command(BaseCommand):
                     'no .credentials.json AND no CLAUDE_CODE_OAUTH_TOKEN env var. '
                     'CLI has no auth source. Run: claude setup-token (or set env var)'))
             # else: env-var auth is in use, no creds file expected → no finding
+        elif env_token:
+            # Env-var auth takes precedence over the file. A stale .credentials.json
+            # is harmless when CLAUDE_CODE_OAUTH_TOKEN is set — the CLI uses the env
+            # var. Skip the file expiry check to avoid false-positive CRITICALs.
+            # The live probe below is the authoritative health check.
+            pass
         else:
             try:
                 data = json.loads(cred_path.read_text())
@@ -336,6 +342,16 @@ class Command(BaseCommand):
                     f'AWS_SES_CONFIGURATION_SET="{config_set}" does NOT exist in SES. '
                     f'Every outbound will be 554-rejected. Fix the env var or create '
                     f'the Set in AWS SES console.',
+                ))
+            elif 'AccessDenied' in msg or 'not authorized' in msg:
+                # IAM user lacks ses:DescribeConfigurationSet. We can't verify, but
+                # this is an IAM gap not a Configuration Set problem. Downgrade to
+                # INFO so it doesn't spam WARN on every daily cron tick. Fix by
+                # granting ses:DescribeConfigurationSet to the IAM user.
+                findings.append((
+                    'INFO', slug,
+                    f'Cannot verify Configuration Set "{config_set}" (IAM lacks '
+                    f'ses:DescribeConfigurationSet). Verification skipped.',
                 ))
             else:
                 findings.append((
