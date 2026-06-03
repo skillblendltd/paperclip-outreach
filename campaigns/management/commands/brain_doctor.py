@@ -21,6 +21,7 @@ import time
 from datetime import datetime, timedelta, timezone as dt_timezone
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from campaigns.models import Campaign, PromptTemplate, ProductBrain
@@ -44,6 +45,8 @@ class Command(BaseCommand):
                             help='Skip the Claude CLI auth healthcheck (for offline runs)')
         parser.add_argument('--skip-log-scan', action='store_true',
                             help='Skip the reply monitor log failure-streak scan')
+        parser.add_argument('--skip-ses-check', action='store_true',
+                            help='Skip the AWS SES Configuration Set existence check')
 
     def handle(self, *args, **opts):
         findings = []  # (severity, brain_slug, message)
@@ -63,6 +66,15 @@ class Command(BaseCommand):
         # before the inbound backlog grows silently.
         if not opts.get('skip_log_scan'):
             self._check_reply_log(findings)
+
+        # 0c. AWS SES Configuration Set existence check.
+        # Added 2026-06-03 after the .env had AWS_SES_CONFIGURATION_SET=paperclip-outreach
+        # but the actual set is named paperclip-bounces. SES then 554-rejected every
+        # outbound and the hot-patch workaround disabled bounce tracking for all campaigns.
+        # brain_doctor now verifies the env var points to a Configuration Set that exists
+        # AND has an active bounce/complaint event destination.
+        if not opts.get('skip_ses_check'):
+            self._check_ses_configuration_set(findings)
 
         brains = ProductBrain.objects.select_related('product', 'reply_prompt_template') \
                                      .filter(is_active=True)
@@ -283,3 +295,50 @@ class Command(BaseCommand):
                 f'{failures} "Claude exited with code" lines in last 200 log entries. '
                 f'Investigate before backlog grows.'
             ))
+
+    def _check_ses_configuration_set(self, findings):
+        """Verify AWS_SES_CONFIGURATION_SET points to a Set that actually exists in SES.
+
+        Failure mode this guards against: a typo in the env var (or a Set being
+        deleted from AWS) causes SES to reject every outbound with HTTP 554
+        ("Configuration Set does not exist"). All campaigns silently stop sending.
+
+        CRITICAL if the env var is set but the Set is missing in SES.
+        WARN if env var is unset (sends will succeed but bounce tracking is disabled).
+        INFO if everything is healthy.
+        """
+        slug = 'ses_config_set'
+        config_set = getattr(settings, 'AWS_SES_CONFIGURATION_SET', '') or ''
+
+        if not config_set:
+            findings.append((
+                'WARN', slug,
+                'AWS_SES_CONFIGURATION_SET is not set. Outbound will succeed but '
+                'bounce/complaint events will not flow to suppressions.',
+            ))
+            return
+
+        try:
+            import boto3
+            ses = boto3.client('ses', region_name=getattr(settings, 'AWS_REGION', 'eu-west-1'))
+            ses.describe_configuration_set(ConfigurationSetName=config_set)
+        except ImportError:
+            findings.append((
+                'INFO', slug,
+                'boto3 not installed; cannot verify Configuration Set exists.',
+            ))
+            return
+        except Exception as exc:
+            msg = str(exc)
+            if 'ConfigurationSetDoesNotExist' in msg or 'does not exist' in msg.lower():
+                findings.append((
+                    'CRITICAL', slug,
+                    f'AWS_SES_CONFIGURATION_SET="{config_set}" does NOT exist in SES. '
+                    f'Every outbound will be 554-rejected. Fix the env var or create '
+                    f'the Set in AWS SES console.',
+                ))
+            else:
+                findings.append((
+                    'WARN', slug,
+                    f'Could not verify SES Configuration Set "{config_set}": {msg[:200]}',
+                ))
