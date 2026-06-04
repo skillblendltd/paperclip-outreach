@@ -42,7 +42,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Tenant isolation: each line targets ONE campaign, recipients see only that campaign's data
 # Add a new campaign digest by adding another line with its --campaign-id and --to
 # FP UK -> Prakash + Jamal
-0 17 * * 5 root . /app/docker/.env.cron && cd /app && python manage.py send_weekly_digest --campaign-id 3e5a0d4b-777a-4c74-855c-ac9b10c76dad --to "prakash@mail.taggiq.com,shah.jamal@fullypromoted.co.uk" >> /tmp/outreach_weekly_digest.log 2>&1
+0 17 * * 5 root . /app/docker/.env.cron && cd /app && python manage.py send_weekly_digest --campaign-id 3e5a0d4b-777a-4c74-855c-ac9b10c76dad --to "prakash@taggiq.com,shah.jamal@fullypromoted.co.uk" >> /tmp/outreach_weekly_digest.log 2>&1
 
 # Health check at 8am daily (including weekends)
 0 8 * * * root . /app/docker/.env.cron && cd /app && python manage.py brain_doctor >> /tmp/outreach_health.log 2>&1
