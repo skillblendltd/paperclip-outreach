@@ -173,6 +173,12 @@ class Campaign(BaseModel):
                   'the intersection with active OrgMCPConnections in the '
                   'campaign owner Organization.',
     )
+    ses_config_set = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='SES Configuration Set name for this campaign. Overrides '
+                  'AWS_SES_CONFIGURATION_SET env var. Leave blank to use the '
+                  'global setting. Use fp-outreach for FP campaigns.',
+    )
 
     class Meta:
         db_table = 'campaigns'

@@ -25,7 +25,8 @@ class EmailService:
         cc_emails: Optional[List[str]] = None,
         from_email: Optional[str] = None,
         from_name: Optional[str] = None,
-        reply_to: Optional[str] = None
+        reply_to: Optional[str] = None,
+        ses_config_set: Optional[str] = None,
     ) -> Dict[str, str]:
         from_address = from_email or getattr(settings, 'AWS_SES_FROM_EMAIL', 'noreply@example.com')
         mode = getattr(settings, 'EMAIL_SERVICE_MODE', 'console')
@@ -74,10 +75,11 @@ class EmailService:
                     msg['Reply-To'] = reply_to
 
                 # Tag with SES Configuration Set so async bounce/complaint events
-                # are published to SNS → SQS → process_ses_bounces command.
-                ses_config_set = getattr(settings, 'AWS_SES_CONFIGURATION_SET', '')
-                if ses_config_set:
-                    msg['X-SES-CONFIGURATION-SET'] = ses_config_set
+                # are published to SNS -> SQS -> process_ses_bounces command.
+                # Campaign-level ses_config_set overrides the global env var.
+                effective_config_set = ses_config_set or getattr(settings, 'AWS_SES_CONFIGURATION_SET', '')
+                if effective_config_set:
+                    msg['X-SES-CONFIGURATION-SET'] = effective_config_set
 
                 full_html = EmailService._wrap_html(body_html)
 

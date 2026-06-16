@@ -57,6 +57,7 @@ def send_one(campaign, prospect, template, sequence_number, dry_run=False):
             from_name=campaign.from_name or None,
             from_email=campaign.from_email or None,
             reply_to=campaign.reply_to_email or None,
+            ses_config_set=campaign.ses_config_set or None,
         )
         status = 'sent'
         error_msg = ''
