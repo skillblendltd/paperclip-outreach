@@ -140,7 +140,7 @@ class Command(BaseCommand):
                 to_emails=[recipient],
                 subject=subject,
                 body_html=html_body,
-                from_email='noreply@mail.taggiq.com',
+                from_email='noreply@mail.taggiqpos.com',
                 from_name='Paperklip',
             )
             if result.get('success', True):

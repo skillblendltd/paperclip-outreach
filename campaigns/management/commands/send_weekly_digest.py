@@ -9,7 +9,7 @@ Tenant isolation contract:
 Usage:
     python manage.py send_weekly_digest \\
         --campaign-id <uuid> \\
-        --to prakash@mail.taggiq.com,shah.jamal@fullypromoted.co.uk
+        --to prakash@mail.taggiqpos.com,shah.jamal@fullypromoted.co.uk
 
     python manage.py send_weekly_digest \\
         --campaign-id <uuid> \\
@@ -51,7 +51,7 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '--from-email',
-            default='prakash@mail.taggiq.com',
+            default='prakash@mail.taggiqpos.com',
             help='Sender email (must be SES-verified)',
         )
         parser.add_argument(

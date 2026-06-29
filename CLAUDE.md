@@ -160,15 +160,15 @@ new -> [Seq 1] -> contacted -> [Seq 2-5] -> ...
 
 | Campaign | From | Prospects | Status |
 |----------|------|-----------|--------|
-| TaggIQ BNI Ireland | `prakash@mail.taggiq.com` | 67 | Seq 5 in progress |
-| TaggIQ BNI Promo Global | `prakash@mail.taggiq.com` | 782 | Seq 3-5, largest campaign |
-| TaggIQ BNI Embroidery Global | `prakash@mail.taggiq.com` | 100 | Mature |
+| TaggIQ BNI Ireland | `prakash@mail.taggiqpos.com` | 67 | Seq 5 in progress |
+| TaggIQ BNI Promo Global | `prakash@mail.taggiqpos.com` | 782 | Seq 3-5, largest campaign |
+| TaggIQ BNI Embroidery Global | `prakash@mail.taggiqpos.com` | 100 | Mature |
 | TaggIQ Ireland - Signs | `prakash@taggiq.com` | 102 | Seq 2 active |
 | TaggIQ Ireland - Apparel | `prakash@taggiq.com` | 209 | Seq 2 active |
 | TaggIQ Ireland - Print & Promo | `prakash@taggiq.com` | 586 | Seq 1-2 in progress |
-| TaggIQ London - Signs | `prakash@mail.taggiq.com` | 239 | Seq 1 early |
-| TaggIQ London - Apparel | `prakash@mail.taggiq.com` | 571 | Seq 1 early |
-| TaggIQ London - Print & Promo | `prakash@mail.taggiq.com` | 999 | Seq 1 early |
+| TaggIQ London - Signs | `prakash@mail.taggiqpos.com` | 239 | Seq 1 early |
+| TaggIQ London - Apparel | `prakash@mail.taggiqpos.com` | 571 | Seq 1 early |
+| TaggIQ London - Print & Promo | `prakash@mail.taggiqpos.com` | 999 | Seq 1 early |
 
 **Positioning (TaggIQ):**
 - BNI contacts: "fellow BNI member in print and promo, spent 20 years in software"
@@ -198,7 +198,7 @@ new -> [Seq 1] -> contacted -> [Seq 2-5] -> ...
 | FP Ireland replies (Prakash) | Google Workspace (`prakash@fullypromoted.ie`) | FP email expert skill |
 | FP Dublin B2B replies (Emma) | Google Workspace (`office@fullypromoted.ie`) | MailboxConfig with app password |
 
-**Critical:** BNI campaigns send FROM `prakash@mail.taggiq.com` (SES). Replies MUST use `prakash@taggiq.com` (Zoho). Using `mail.taggiq.com` for replies causes 553 relay error.
+**Critical:** BNI campaigns send FROM `prakash@mail.taggiqpos.com` (SES). Replies MUST use `prakash@taggiq.com` (Zoho). Using `mail.taggiqpos.com` for replies causes 553 relay error.
 
 ---
 

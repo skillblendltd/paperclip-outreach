@@ -24,6 +24,7 @@ IAM_POLICY="paperclip-bounce-poller-policy"
 
 # Sending identities to attach config set to (must be already SES-verified)
 SES_IDENTITIES=(
+  "mail.taggiqpos.com"
   "mail.taggiq.com"
   "mail.kritno.com"
   "mail.fullypromoted.ie"
