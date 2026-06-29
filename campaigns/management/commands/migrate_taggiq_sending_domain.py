@@ -31,20 +31,23 @@ class Command(BaseCommand):
         dst = OLD_DOMAIN if reverse else NEW_DOMAIN
 
         campaigns = Campaign.objects.filter(from_email__icontains=src)
-        if not campaigns.exists():
+        campaign_list = list(campaigns.order_by('name'))
+        if not campaign_list:
             self.stdout.write(f'No campaigns with @{src} found.')
             return
 
         self.stdout.write(f'{"DRY RUN - " if dry_run else ""}Migrating @{src} -> @{dst}:')
-        for c in campaigns.order_by('name'):
+        count = 0
+        for c in campaign_list:
             new_email = c.from_email.replace(src, dst)
             self.stdout.write(f'  [{c.id}] {c.name}')
             self.stdout.write(f'      {c.from_email} -> {new_email}')
             if not dry_run:
                 c.from_email = new_email
                 c.save(update_fields=['from_email'])
+                count += 1
 
         if dry_run:
-            self.stdout.write(self.style.WARNING(f'\nDry run complete - {campaigns.count()} campaigns would be updated.'))
+            self.stdout.write(self.style.WARNING(f'\nDry run complete - {len(campaign_list)} campaigns would be updated.'))
         else:
-            self.stdout.write(self.style.SUCCESS(f'\nDone - {campaigns.count()} campaigns updated.'))
+            self.stdout.write(self.style.SUCCESS(f'\nDone - {count} campaigns updated.'))
